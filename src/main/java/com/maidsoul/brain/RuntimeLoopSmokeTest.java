@@ -210,7 +210,9 @@ public final class RuntimeLoopSmokeTest {
                 old.proactiveLightFollowupAfterSeconds(),
                 old.proactiveTopicPushAfterSeconds(),
                 old.proactiveWorldObserveAfterSeconds(),
-                old.proactiveIdleMinIntervalSeconds()
+                old.proactiveIdleMinIntervalSeconds(),
+                old.proactiveLongSilenceCheckSeconds(),
+                old.proactiveMaxLongSilenceChecks()
         );
         return new BrainConfig(base.identity(), base.model(), flow, base.splitter(), base.memory(), base.debug());
     }

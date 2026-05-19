@@ -19,7 +19,9 @@ public record FlowConfig(
         int proactiveLightFollowupAfterSeconds,
         int proactiveTopicPushAfterSeconds,
         int proactiveWorldObserveAfterSeconds,
-        int proactiveIdleMinIntervalSeconds
+        int proactiveIdleMinIntervalSeconds,
+        int proactiveLongSilenceCheckSeconds,
+        int proactiveMaxLongSilenceChecks
 ) {
     public static FlowConfig load(Path path) {
         Properties p = ConfigFiles.load(path);
@@ -39,7 +41,9 @@ public record FlowConfig(
                 ConfigFiles.integer(p, "proactiveLightFollowupAfterSeconds", 30),
                 ConfigFiles.integer(p, "proactiveTopicPushAfterSeconds", 75),
                 ConfigFiles.integer(p, "proactiveWorldObserveAfterSeconds", 180),
-                ConfigFiles.integer(p, "proactiveIdleMinIntervalSeconds", 300)
+                ConfigFiles.integer(p, "proactiveIdleMinIntervalSeconds", 300),
+                ConfigFiles.integer(p, "proactiveLongSilenceCheckSeconds", 120),
+                ConfigFiles.integer(p, "proactiveMaxLongSilenceChecks", 2)
         );
     }
 }

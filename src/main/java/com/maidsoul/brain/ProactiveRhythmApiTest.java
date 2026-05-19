@@ -85,7 +85,9 @@ public final class ProactiveRhythmApiTest {
                 6,
                 14,
                 24,
-                36
+                36,
+                30,
+                old.proactiveMaxLongSilenceChecks()
         );
         return new BrainConfig(base.identity(), base.model(), flow, base.splitter(), base.memory(), base.debug());
     }

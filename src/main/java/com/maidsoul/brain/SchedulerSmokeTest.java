@@ -53,6 +53,15 @@ public final class SchedulerSmokeTest {
         if (scheduler.shouldScheduleAfterSilentDecision(40, 2, 2)) {
             throw new IllegalStateException("主动好奇较低且已连续沉默时不应继续排候选。");
         }
+        if (!scheduler.shouldScheduleLongSilenceCheck(0) || !scheduler.shouldScheduleLongSilenceCheck(1)) {
+            throw new IllegalStateException("普通低兴趣沉默应保留固定长沉默复检。");
+        }
+        if (scheduler.shouldScheduleLongSilenceCheck(2)) {
+            throw new IllegalStateException("长沉默复检达到上限后应停止。");
+        }
+        if (scheduler.nextDelaySeconds(ProactiveScheduler.STAGE_LONG_SILENCE_CHECK, 20, 3, 2) != 120) {
+            throw new IllegalStateException("长沉默复检应使用固定秒数，不受低好奇阈值影响。");
+        }
         if (scheduler.shouldScheduleAfterSilentDecision(90, 1, 4)) {
             throw new IllegalStateException("达到主动候选上限后不应继续排候选。");
         }
@@ -79,7 +88,9 @@ public final class SchedulerSmokeTest {
                 30,
                 75,
                 180,
-                300
+                300,
+                120,
+                2
         );
     }
 }

@@ -17,7 +17,8 @@ public final class ProactiveScheduler {
     public static final int STAGE_WORLD_OBSERVE = 2;
     public static final int STAGE_RELATION_CANDIDATE = 3;
     public static final int STAGE_FINAL_NOTICE = 4;
-    public static final int STAGE_IDLE = 5;
+    public static final int STAGE_LONG_SILENCE_CHECK = 5;
+    public static final int STAGE_IDLE = 6;
 
     private final FlowConfig flow;
 
@@ -27,6 +28,18 @@ public final class ProactiveScheduler {
 
     public int maxVisibleReplies() {
         return Math.max(1, flow.proactiveMaxVisibleReplies());
+    }
+
+    public int maxLongSilenceChecks() {
+        return Math.max(0, flow.proactiveMaxLongSilenceChecks());
+    }
+
+    public int longSilenceCheckSeconds() {
+        return Math.max(1, flow.proactiveLongSilenceCheckSeconds());
+    }
+
+    public boolean shouldScheduleLongSilenceCheck(int longSilenceChecks) {
+        return longSilenceChecks < maxLongSilenceChecks();
     }
 
     public boolean shouldScheduleAfterSilentDecision(int activeCuriosity, int silentDecisions, int firedCandidates) {
@@ -55,8 +68,12 @@ public final class ProactiveScheduler {
             case STAGE_WORLD_OBSERVE -> Math.max(flow.proactiveTopicPushAfterSeconds() + 1, flow.proactiveWorldObserveAfterSeconds());
             case STAGE_RELATION_CANDIDATE -> Math.max(flow.proactiveTopicPushAfterSeconds(), 45);
             case STAGE_FINAL_NOTICE -> Math.max(flow.proactiveTopicPushAfterSeconds(), flow.proactiveWorldObserveAfterSeconds());
+            case STAGE_LONG_SILENCE_CHECK -> longSilenceCheckSeconds();
             default -> Math.max(flow.proactiveWorldObserveAfterSeconds() + 1, flow.proactiveIdleMinIntervalSeconds());
         };
+        if (stage == STAGE_LONG_SILENCE_CHECK) {
+            return base;
+        }
         if (silentDecisions <= 0) {
             return base;
         }
@@ -76,6 +93,7 @@ public final class ProactiveScheduler {
             case STAGE_WORLD_OBSERVE -> "world_observe";
             case STAGE_RELATION_CANDIDATE -> "proactive_candidate";
             case STAGE_FINAL_NOTICE -> "final_notice";
+            case STAGE_LONG_SILENCE_CHECK -> "long_silence_check";
             default -> "idle";
         };
     }
@@ -87,6 +105,7 @@ public final class ProactiveScheduler {
             case STAGE_WORLD_OBSERVE -> "这是环境/记忆候选。只有存在可靠的世界事件、视觉摘要、关系记忆或明显情绪残留时，才考虑主动；没有依据不要编造。";
             case STAGE_RELATION_CANDIDATE -> "这是关系余韵候选。调度器认为主动好奇仍然较高，但这不代表必须发言；请结合最近是否追问过、用户是否可能需要空间来决定。";
             case STAGE_FINAL_NOTICE -> "这是最后收束候选。若前面已经多次主动而玩家仍沉默，只允许短短告知会先安静下来；也可以 no_action 直接进入沉默。";
+            case STAGE_LONG_SILENCE_CHECK -> "这是长时间沉默复检。普通低兴趣话题短期不追问，但如果玩家很久没回，可以考虑一次轻量确认；不要质问，不要连续施压，也可以继续 no_action。";
             default -> "这是低频陪伴候选。除非有明确情绪、环境或关系理由，否则优先 no_action，避免刷屏。";
         };
         return "[主动候选事件] 上一轮对话节奏点后，玩家沉默约 " + silentSeconds + " 秒。"

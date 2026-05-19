@@ -88,7 +88,9 @@ public final class ProactiveRhythmSmokeTest {
                 2,
                 4,
                 6,
-                8
+                8,
+                4,
+                old.proactiveMaxLongSilenceChecks()
         );
         return new BrainConfig(base.identity(), base.model(), flow, base.splitter(), base.memory(), base.debug());
     }

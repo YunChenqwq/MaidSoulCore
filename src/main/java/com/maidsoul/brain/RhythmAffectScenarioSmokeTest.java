@@ -123,7 +123,9 @@ public final class RhythmAffectScenarioSmokeTest {
                 1,
                 1,
                 1,
-                1
+                1,
+                1,
+                2
         );
         MemoryConfig memory = new MemoryConfig(
                 true,
