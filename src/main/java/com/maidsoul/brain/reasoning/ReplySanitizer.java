@@ -52,7 +52,7 @@ public final class ReplySanitizer {
         if (looksLikeInternalText(text)) {
             return "";
         }
-        return softenRepeatedCatchphrases(text);
+        return text.trim();
     }
 
     private String removeBracketActions(String text) {
@@ -83,17 +83,6 @@ public final class ReplySanitizer {
             index = end + 1;
         }
         return builder.toString().replaceAll("\\s{2,}", " ").trim();
-    }
-
-    private String softenRepeatedCatchphrases(String text) {
-        String value = text == null ? "" : text.trim();
-        if (value.isBlank()) {
-            return value;
-        }
-        value = value.replaceAll("^(哼[，,。！!~～\\s]*){2,}", "哼，");
-        value = value.replaceAll("(嗷呜[~～！!。\\s]*){2,}", "嗷呜～");
-        value = value.replace("本狐", "我");
-        return value.trim();
     }
 
     private String removeLeadingBracketAction(String text) {

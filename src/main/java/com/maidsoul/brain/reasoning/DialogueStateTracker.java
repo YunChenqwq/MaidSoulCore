@@ -3,6 +3,7 @@ package com.maidsoul.brain.reasoning;
 import com.maidsoul.brain.message.ChatMessage;
 import com.maidsoul.brain.message.MessageRole;
 import com.maidsoul.brain.reply.effect.ReplyEffectTracker;
+import com.maidsoul.brain.reply.effect.ReplyEffectScoring;
 
 import java.util.List;
 
@@ -30,18 +31,10 @@ final class DialogueStateTracker {
         }
 
         DialogueState next;
-        if (containsAny(pendingText, "呜呜", "哭", "难过", "伤心", "崩溃", "想哭", "委屈", "难受", "好累", "撑不住")) {
-            // 用户低落和用户投诉是两种不同状态：前者需要陪伴，后者需要修复关系。
-            // 如果混成 USER_COMPLAINING，回复器容易进入“傲娇修复/抢情绪”姿态。
-            next = new DialogueState(DialogueMode.USER_DISTRESSED, "用户正在表达难过、哭泣或委屈；情绪主体是用户。酒狐需要先安抚和陪伴，不能调侃，不能说自己才该哭或把情绪转回自己。");
-        } else if (replyEffectSummary != null && replyEffectSummary.repairLoop()) {
+        if (replyEffectSummary != null && replyEffectSummary.repairLoop()) {
             next = new DialogueState(DialogueMode.REPAIR_NEEDED, "上一条回复触发了用户纠正/修复循环，需要先承认理解偏差。");
         } else if (replyEffectSummary != null && replyEffectSummary.explicitNegative()) {
             next = new DialogueState(DialogueMode.USER_COMPLAINING, "上一条回复后出现明确负反馈，需要降低防御并重新接住。");
-        } else if (containsAny(pendingText, "傻逼", "废物", "滚", "蠢货")) {
-            next = new DialogueState(DialogueMode.MAID_HURT, "用户出现明显攻击性辱骂。");
-        } else if (containsAny(pendingText, "生气", "不可爱", "冷淡", "不理我", "无语", "谁家女仆", "真服了", "不爽", "自己看着办", "乱编", "没根据")) {
-            next = new DialogueState(DialogueMode.REPAIR_NEEDED, "用户明确表达不满或失望，需要修复关系。");
         } else if (containsAny(pendingText, "对不起", "抱歉", "说重了", "我错了") && recentlyConflict(recentContext)) {
             next = new DialogueState(DialogueMode.COOLDOWN_AFTER_CONFLICT, "用户正在为冲突道歉，应该接住台阶但不要立刻翻旧账。");
         } else if (isColdShortFeedback(pendingText) && recentlyConflict(recentContext)) {
@@ -75,7 +68,7 @@ final class DialogueStateTracker {
         int checked = 0;
         for (int i = recentContext.size() - 1; i >= 0 && checked < 8; i--, checked++) {
             String text = recentContext.get(i).content();
-            if (containsAny(text, "不可爱", "冷淡", "不理我", "无语", "生气", "傻逼", "真服了", "谁家女仆")) {
+            if (containsAny(text, ReplyEffectScoring.NEGATIVE_PATTERNS) || containsAny(text, ReplyEffectScoring.REPAIR_PATTERNS)) {
                 return true;
             }
         }
@@ -104,6 +97,16 @@ final class DialogueStateTracker {
     private static boolean containsAny(String text, String... needles) {
         String value = text == null ? "" : text;
         for (String needle : needles) {
+            if (needle != null && !needle.isBlank() && value.contains(needle)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsAny(String text, java.util.List<String> needles) {
+        String value = text == null ? "" : text;
+        for (String needle : needles == null ? java.util.List.<String>of() : needles) {
             if (needle != null && !needle.isBlank() && value.contains(needle)) {
                 return true;
             }

@@ -104,14 +104,12 @@ public final class ReplyEffectTracker {
             return ReplyEffectSummary.neutral();
         }
         FrictionSignals friction = record.scores().frictionSignals();
-        boolean localNegative = "maidsoul_explicit_negative".equals(record.finalizeReason());
-        boolean localRepair = "maidsoul_repair_loop".equals(record.finalizeReason());
         return new ReplyEffectSummary(
                 record.finalizeReason(),
                 record.scores().asi(),
                 record.scores().frictionScore(),
-                friction.explicitNegative() >= 1.0 || localNegative,
-                friction.repairLoop() >= 1.0 || localRepair,
+                friction.explicitNegative() >= 1.0,
+                friction.repairLoop() >= 1.0,
                 record.followups().size()
         );
     }
@@ -148,12 +146,6 @@ public final class ReplyEffectTracker {
         if (ReplyEffectScoring.hasRepairLoop(targetFollowups, targetUserId, false)) {
             return "repair_loop";
         }
-        if (containsLocalNegative(targetFollowups)) {
-            return "maidsoul_explicit_negative";
-        }
-        if (containsLocalRepair(targetFollowups)) {
-            return "maidsoul_repair_loop";
-        }
         if (targetFollowups.size() >= TARGET_USER_FOLLOWUP_LIMIT) {
             return "target_user_followups";
         }
@@ -164,12 +156,6 @@ public final class ReplyEffectTracker {
             }
             if (ReplyEffectScoring.hasRepairLoop(record.followups(), targetUserId, allowIndirect)) {
                 return "repair_loop";
-            }
-            if (containsLocalNegative(record.followups())) {
-                return "maidsoul_explicit_negative";
-            }
-            if (containsLocalRepair(record.followups())) {
-                return "maidsoul_repair_loop";
             }
             if (record.followups().size() >= SESSION_FOLLOWUP_LIMIT) {
                 return "session_followups_limit";
@@ -208,24 +194,6 @@ public final class ReplyEffectTracker {
         }
     }
 
-    private static boolean containsLocalNegative(List<FollowupMessageSnapshot> followups) {
-        for (FollowupMessageSnapshot followup : followups) {
-            if (MaidSoulReplyEffectPatterns.hasLocalNegative(followup.plainText())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean containsLocalRepair(List<FollowupMessageSnapshot> followups) {
-        for (FollowupMessageSnapshot followup : followups) {
-            if (MaidSoulReplyEffectPatterns.hasLocalRepair(followup.plainText())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static String normalize(String value, String fallback) {
         String text = value == null ? "" : value.trim();
         return text.isBlank() ? fallback : text;
@@ -244,7 +212,7 @@ public final class ReplyEffectTracker {
         }
 
         public boolean hasFriction() {
-            return explicitNegative || repairLoop || finalizeReason.startsWith("maidsoul_") || frictionScore >= 0.45;
+            return explicitNegative || repairLoop || frictionScore >= 0.45;
         }
     }
 }
