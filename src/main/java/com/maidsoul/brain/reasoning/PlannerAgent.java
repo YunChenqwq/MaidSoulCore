@@ -1,0 +1,200 @@
+package com.maidsoul.brain.reasoning;
+
+import com.maidsoul.brain.config.BrainConfig;
+import com.maidsoul.brain.llm.ChatPayload;
+import com.maidsoul.brain.llm.InterruptFlag;
+import com.maidsoul.brain.llm.LlmClient;
+import com.maidsoul.brain.llm.LlmResponse;
+import com.maidsoul.brain.prompt.PromptCatalog;
+import com.maidsoul.brain.prompt.PromptRenderer;
+import com.maidsoul.brain.tool.BuiltinToolSet;
+import com.maidsoul.brain.tool.ToolCall;
+import com.maidsoul.brain.tool.ToolSpec;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 主规划器。
+ *
+ * <p>规划器只负责决定动作，不直接生成可见台词。它通过工具调用选择 reply、wait、no_action、
+ * finish 或 query_memory，和参考聊天核心的职责保持一致。</p>
+ */
+final class PlannerAgent {
+    private final BrainConfig config;
+    private final PromptCatalog prompts;
+    private final LlmClient llm;
+
+    PlannerAgent(BrainConfig config, PromptCatalog prompts, LlmClient llm) {
+        this.config = config;
+        this.prompts = prompts;
+        this.llm = llm;
+    }
+
+    PlanDecision plan(String context) {
+        return planWithMeta(context, null).decision();
+    }
+
+    PlannerResult planWithMeta(String context) {
+        return planWithMeta(context, null);
+    }
+
+    PlannerResult planWithMeta(String context, InterruptFlag interruptFlag) {
+        boolean mergedTiming = !config.flow().enableIndependentTimingGate();
+        String promptName = mergedTiming ? "maisaka_chat_merged_timing.prompt" : "maisaka_chat.prompt";
+        String prompt = PromptRenderer.render(prompts.load(promptName), Map.of(
+                "bot_name", config.identity().botName(),
+                "identity", config.identity().renderPrompt(),
+                "group_chat_attention_block", "",
+                "file_tools_section", "",
+                "timing_gate_wait_rule", "- wait：固定再等待一段时间，时间到后再重新判断。\n"
+                        + "- 长期记忆工具已经接入，但必须克制使用。只有用户明确说“之前、上次、还记得吗、我说过、我的偏好”等依赖过去的信息，或回复必须依赖承诺/关系历史/长期偏好时，才调用 query_memory。即时情绪、沉默后的追问、普通接话只看最近聊天记录和长期状态参考。"
+        ));
+        List<ToolSpec> tools = BuiltinToolSet.plannerTools(mergedTiming).stream()
+                .filter(tool -> config.memory().queryMemoryToolEnabled() || !"query_memory".equals(tool.name()))
+                .toList();
+        LlmResponse response = llm.chatWithTools("planner", List.of(
+                ChatPayload.system(prompt),
+                ChatPayload.user("当前聊天记录与现场：\n" + context)
+        ), tools, config.model().plannerTimeoutMillis(), interruptFlag);
+        if (!response.toolCalls().isEmpty()) {
+            return new PlannerResult(fromToolCall(response.toolCalls().get(0), response.content()), response.model(), response.metricsSummary());
+        }
+        return new PlannerResult(fallbackFromText(response.content()), response.model(), response.metricsSummary());
+    }
+
+    private PlanDecision fromToolCall(ToolCall call, String reasoning) {
+        String action = normalize(call.functionName());
+        Map<String, Object> args = call.arguments();
+        String reason = stringArg(args, "reason", reasoning);
+        if ("reply".equals(action) && isNoSpeechText(reason)) {
+            return new PlanDecision("no_action", "", 0, "规划器理由明确要求停止发言，覆盖错误的 reply 工具调用。", "");
+        }
+        String compactReason = compactReason(reason);
+        return switch (action) {
+            case "reply" -> new PlanDecision(
+                    "reply",
+                    stringArg(args, "target_message_id", ""),
+                    0,
+                    compactReason,
+                    stringArg(args, "reference_info", "")
+            );
+            case "wait" -> new PlanDecision("wait", "", intArg(args, "seconds", config.flow().defaultWaitSeconds()), compactReason, "");
+            case "no_action" -> new PlanDecision("no_action", "", 0, compactReason, "");
+            case "finish" -> new PlanDecision("no_action", "", 0, compactReason, "");
+            case "query_memory" -> new PlanDecision("query_memory", stringArg(args, "query", ""), 0, compactReason, "");
+            default -> PlanDecision.replyLatest("规划器调用了未知工具，按最新消息回复。");
+        };
+    }
+
+    private PlanDecision fallbackFromText(String content) {
+        String text = content == null ? "" : content.trim();
+        if (isNoSpeechText(text)) {
+            return new PlanDecision("no_action", "", 0, "规划器文本判断不发言。", "");
+        }
+        if (text.contains("wait")) {
+            return new PlanDecision("wait", "", config.flow().defaultWaitSeconds(), "规划器文本提到等待。", "");
+        }
+        return new PlanDecision("reply", "", 0, text.isBlank() ? "没有工具调用，按最新消息回复。" : compactReason(text), "");
+    }
+
+    private static String compactReason(String reason) {
+        // 规划器理由只是给回复器的方向提示，不能把长篇“局面分析”继续灌进回复阶段。
+        String text = reason == null ? "" : reason
+                .replace("**", "")
+                .replace("##", "")
+                .trim();
+        String[] noisyPrefixes = {"分析：", "分析:", "建议：", "建议:", "当前局面：", "当前情况：", "判断：", "判断:"};
+        boolean changed;
+        do {
+            changed = false;
+            for (String prefix : noisyPrefixes) {
+                if (text.startsWith(prefix)) {
+                    text = text.substring(prefix.length()).trim();
+                    changed = true;
+                }
+            }
+        } while (changed);
+        int lineBreak = firstPositive(text.indexOf('\n'), text.indexOf('\r'));
+        if (lineBreak >= 0) {
+            text = text.substring(0, lineBreak).trim();
+        }
+        if (text.length() > 80) {
+            text = text.substring(0, 80).trim();
+        }
+        return text.isBlank() ? "按最新消息自然回应。" : text;
+    }
+
+    private static int firstPositive(int a, int b) {
+        if (a < 0) {
+            return b;
+        }
+        if (b < 0) {
+            return a;
+        }
+        return Math.min(a, b);
+    }
+
+    private static boolean isNoSpeechText(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        return text.contains("no_action")
+                || text.contains("no reply")
+                || text.contains("不发言")
+                || text.contains("不回应")
+                || text.contains("不做回应")
+                || text.contains("本轮不做")
+                || text.contains("等待用户")
+                || text.contains("等待对方")
+                || text.contains("给用户空间")
+                || text.contains("停止发言")
+                || text.contains("停止继续发言")
+                || text.contains("停止主动")
+                || text.contains("停止刷屏")
+                || text.contains("不要再")
+                || text.contains("不宜再")
+                || text.contains("不宜继续")
+                || text.contains("不适合继续")
+                || text.contains("不应该再")
+                || text.contains("应该等待")
+                || text.contains("应等待")
+                || text.contains("继续发言只会")
+                || text.contains("继续说只会")
+                || text.contains("继续追问会")
+                || text.contains("继续主动发言")
+                || text.contains("无需继续")
+                || text.contains("没有必要继续")
+                || text.contains("把话语权")
+                || text.contains("交还给用户")
+                || text.contains("等用户主动")
+                || text.contains("用户主动开口")
+                || text.contains("刷屏")
+                || text.contains("自言自语");
+    }
+
+    private static String normalize(String action) {
+        return action == null ? "reply" : action.trim().toLowerCase();
+    }
+
+    private static String stringArg(Map<String, Object> args, String key, String fallback) {
+        Object value = args.get(key);
+        String text = value == null ? "" : String.valueOf(value).trim();
+        return text.isBlank() ? fallback : text;
+    }
+
+    private static int intArg(Map<String, Object> args, String key, int fallback) {
+        Object value = args.get(key);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (Exception ignored) {
+            return fallback;
+        }
+    }
+
+    record PlannerResult(PlanDecision decision, String model, String metricsSummary) {
+    }
+}
