@@ -13,7 +13,7 @@ public final class ReplyerHookRunner {
     private final ReplyerHookRegistry registry;
 
     public ReplyerHookRunner() {
-        this(new ReplyerHookRegistry());
+        this(ReplyerHookRegistry.global());
     }
 
     public ReplyerHookRunner(ReplyerHookRegistry registry) {

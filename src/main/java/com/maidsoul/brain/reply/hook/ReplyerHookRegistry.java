@@ -10,7 +10,12 @@ import java.util.List;
  * 行为等价于 maibotdev 没有插件拦截时的 replyer。</p>
  */
 public final class ReplyerHookRegistry {
+    private static final ReplyerHookRegistry GLOBAL = new ReplyerHookRegistry();
     private final List<ReplyerAfterResponseHook> hooks = new ArrayList<>();
+
+    public static ReplyerHookRegistry global() {
+        return GLOBAL;
+    }
 
     public synchronized void register(ReplyerAfterResponseHook hook) {
         if (hook != null) {
@@ -20,5 +25,9 @@ public final class ReplyerHookRegistry {
 
     public synchronized List<ReplyerAfterResponseHook> hooks() {
         return List.copyOf(hooks);
+    }
+
+    public synchronized void clear() {
+        hooks.clear();
     }
 }
