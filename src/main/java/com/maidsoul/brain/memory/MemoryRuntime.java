@@ -5,6 +5,7 @@ import com.maidsoul.brain.affect.AffectEvent;
 import com.maidsoul.brain.affect.AffectProfile;
 import com.maidsoul.brain.affect.AffectProfileStore;
 import com.maidsoul.brain.affect.AffectSnapshot;
+import com.maidsoul.brain.character.CharacterPackage;
 import com.maidsoul.brain.config.MemoryConfig;
 
 import java.nio.file.Path;
@@ -23,6 +24,7 @@ public final class MemoryRuntime {
     private final DailyMemoryConsolidator dailyConsolidator;
     private final AffectProfileStore affectStore;
     private final UserProfileStore profileStore;
+    private final CharacterPackage characterPackage;
     private final AffectProfile affectProfile;
     private final UserProfile userProfile;
 
@@ -31,7 +33,9 @@ public final class MemoryRuntime {
         this.memoryStore = new LifeMemoryStore(config);
         this.dailyConsolidator = new DailyMemoryConsolidator(memoryStore.dailyDir());
         Path maidDir = memoryStore.maidDir();
-        this.affectStore = new AffectProfileStore(maidDir.resolve("affect.json"));
+        Path characterRoot = Path.of(config.characterRoot()).resolve(config.maidId());
+        this.characterPackage = CharacterPackage.load(characterRoot, config.maidId());
+        this.affectStore = new AffectProfileStore(characterPackage.affectPath(), maidDir.resolve("affect.json"));
         this.profileStore = new UserProfileStore(maidDir.resolve("user_profile.json"));
         this.affectProfile = affectStore.load();
         this.userProfile = profileStore.load(config.ownerId());
@@ -124,7 +128,8 @@ public final class MemoryRuntime {
         String memories = memoryStore.renderPromptBlock(latestText, config.promptMemoryLimit());
         String profile = userProfile.renderForPrompt(config.promptProfileLimit());
         StringBuilder builder = new StringBuilder();
-        builder.append("[当前情绪关系]\n")
+        builder.append(characterPackage.renderPromptBlock(affectProfile, latestText, config.promptMemoryLimit()))
+                .append("\n\n[当前情绪关系]\n")
                 .append(affectProfile.brief())
                 .append("\n状态解释：")
                 .append(affectProfile.stateHint())

@@ -2,6 +2,7 @@ package com.maidsoul.brain;
 
 import com.maidsoul.brain.config.BrainConfig;
 import com.maidsoul.brain.config.FlowConfig;
+import com.maidsoul.brain.config.MemoryConfig;
 import com.maidsoul.brain.llm.ChatPayload;
 import com.maidsoul.brain.llm.InterruptFlag;
 import com.maidsoul.brain.llm.LlmClient;
@@ -13,6 +14,7 @@ import com.maidsoul.brain.tool.ToolCall;
 import com.maidsoul.brain.tool.ToolSpec;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -70,7 +72,7 @@ public final class ProactiveRhythmSmokeTest {
         System.out.println("PROACTIVE_RHYTHM_SMOKE_OK");
     }
 
-    private static BrainConfig withFastProactiveRhythm(BrainConfig base) {
+    private static BrainConfig withFastProactiveRhythm(BrainConfig base) throws Exception {
         FlowConfig old = base.flow();
         FlowConfig flow = new FlowConfig(
                 old.historyWindow(),
@@ -92,7 +94,20 @@ public final class ProactiveRhythmSmokeTest {
                 4,
                 old.proactiveMaxLongSilenceChecks()
         );
-        return new BrainConfig(base.identity(), base.model(), flow, base.splitter(), base.memory(), base.debug());
+        Path testRoot = Files.createTempDirectory(Path.of("").toAbsolutePath().resolve("out"), "proactive-rhythm-memory-");
+        MemoryConfig memory = new MemoryConfig(
+                true,
+                testRoot.resolve("memory").toString(),
+                testRoot.resolve("characters").toString(),
+                base.memory().maidId(),
+                base.memory().ownerId(),
+                base.memory().worldId(),
+                base.memory().promptMemoryLimit(),
+                base.memory().promptProfileLimit(),
+                base.memory().retrievalLimit(),
+                base.memory().queryMemoryToolEnabled()
+        );
+        return new BrainConfig(base.identity(), base.model(), flow, base.splitter(), memory, base.debug());
     }
 
     private static final class ScriptedClient implements LlmClient {

@@ -130,6 +130,7 @@ public final class RhythmAffectScenarioSmokeTest {
         MemoryConfig memory = new MemoryConfig(
                 true,
                 memoryRoot.toString(),
+                memoryRoot.resolve("characters").toString(),
                 base.memory().maidId(),
                 base.memory().ownerId(),
                 base.memory().worldId(),

@@ -1,0 +1,11 @@
+{
+  "mood": 60,
+  "anger": 0,
+  "hurt": 0,
+  "tension": 10,
+  "trust": 50,
+  "familiarity": 20,
+  "affection": 50,
+  "security": 55,
+  "curiosity": 45
+}

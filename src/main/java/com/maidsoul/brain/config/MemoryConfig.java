@@ -12,6 +12,7 @@ import java.util.Properties;
 public record MemoryConfig(
         boolean enabled,
         String dataRoot,
+        String characterRoot,
         String maidId,
         String ownerId,
         String worldId,
@@ -25,6 +26,7 @@ public record MemoryConfig(
         return new MemoryConfig(
                 ConfigFiles.bool(p, "enabled", true),
                 ConfigFiles.text(p, "dataRoot", "data/memory"),
+                ConfigFiles.text(p, "characterRoot", "data/characters"),
                 ConfigFiles.text(p, "maidId", "prototype-jiuhu"),
                 ConfigFiles.text(p, "ownerId", "prototype-owner"),
                 ConfigFiles.text(p, "worldId", "prototype-world"),

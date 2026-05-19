@@ -14,17 +14,24 @@ import java.util.Map;
  */
 public final class AffectProfileStore {
     private final Path path;
+    private final Path legacyPath;
 
     public AffectProfileStore(Path path) {
+        this(path, null);
+    }
+
+    public AffectProfileStore(Path path, Path legacyPath) {
         this.path = path;
+        this.legacyPath = legacyPath;
     }
 
     public AffectProfile load() {
-        if (Files.notExists(path)) {
+        Path source = Files.exists(path) ? path : legacyPath;
+        if (source == null || Files.notExists(source)) {
             return new AffectProfile();
         }
         try {
-            Map<String, String> data = SimpleJson.object(Files.readString(path, StandardCharsets.UTF_8));
+            Map<String, String> data = SimpleJson.object(Files.readString(source, StandardCharsets.UTF_8));
             AffectProfile profile = new AffectProfile();
             profile.mood = SimpleJson.integer(data.get("mood"), profile.mood);
             profile.anger = SimpleJson.integer(data.get("anger"), profile.anger);
@@ -37,7 +44,7 @@ public final class AffectProfileStore {
             profile.curiosity = SimpleJson.integer(data.get("curiosity"), profile.curiosity);
             return profile;
         } catch (IOException e) {
-            throw new UncheckedIOException("读取情绪关系状态失败: " + path, e);
+            throw new UncheckedIOException("读取情绪关系状态失败: " + source, e);
         }
     }
 

@@ -2,7 +2,8 @@
 .vscode/
 out/
 logs/
-data/
+data/*
+!data/characters/
+!data/characters/**
 *.class
 *.jar
-
