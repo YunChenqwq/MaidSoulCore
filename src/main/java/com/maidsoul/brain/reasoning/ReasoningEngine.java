@@ -65,7 +65,6 @@ public final class ReasoningEngine {
     public Result runOneCycle(long cycleVersion, LongSupplier currentVersion, InterruptFlag interruptFlag) {
         List<ChatMessage> pending = session.collectPendingMessages();
         boolean proactiveEvent = isProactiveEvent(pending);
-        boolean emotionPushEvent = isEmotionPushEvent(pending);
         if (!pending.isEmpty()) {
             session.ingest(pending);
         }
@@ -166,18 +165,10 @@ public final class ReasoningEngine {
             }
             trace.trace("planner", plan.action() + " target=" + plan.targetMessageId() + " / " + plan.reason());
             if ("wait".equals(plan.action())) {
-                if (emotionPushEvent) {
-                    trace.trace("planner.override", "情绪推进事件不再继续 wait，覆盖为低压力情绪推进回复。");
-                    plan = PlanDecision.replyLatest("长时间沉默后的情绪推进，轻轻接住上一轮关系余韵。");
-                } else {
                 return Result.waiting(plan.waitSeconds() > 0 ? plan.waitSeconds() : config.flow().defaultWaitSeconds());
-                }
             }
             if ("no_action".equals(plan.action())) {
-                if (emotionPushEvent) {
-                    trace.trace("planner.override", "情绪推进事件不接受 no_action，覆盖为低压力情绪推进回复。");
-                    plan = PlanDecision.replyLatest("长时间沉默后的情绪推进，轻轻接住上一轮关系余韵。");
-                } else if (noActionPolicy.shouldOverrideForUserInput(pending, dialogueState)) {
+                if (noActionPolicy.shouldOverrideForUserInput(pending, dialogueState)) {
                     trace.trace("planner.override", "真实用户输入仍需回应，覆盖 planner no_action。");
                     plan = PlanDecision.replyLatest("玩家刚发来可回应内容，不能把真实输入当成主动沉默事件。");
                 } else {
@@ -207,7 +198,7 @@ public final class ReasoningEngine {
             String reply;
             long replyStarted = System.currentTimeMillis();
             String effectiveReason = proactiveEvent
-                    ? proactiveReplyReason(plan.reason(), emotionPushEvent)
+                    ? proactiveReplyReason(plan.reason())
                     : plan.reason();
             try {
                 ReplyComposer.LlmReply composed = replyComposer.composeStreamingWithMeta(
@@ -237,7 +228,7 @@ public final class ReasoningEngine {
 
     private ChatMessage resolveReplyTarget(PlanDecision plan, ChatMessage anchor, boolean proactiveEvent) {
         if (proactiveEvent) {
-            // 主动/情绪推进不是在回复一条新的用户消息。不能把 latestUserMessage 当 target，
+            // 主动候选事件不是在回复一条新的用户消息。不能把 latestUserMessage 当 target，
             // 否则 replyer 会误以为用户刚刚又说了一遍历史内容。
             return null;
         }
@@ -246,11 +237,9 @@ public final class ReasoningEngine {
                 .orElse(anchor);
     }
 
-    private static String proactiveReplyReason(String plannerReason, boolean emotionPushEvent) {
+    private static String proactiveReplyReason(String plannerReason) {
         String base = plannerReason == null ? "" : plannerReason.trim();
-        String prefix = emotionPushEvent
-                ? "这是情绪推进，不是在回复新的用户发言；不要把历史用户消息当作刚刚又说了一遍。"
-                : "这是主动续话，不是在回复新的用户发言；不要复述或重新解释历史用户消息。";
+        String prefix = "这是运行时提交给 planner 的主动候选事件，不是在回复新的用户发言；不要复述或重新解释历史用户消息。";
         if (base.isBlank()) {
             return prefix;
         }
@@ -259,16 +248,9 @@ public final class ReasoningEngine {
 
     private static boolean isProactiveEvent(List<ChatMessage> pending) {
         for (ChatMessage message : pending) {
-            if (message.role() == MessageRole.INTERNAL && message.content().startsWith("[现场观察]")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isEmotionPushEvent(List<ChatMessage> pending) {
-        for (ChatMessage message : pending) {
-            if (message.role() == MessageRole.INTERNAL && message.content().contains("阶段=emotion_push")) {
+            if (message.role() == MessageRole.INTERNAL
+                    && (message.content().startsWith("[主动候选事件]")
+                    || message.content().startsWith("[现场观察]"))) {
                 return true;
             }
         }

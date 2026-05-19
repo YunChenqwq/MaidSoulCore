@@ -1,6 +1,7 @@
 package com.maidsoul.brain.memory;
 
 import com.maidsoul.brain.affect.AffectEngine;
+import com.maidsoul.brain.affect.AffectEvent;
 import com.maidsoul.brain.affect.AffectProfile;
 import com.maidsoul.brain.affect.AffectProfileStore;
 import com.maidsoul.brain.affect.AffectSnapshot;
@@ -107,6 +108,15 @@ public final class MemoryRuntime {
         refreshDailySummary();
     }
 
+    public synchronized void observeAffectEvent(AffectEvent event) {
+        if (!config.enabled()) {
+            return;
+        }
+        affectEngine.apply(affectProfile, event);
+        saveState();
+        refreshDailySummary();
+    }
+
     public synchronized String renderPromptBlock(String latestText) {
         if (!config.enabled()) {
             return "";
@@ -161,6 +171,10 @@ public final class MemoryRuntime {
 
     public synchronized String proactiveAffectHint() {
         return affectProfile.proactiveHint();
+    }
+
+    public synchronized int activeCuriosity() {
+        return affectProfile.effectiveCuriosity();
     }
 
     private void updateProfileFrom(LifeMemory memory) {

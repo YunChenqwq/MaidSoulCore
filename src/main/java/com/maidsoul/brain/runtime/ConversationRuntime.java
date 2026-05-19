@@ -11,6 +11,7 @@ import com.maidsoul.brain.reasoning.ReasoningEngine;
 import com.maidsoul.brain.reasoning.ReplySanitizer;
 import com.maidsoul.brain.text.SentenceSplitter;
 
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -38,6 +39,8 @@ public final class ConversationRuntime implements AutoCloseable {
     private final ReplyEffectTracker replyEffectTracker = new ReplyEffectTracker();
     private final SentenceSplitter splitter;
     private final StreamingSegmentEmitter streamEmitter = new StreamingSegmentEmitter();
+    private final MessageTurnScheduler messageTurnScheduler = new MessageTurnScheduler();
+    private final ProactiveScheduler proactiveScheduler;
     private final Consumer<String> output;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -62,10 +65,11 @@ public final class ConversationRuntime implements AutoCloseable {
     private volatile boolean proactiveAwaitingCycle;
     private volatile int proactiveVisibleRepliesSinceLastUser;
     private volatile int proactiveSilentDecisionsSinceLastUser;
-    private volatile boolean proactiveEmotionPushUsedSinceLastUser;
     private volatile boolean messageArrivedDuringRun;
     private volatile boolean plannerInterruptRequested;
     private volatile int plannerInterruptConsecutiveCount;
+    private volatile long replyLatencyMeasurementStartedAtMillis;
+    private final ArrayDeque<ReplyLatencySample> recentReplyLatencies = new ArrayDeque<>();
 
     public ConversationRuntime(
             BrainConfig config,
@@ -78,6 +82,7 @@ public final class ConversationRuntime implements AutoCloseable {
         this.output = output;
         this.trace = trace == null ? RuntimeTraceSink.noop() : trace;
         this.splitter = new SentenceSplitter(config.splitter());
+        this.proactiveScheduler = new ProactiveScheduler(config.flow());
         this.memoryRuntime = new MemoryRuntime(config.memory());
         this.reasoningEngine = new ReasoningEngine(
                 config,
@@ -106,8 +111,7 @@ public final class ConversationRuntime implements AutoCloseable {
         cancelProactiveTimer();
         proactiveVisibleRepliesSinceLastUser = 0;
         proactiveSilentDecisionsSinceLastUser = 0;
-        proactiveEmotionPushUsedSinceLastUser = false;
-        proactiveStageIndex = 0;
+        proactiveStageIndex = ProactiveScheduler.STAGE_LIGHT_FOLLOWUP;
         long newVersion = version.incrementAndGet();
         long now = System.currentTimeMillis();
         lastMessageReceivedAtMillis = now;
@@ -123,6 +127,10 @@ public final class ConversationRuntime implements AutoCloseable {
 
         if (messageTurnScheduled) {
             messageDebounceRequired = true;
+            if (state == RuntimeState.STOP) {
+                cancelMessageTimerLocked();
+                messageTurnScheduled = false;
+            }
         }
 
         // 运行中收到新消息时，只标记“需要等输入静默后再处理下一轮”，并请求当前模型链路中断。
@@ -145,8 +153,11 @@ public final class ConversationRuntime implements AutoCloseable {
             return;
         }
         if (state == RuntimeState.WAIT) {
-            // 对齐参考实现：wait 期间新消息先进入 cache，不默认提前打断 wait。
-            trace.trace("runtime.wait.cache", "WAIT 状态收到新消息，先缓存，等待 timeout 后统一判断。");
+            // 私聊原型里，真实用户消息优先级高于 wait；否则用户已经开口还等 timeout，会像“不理人”。
+            leaveWaitState();
+            trace.trace("runtime.wait.interrupt", "WAIT 状态收到真实用户消息，提前结束等待并重新判断。");
+            ensureInternalLoopRunning();
+            scheduleMessageTurn();
             return;
         }
         ensureInternalLoopRunning();
@@ -157,8 +168,23 @@ public final class ConversationRuntime implements AutoCloseable {
         if (!running || state == RuntimeState.WAIT || messageTurnScheduled || !session.hasPendingMessages()) {
             return;
         }
+        int pendingCount = session.pendingCount();
+        long idleMillis = Math.max(0L, System.currentTimeMillis() - lastMessageReceivedAtMillis);
+        MessageTurnScheduler.Decision decision = messageTurnScheduler.decide(
+                pendingCount,
+                config.flow().talkFrequency(),
+                session.hasForcedContinue(),
+                idleMillis,
+                averageReplyLatencyMillis()
+        );
+        if (!decision.triggerNow() && decision.delayMillis() < 0) {
+            trace.trace("runtime.message.defer", "pending=" + pendingCount + "，频率阈值未满足，等待更多消息。");
+            return;
+        }
         messageTurnScheduled = true;
-        long delay = Math.max(0, config.flow().messageDebounceMillis());
+        long delay = decision.triggerNow()
+                ? Math.max(0, config.flow().messageDebounceMillis())
+                : decision.delayMillis();
         messageFuture = scheduler.schedule(() -> {
             synchronized (ConversationRuntime.this) {
                 messageTurnScheduled = false;
@@ -166,9 +192,17 @@ public final class ConversationRuntime implements AutoCloseable {
                 if (!running || state == RuntimeState.WAIT || state == RuntimeState.RUNNING || !session.hasPendingMessages()) {
                     return;
                 }
+                if (replyLatencyMeasurementStartedAtMillis <= 0) {
+                    replyLatencyMeasurementStartedAtMillis = oldestPendingMessageReceivedAtMillis > 0
+                            ? oldestPendingMessageReceivedAtMillis
+                            : lastMessageReceivedAtMillis;
+                }
                 internalTurnQueue.offer(TurnKind.MESSAGE);
             }
         }, delay, TimeUnit.MILLISECONDS);
+        trace.trace("runtime.message.schedule", "pending=" + pendingCount
+                + " delay=" + delay + "ms"
+                + (decision.reason().isBlank() ? "" : " / " + decision.reason()));
     }
 
     private synchronized void ensureInternalLoopRunning() {
@@ -247,6 +281,7 @@ public final class ConversationRuntime implements AutoCloseable {
                 );
             }
             if (result.kind() == ReasoningEngine.ResultKind.REPLY || result.kind() == ReasoningEngine.ResultKind.STREAMED) {
+                recordReplyLatency();
                 if (proactiveCycle) {
                     markProactiveAssistantFinished();
                 } else {
@@ -275,9 +310,8 @@ public final class ConversationRuntime implements AutoCloseable {
             if (running && proactiveAwaitingCycle && cycleVersion == version.get() && result != null
                     && result.kind() == ReasoningEngine.ResultKind.WAIT) {
                 proactiveSilentDecisionsSinceLastUser++;
-                if (proactiveSilentDecisionsSinceLastUser >= 2) {
-                    scheduleEmotionPushOrStopLocked(cycleVersion, "连续主动判断都在等待/不说");
-                }
+                proactiveAwaitingCycle = false;
+                trace.trace("proactive.wait", "planner 对主动候选选择 wait，运行时尊重等待，不覆盖为回复。");
             }
             if (running && state != RuntimeState.WAIT && proactiveAwaitingCycle && cycleVersion == version.get() && result != null) {
                 proactiveAwaitingCycle = false;
@@ -286,10 +320,12 @@ public final class ConversationRuntime implements AutoCloseable {
                     // 本轮已经明确选择沉默，下一阶段要从“这次决定沉默”之后重新计时，
                     // 不能继续用上一句发言结束时间，否则模型一慢就会立刻连触发下一阶段。
                     lastAssistantFinishedAtMillis = System.currentTimeMillis();
-                    if (proactiveSilentDecisionsSinceLastUser >= 2) {
-                        scheduleEmotionPushOrStopLocked(cycleVersion, "连续主动判断都选择不说");
-                    } else {
+                    int activeCuriosity = memoryRuntime.activeCuriosity();
+                    if (proactiveScheduler.shouldScheduleAfterSilentDecision(activeCuriosity, proactiveSilentDecisionsSinceLastUser)) {
                         scheduleNextProactiveCheckLocked(proactiveGeneration);
+                    } else {
+                        trace.trace("proactive.stop", "planner 已连续选择沉默，主动好奇="
+                                + activeCuriosity + "，停止主动候选，等待玩家下一条消息。");
                     }
                 }
             }
@@ -376,10 +412,9 @@ public final class ConversationRuntime implements AutoCloseable {
 
     private synchronized void markAssistantFinished() {
         lastAssistantFinishedAtMillis = System.currentTimeMillis();
-        proactiveStageIndex = 0;
+        proactiveStageIndex = ProactiveScheduler.STAGE_LIGHT_FOLLOWUP;
         proactiveGeneration++;
         proactiveSilentDecisionsSinceLastUser = 0;
-        proactiveEmotionPushUsedSinceLastUser = false;
         scheduleNextProactiveCheckLocked(proactiveGeneration);
     }
 
@@ -388,12 +423,11 @@ public final class ConversationRuntime implements AutoCloseable {
         proactiveAwaitingCycle = false;
         proactiveVisibleRepliesSinceLastUser++;
         proactiveSilentDecisionsSinceLastUser = 0;
-        proactiveEmotionPushUsedSinceLastUser = false;
         if (proactiveVisibleRepliesSinceLastUser >= 1) {
             trace.trace("proactive.stop", "本轮玩家消息后已经主动说过一次，停止继续主动，等待玩家回应。");
             return;
         }
-        proactiveStageIndex = Math.max(proactiveStageIndex, 1);
+        proactiveStageIndex = Math.max(proactiveStageIndex, ProactiveScheduler.STAGE_TOPIC_PUSH);
         scheduleNextProactiveCheckLocked(proactiveGeneration);
     }
 
@@ -423,6 +457,14 @@ public final class ConversationRuntime implements AutoCloseable {
         state = RuntimeState.STOP;
     }
 
+    private void cancelMessageTimerLocked() {
+        ScheduledFuture<?> future = messageFuture;
+        if (future != null) {
+            future.cancel(false);
+            messageFuture = null;
+        }
+    }
+
     private synchronized void scheduleNextProactiveCheckLocked(long generation) {
         cancelProactiveTimerLocked();
         if (!running || !config.flow().enableProactiveRhythm() || lastAssistantFinishedAtMillis <= 0) {
@@ -433,32 +475,22 @@ public final class ConversationRuntime implements AutoCloseable {
             return;
         }
 
-        int nextSeconds = nextProactiveSeconds();
+        int activeCuriosity = memoryRuntime.activeCuriosity();
+        int nextSeconds = proactiveScheduler.nextDelaySeconds(
+                proactiveStageIndex,
+                activeCuriosity,
+                proactiveSilentDecisionsSinceLastUser
+        );
         if (nextSeconds <= 0) {
+            trace.trace("proactive.skip", "主动好奇=" + activeCuriosity + "，当前阶段不再排主动候选。");
             return;
         }
         long elapsedMillis = Math.max(0L, System.currentTimeMillis() - lastAssistantFinishedAtMillis);
         long delayMillis = Math.max(0L, nextSeconds * 1000L - elapsedMillis);
         proactiveFuture = scheduler.schedule(() -> fireProactiveCheck(generation), delayMillis, TimeUnit.MILLISECONDS);
-        trace.trace("proactive.schedule", "stage=" + proactiveStageName(proactiveStageIndex)
+        trace.trace("proactive.schedule", "stage=" + proactiveScheduler.stageName(proactiveStageIndex)
+                + " activeCuriosity=" + activeCuriosity
                 + " after=" + nextSeconds + "s delay=" + delayMillis + "ms");
-    }
-
-    private synchronized void scheduleEmotionPushOrStopLocked(long cycleVersion, String reason) {
-        proactiveAwaitingCycle = false;
-        cancelProactiveTimerLocked();
-        if (!running || cycleVersion != version.get()) {
-            return;
-        }
-        if (proactiveEmotionPushUsedSinceLastUser) {
-            trace.trace("proactive.stop", reason + "，情绪推进也已尝试过，停止主动检查，等待玩家下一条消息。");
-            return;
-        }
-        proactiveEmotionPushUsedSinceLastUser = true;
-        proactiveStageIndex = 4;
-        lastAssistantFinishedAtMillis = System.currentTimeMillis();
-        scheduleNextProactiveCheckLocked(proactiveGeneration);
-        trace.trace("proactive.emotion_push.schedule", reason + "，改为排一次情绪推进检查。");
     }
 
     private void fireProactiveCheck(long generation) {
@@ -471,12 +503,20 @@ public final class ConversationRuntime implements AutoCloseable {
                 return;
             }
             long silentSeconds = Math.max(0L, (System.currentTimeMillis() - lastAssistantFinishedAtMillis) / 1000L);
-            String event = buildProactiveEvent(silentSeconds, proactiveStageIndex);
+            int activeCuriosity = memoryRuntime.activeCuriosity();
+            String event = proactiveScheduler.buildEvent(
+                    silentSeconds,
+                    proactiveStageIndex,
+                    activeCuriosity,
+                    memoryRuntime.proactiveAffectHint()
+            );
             long newVersion = version.incrementAndGet();
             session.appendIncoming(ChatMessage.reference(event));
-            trace.trace("proactive.event", "version=" + newVersion + " stage=" + proactiveStageName(proactiveStageIndex)
+            trace.trace("proactive.event", "version=" + newVersion
+                    + " stage=" + proactiveScheduler.stageName(proactiveStageIndex)
+                    + " activeCuriosity=" + activeCuriosity
                     + " silentSeconds=" + silentSeconds);
-            proactiveStageIndex = Math.min(proactiveStageIndex + 1, 3);
+            proactiveStageIndex = proactiveScheduler.nextStageAfterFire(proactiveStageIndex);
             proactiveAwaitingCycle = true;
             internalTurnQueue.offer(TurnKind.PROACTIVE);
         }
@@ -488,43 +528,7 @@ public final class ConversationRuntime implements AutoCloseable {
             return;
         }
         proactiveFuture = scheduler.schedule(() -> fireProactiveCheck(generation), 5000, TimeUnit.MILLISECONDS);
-        trace.trace("proactive.retry", "模型仍在处理，5 秒后重新检查。stage=" + proactiveStageName(proactiveStageIndex));
-    }
-
-    private int nextProactiveSeconds() {
-        return switch (proactiveStageIndex) {
-            case 0 -> Math.max(config.flow().proactiveInputProtectionSeconds(), config.flow().proactiveLightFollowupAfterSeconds());
-            case 1 -> Math.max(config.flow().proactiveLightFollowupAfterSeconds() + 1, config.flow().proactiveTopicPushAfterSeconds());
-            case 2 -> Math.max(config.flow().proactiveTopicPushAfterSeconds() + 1, config.flow().proactiveWorldObserveAfterSeconds());
-            case 4 -> Math.max(45, config.flow().proactiveTopicPushAfterSeconds());
-            default -> Math.max(config.flow().proactiveWorldObserveAfterSeconds() + 1, config.flow().proactiveIdleMinIntervalSeconds());
-        };
-    }
-
-    private String buildProactiveEvent(long silentSeconds, int stage) {
-        String stageName = proactiveStageName(stage);
-        String rule = switch (stage) {
-            case 0 -> "这是轻续话期。只有上一轮明确问了问题、话题明显没收束，或玩家用短反馈把话语权交回来，才考虑轻轻补一句；否则 wait 或 no_action。";
-            case 1 -> "这是主动推进期。如果上一轮只是安抚或陪伴、没有问出具体问题，而对方仍然沉默，优先补一个低压力小问题帮助对方开口；问题要短，不要审问。可以问“是事情本身烦，还是现在脑子太乱？”这类二选一的小问题。不要突然换成无关日常，也不要为了这类即时情绪去查长期记忆。";
-            case 2 -> "这是环境/记忆主动期。可以结合当前世界、视角摘要、情绪残留和关系记忆开新话题；没有依据时不要编造已经做了什么。";
-            case 4 -> "这是情绪推进期。前面主动判断已经多次选择沉默，但用户长期没有回来。现在要从上一轮的情绪余韵或关系状态轻轻推进一次：可以给一个低压力台阶、轻微撒娇、关心或把刚才的情绪接住。不要问“还在吗”，不要审问，不要突然换无关日常；除非上一轮是明确冲突或边界拒绝，否则倾向 reply。";
-            default -> "这是低频陪伴期。除非有明确情绪、环境或关系理由，否则优先 no_action，避免刷屏。";
-        };
-        return "[现场观察] 上一轮发言结束后，对方已经有一小会儿没有继续说话，约 " + silentSeconds + " 秒。"
-                + "阶段=" + stageName + "。"
-                + rule
-                + "当前情绪主动参考：" + memoryRuntime.proactiveAffectHint()
-                + "这只是内部观察，不是可见话题；如果要说话，只能像自然聊天一样承接当前关系和话题。";
-    }
-
-    private static String proactiveStageName(int stage) {
-        return switch (stage) {
-            case 0 -> "light_followup";
-            case 1 -> "topic_push";
-            case 2 -> "world_observe";
-            case 4 -> "emotion_push";
-            default -> "idle";
-        };
+        trace.trace("proactive.retry", "模型仍在处理，5 秒后重新检查。stage=" + proactiveScheduler.stageName(proactiveStageIndex));
     }
 
     private void cancelProactiveTimer() {
@@ -569,6 +573,38 @@ public final class ConversationRuntime implements AutoCloseable {
         oldestPendingMessageReceivedAtMillis = 0;
     }
 
+    private synchronized void recordReplyLatency() {
+        if (replyLatencyMeasurementStartedAtMillis <= 0) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long duration = Math.max(0L, now - replyLatencyMeasurementStartedAtMillis);
+        replyLatencyMeasurementStartedAtMillis = 0;
+        recentReplyLatencies.addLast(new ReplyLatencySample(now, duration));
+        pruneReplyLatencies(now);
+        trace.trace("runtime.reply_latency", "duration=" + duration + "ms samples=" + recentReplyLatencies.size());
+    }
+
+    private synchronized Long averageReplyLatencyMillis() {
+        long now = System.currentTimeMillis();
+        pruneReplyLatencies(now);
+        if (recentReplyLatencies.isEmpty()) {
+            return null;
+        }
+        long total = 0L;
+        for (ReplyLatencySample sample : recentReplyLatencies) {
+            total += sample.durationMillis();
+        }
+        return Math.max(1L, total / recentReplyLatencies.size());
+    }
+
+    private void pruneReplyLatencies(long now) {
+        long expireBefore = now - TimeUnit.MINUTES.toMillis(10);
+        while (!recentReplyLatencies.isEmpty() && recentReplyLatencies.peekFirst().recordedAtMillis() < expireBefore) {
+            recentReplyLatencies.removeFirst();
+        }
+    }
+
     @Override
     public void close() {
         running = false;
@@ -600,5 +636,8 @@ public final class ConversationRuntime implements AutoCloseable {
         MESSAGE,
         TIMEOUT,
         PROACTIVE
+    }
+
+    private record ReplyLatencySample(long recordedAtMillis, long durationMillis) {
     }
 }

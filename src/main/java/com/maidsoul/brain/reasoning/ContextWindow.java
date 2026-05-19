@@ -87,6 +87,7 @@ final class ContextWindow {
         // 回复器只需要“可用于说话的参考”，不应该看到节奏工具、主动计时和后台观察原文。
         // 这些信息如果泄漏给回复器，模型很容易把“沉默 14 秒、阶段=topic_push”当成可见话题。
         return text.startsWith("[现场观察]")
+                || text.startsWith("[主动候选事件]")
                 || text.startsWith("[节奏事件]")
                 || text.contains("timing_gate")
                 || text.contains("主动节奏")

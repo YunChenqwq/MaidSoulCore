@@ -62,7 +62,7 @@ final class ReplyComposer {
 
     private LlmReply composeInternalWithMeta(String context, ChatMessage target, String replyReason, String referenceInfo, Consumer<String> deltaConsumer, InterruptFlag interruptFlag) {
         String targetText = target == null
-                ? "没有新的用户发言目标。这是主动续话/情绪推进，请承接最近聊天氛围，不要把历史用户消息当成刚刚又发了一遍。"
+                ? "没有新的用户发言目标。这是主动候选事件触发的回复，请承接最近聊天氛围，不要把历史用户消息当成刚刚又发了一遍。"
                 : "msg_id=" + target.id() + "\n用户=" + target.speaker() + "\n内容=" + target.content();
         String systemPrompt = PromptRenderer.render(prompts.load("maisaka_replyer.prompt"), Map.of(
                 "identity", config.identity().renderPrompt(),
