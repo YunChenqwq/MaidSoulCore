@@ -5,6 +5,7 @@ import com.maidsoul.brain.llm.ChatPayload;
 import com.maidsoul.brain.llm.InterruptFlag;
 import com.maidsoul.brain.llm.LlmClient;
 import com.maidsoul.brain.llm.LlmResponse;
+import com.maidsoul.brain.planner.hook.PlannerHookRunner;
 import com.maidsoul.brain.prompt.PromptCatalog;
 import com.maidsoul.brain.prompt.PromptRenderer;
 import com.maidsoul.brain.tool.BuiltinToolSet;
@@ -24,6 +25,7 @@ final class PlannerAgent {
     private final BrainConfig config;
     private final PromptCatalog prompts;
     private final LlmClient llm;
+    private final PlannerHookRunner hookRunner = new PlannerHookRunner();
 
     PlannerAgent(BrainConfig config, PromptCatalog prompts, LlmClient llm) {
         this.config = config;
@@ -53,14 +55,32 @@ final class PlannerAgent {
         List<ToolSpec> tools = BuiltinToolSet.plannerTools(mergedTiming).stream()
                 .filter(tool -> config.memory().queryMemoryToolEnabled() || !"query_memory".equals(tool.name()))
                 .toList();
+        PlannerHookRunner.BeforeOutcome beforeOutcome = hookRunner.beforeRequest(
+                "planner",
+                "prototype-session",
+                context,
+                tools
+        );
         LlmResponse response = llm.chatWithTools("planner", List.of(
                 ChatPayload.system(prompt),
-                ChatPayload.user("当前聊天记录与现场：\n" + context)
-        ), tools, config.model().plannerTimeoutMillis(), interruptFlag);
+                ChatPayload.user("当前聊天记录与现场：\n" + beforeOutcome.context())
+        ), beforeOutcome.tools(), config.model().plannerTimeoutMillis(), interruptFlag);
+        PlanDecision decision;
         if (!response.toolCalls().isEmpty()) {
-            return new PlannerResult(fromToolCall(response.toolCalls().get(0), response.content()), response.model(), response.metricsSummary());
+            decision = fromToolCall(response.toolCalls().get(0), response.content());
+        } else {
+            decision = fallbackFromText(response.content());
         }
-        return new PlannerResult(fallbackFromText(response.content()), response.model(), response.metricsSummary());
+        decision = hookRunner.afterResponse(
+                "planner",
+                "prototype-session",
+                response.content(),
+                decision,
+                response.promptTokens(),
+                response.completionTokens(),
+                response.totalTokens()
+        );
+        return new PlannerResult(decision, response.model(), response.metricsSummary());
     }
 
     private PlanDecision fromToolCall(ToolCall call, String reasoning) {
