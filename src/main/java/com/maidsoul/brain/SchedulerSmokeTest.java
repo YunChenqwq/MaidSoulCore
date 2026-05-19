@@ -47,6 +47,9 @@ public final class SchedulerSmokeTest {
         if (!scheduler.shouldScheduleAfterSilentDecision(80, 1, 1)) {
             throw new IllegalStateException("主动好奇较高时可以继续排候选。");
         }
+        if (!scheduler.shouldScheduleAfterSilentDecision(47, 1, 1)) {
+            throw new IllegalStateException("高兴趣话题被回复消耗后仍应能继续排候选。");
+        }
         if (scheduler.shouldScheduleAfterSilentDecision(40, 2, 2)) {
             throw new IllegalStateException("主动好奇较低且已连续沉默时不应继续排候选。");
         }

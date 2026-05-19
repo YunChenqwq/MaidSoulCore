@@ -54,7 +54,7 @@ public final class ProactiveRhythmSmokeTest {
             if (first == null) {
                 throw new IllegalStateException("没有收到普通聊天回复。");
             }
-            while (replies.poll(700, TimeUnit.MILLISECONDS) != null) {
+            while (replies.poll(1600, TimeUnit.MILLISECONDS) != null) {
                 // 等本轮分句吐完，再开始观察主动节奏。
             }
 

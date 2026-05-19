@@ -9,6 +9,9 @@ import com.maidsoul.brain.config.FlowConfig;
  * 真正的行动决策仍然只能由 planner 输出，运行时不得覆盖。</p>
  */
 public final class ProactiveScheduler {
+    private static final int CONTINUE_CANDIDATE_CURIOSITY = 45;
+    private static final int ACCELERATE_CANDIDATE_CURIOSITY = 70;
+
     public static final int STAGE_LIGHT_FOLLOWUP = 0;
     public static final int STAGE_TOPIC_PUSH = 1;
     public static final int STAGE_WORLD_OBSERVE = 2;
@@ -33,8 +36,9 @@ public final class ProactiveScheduler {
         if (silentDecisions <= 0) {
             return true;
         }
-        // 连续沉默判断后，只有主动好奇足够高才继续排候选；这仍然只是唤醒 planner，不代表一定回复。
-        return activeCuriosity >= 65 && silentDecisions < maxVisibleReplies();
+        // 连续沉默判断后，只要主动好奇还没有跌破中位，就继续把候选交给 planner。
+        // 运行时仍不决定是否开口，只避免“有情绪余韵但时钟彻底停掉”。
+        return activeCuriosity >= CONTINUE_CANDIDATE_CURIOSITY && silentDecisions < maxVisibleReplies();
     }
 
     public int nextStageAfterFire(int currentStage) {
@@ -56,10 +60,10 @@ public final class ProactiveScheduler {
         if (silentDecisions <= 0) {
             return base;
         }
-        if (activeCuriosity >= 80) {
+        if (activeCuriosity >= ACCELERATE_CANDIDATE_CURIOSITY) {
             return Math.max(flow.proactiveTopicPushAfterSeconds(), base / 2);
         }
-        if (activeCuriosity >= 65) {
+        if (activeCuriosity >= CONTINUE_CANDIDATE_CURIOSITY) {
             return base;
         }
         return -1;

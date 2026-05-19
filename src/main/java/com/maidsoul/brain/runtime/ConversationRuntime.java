@@ -344,6 +344,11 @@ public final class ConversationRuntime implements AutoCloseable {
                     && result.kind() == ReasoningEngine.ResultKind.NO_ACTION) {
                 markConversationAnchorAfterUserNoAction();
             }
+            if (running && !proactiveCycle && state != RuntimeState.WAIT && kind == TurnKind.TIMEOUT
+                    && cycleVersion == version.get() && result != null
+                    && result.kind() == ReasoningEngine.ResultKind.NO_ACTION) {
+                markConversationAnchorAfterTimeoutNoAction();
+            }
         }
     }
 
@@ -456,6 +461,24 @@ public final class ConversationRuntime implements AutoCloseable {
         proactiveGeneration++;
         proactiveSilentDecisionsSinceLastUser = 0;
         scheduleNextProactiveCheckLocked(proactiveGeneration);
+    }
+
+    private synchronized void markConversationAnchorAfterTimeoutNoAction() {
+        // wait 到期后 planner 选择 no_action，不代表节奏系统彻底关机。
+        // 如果主动好奇仍然足够，继续排下一次候选；真正是否发言仍交给 planner。
+        lastAssistantFinishedAtMillis = System.currentTimeMillis();
+        proactiveGeneration++;
+        proactiveSilentDecisionsSinceLastUser++;
+        int activeCuriosity = memoryRuntime.activeCuriosity();
+        if (proactiveScheduler.shouldScheduleAfterSilentDecision(
+                activeCuriosity,
+                proactiveSilentDecisionsSinceLastUser,
+                proactiveFiredCandidatesSinceLastUser)) {
+            scheduleNextProactiveCheckLocked(proactiveGeneration);
+        } else {
+            trace.trace("proactive.stop", "wait 到期后 planner 选择沉默，主动好奇="
+                    + activeCuriosity + "，停止主动候选，等待玩家下一条消息。");
+        }
     }
 
     private void enterWaitState(int seconds) {
