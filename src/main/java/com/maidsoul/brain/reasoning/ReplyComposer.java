@@ -7,6 +7,8 @@ import com.maidsoul.brain.llm.LlmClient;
 import com.maidsoul.brain.message.ChatMessage;
 import com.maidsoul.brain.prompt.PromptCatalog;
 import com.maidsoul.brain.prompt.PromptRenderer;
+import com.maidsoul.brain.reply.hook.ReplyerHookContext;
+import com.maidsoul.brain.reply.hook.ReplyerHookRunner;
 
 import java.util.List;
 import java.util.Map;
@@ -17,9 +19,9 @@ final class ReplyComposer {
     private final PromptCatalog prompts;
     private final LlmClient llm;
     private final ReplyPostProcessor postProcessor = new ReplyPostProcessor();
-    private final ReplyQualityGuard qualityGuard = new ReplyQualityGuard();
-    private final ReplyRiskPolicy riskPolicy = new ReplyRiskPolicy();
     private final RiskFallbackPolicy fallbackPolicy = new RiskFallbackPolicy();
+    private final ReplyerHookRunner hookRunner = new ReplyerHookRunner();
+    private static final int REPLYER_MAX_HOOK_RETRIES = 3;
 
     ReplyComposer(BrainConfig config, PromptCatalog prompts, LlmClient llm) {
         this.config = config;
@@ -88,28 +90,21 @@ final class ReplyComposer {
             // 这里只返回完整文本用于效果追踪和日志。
             return new LlmReply(cleaned, response.model(), response.metricsSummary());
         }
-        boolean highRisk = riskPolicy.shouldInspect(target, context, replyReason, referenceInfo);
-        ReplyQualityGuard.QualityResult quality = highRisk
-                ? qualityGuard.inspect(cleaned, context)
-                : ReplyQualityGuard.QualityResult.pass();
-        if (!quality.ok()) {
-            // 高风险路径可以在发出前重试一次。重试只给出抽象质量问题，
-            // 不追加具体台词模板，避免把运行时变成越来越臃肿的人设补丁集合。
-            String retryReference = joinReference(referenceInfo, "上一版回复未通过质量检查：" + quality.reason());
-            String retryUserMessage = buildFinalUserMessage(targetText, replyReason, retryReference, context);
-            ReplyBuffer retryBuffer = new ReplyBuffer();
-            var retryResponse = llm.chatStream("replyer", List.of(
-                    ChatPayload.system(systemPrompt),
-                    ChatPayload.user(retryUserMessage)
-            ), config.model().replyerTimeoutMillis(), retryBuffer::append, interruptFlag);
-            String retryRaw = retryResponse.content().isBlank() ? retryBuffer.content() : retryResponse.content();
-            String retryCleaned = postProcessor.process(retryRaw);
-            if (!retryCleaned.isBlank() && qualityGuard.inspect(retryCleaned, context).ok()) {
-                return new LlmReply(retryCleaned, retryResponse.model(), retryResponse.metricsSummary());
-            }
-            return new LlmReply(fallbackPolicy.fallback(target, context, quality.reason()), retryResponse.model(), retryResponse.metricsSummary());
-        }
-        return new LlmReply(cleaned, response.model(), response.metricsSummary());
+        return applyAfterResponseHooks(
+                cleaned,
+                response.model(),
+                response.metricsSummary(),
+                response.promptTokens(),
+                response.completionTokens(),
+                response.totalTokens(),
+                target,
+                targetText,
+                replyReason,
+                referenceInfo,
+                context,
+                systemPrompt,
+                interruptFlag
+        );
     }
 
     private String buildFinalUserMessage(String targetText, String replyReason, String referenceInfo, String context) {
@@ -140,6 +135,80 @@ final class ReplyComposer {
             return base;
         }
         return base + "\n" + addition;
+    }
+
+    private LlmReply applyAfterResponseHooks(
+            String initialReply,
+            String initialModel,
+            String initialMetrics,
+            int promptTokens,
+            int completionTokens,
+            int totalTokens,
+            ChatMessage target,
+            String targetText,
+            String replyReason,
+            String referenceInfo,
+            String context,
+            String systemPrompt,
+            InterruptFlag interruptFlag
+    ) {
+        String currentReply = initialReply == null ? "" : initialReply.trim();
+        String currentModel = initialModel == null ? "" : initialModel;
+        String currentMetrics = initialMetrics == null ? "" : initialMetrics;
+        String currentReference = referenceInfo == null ? "" : referenceInfo;
+        int retryCount = 0;
+        while (true) {
+            ReplyerHookRunner.HookOutcome outcome = hookRunner.invoke(new ReplyerHookContext(
+                    currentReply,
+                    "prototype-session",
+                    "maisaka_replyer",
+                    retryCount + 1,
+                    retryCount,
+                    REPLYER_MAX_HOOK_RETRIES,
+                    target == null ? "" : target.id(),
+                    replyReason == null ? "" : replyReason,
+                    currentReference,
+                    promptTokens,
+                    completionTokens,
+                    totalTokens
+            ));
+            if (outcome.response() != null && !outcome.response().isBlank()) {
+                currentReply = outcome.response().trim();
+            }
+            if (!outcome.retry() || retryCount >= REPLYER_MAX_HOOK_RETRIES) {
+                return new LlmReply(currentReply, currentModel, currentMetrics);
+            }
+
+            String retryConstraint = buildRetryConstraint(outcome.retryReason(), currentReply);
+            currentReference = joinReference(currentReference, retryConstraint);
+            String retryUserMessage = buildFinalUserMessage(targetText, replyReason, currentReference, context);
+            ReplyBuffer retryBuffer = new ReplyBuffer();
+            var retryResponse = llm.chatStream("replyer", List.of(
+                    ChatPayload.system(systemPrompt),
+                    ChatPayload.user(retryUserMessage)
+            ), config.model().replyerTimeoutMillis(), retryBuffer::append, interruptFlag);
+            String retryRaw = retryResponse.content().isBlank() ? retryBuffer.content() : retryResponse.content();
+            String retryCleaned = postProcessor.process(retryRaw);
+            if (retryCleaned.isBlank()) {
+                return new LlmReply(fallbackPolicy.fallback(target, context, outcome.retryReason()), retryResponse.model(), retryResponse.metricsSummary());
+            }
+            currentReply = retryCleaned;
+            currentModel = retryResponse.model();
+            currentMetrics = retryResponse.metricsSummary();
+            promptTokens += retryResponse.promptTokens();
+            completionTokens += retryResponse.completionTokens();
+            totalTokens += retryResponse.totalTokens();
+            retryCount++;
+        }
+    }
+
+    private static String buildRetryConstraint(String retryReason, String rejectedResponse) {
+        String reason = retryReason == null ? "" : retryReason.trim().replaceAll("[。！？!?；;，,]+$", "");
+        if (reason.isBlank()) {
+            return "";
+        }
+        String rejected = rejectedResponse == null ? "" : rejectedResponse.trim().replace("\"", "\\\"");
+        return "【重生成约束】\n由于" + reason + "，之前生成的回复\"" + rejected + "\"不符合要求，你需要重新生成回复。";
     }
 
     record LlmReply(String content, String model, String metricsSummary) {
