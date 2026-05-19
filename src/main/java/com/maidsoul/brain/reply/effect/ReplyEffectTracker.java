@@ -10,16 +10,29 @@ import java.util.List;
 /**
  * 会话级回复效果追踪器。
  *
- * <p>这是 maibotdev ReplyEffectTracker 的原型机落地版：每条已发回复先进入 pending，
- * 后续用户消息作为反馈进入记录；一旦出现明确负反馈、修复循环或达到观察轮数，就完成评分。</p>
+ * <p>对齐 maibotdev 的 ReplyEffectTracker：每条已发回复进入 pending，后续用户消息作为行为反馈；
+ * 出现明确负反馈、修复循环、目标用户后续轮数足够或观察窗口超时后 finalize 并写回 JSON。</p>
  */
 public final class ReplyEffectTracker {
     private static final int TARGET_USER_FOLLOWUP_LIMIT = 2;
     private static final int SESSION_FOLLOWUP_LIMIT = 5;
     private static final long OBSERVATION_WINDOW_SECONDS = 600L;
 
+    private final String sessionId;
+    private final String sessionName;
+    private final ReplyEffectStorage storage;
     private final List<ReplyEffectRecord> pendingRecords = new ArrayList<>();
     private ReplyEffectRecord latestFinalizedRecord;
+
+    public ReplyEffectTracker() {
+        this("prototype-session", "MaidSoulCore Brain Test", new ReplyEffectStorage());
+    }
+
+    public ReplyEffectTracker(String sessionId, String sessionName, ReplyEffectStorage storage) {
+        this.sessionId = normalize(sessionId, "prototype-session");
+        this.sessionName = normalize(sessionName, this.sessionId);
+        this.storage = storage == null ? new ReplyEffectStorage() : storage;
+    }
 
     public synchronized void recordReply(
             ChatMessage targetMessage,
@@ -30,14 +43,19 @@ public final class ReplyEffectTracker {
     ) {
         String targetMessageId = targetMessage == null ? "" : targetMessage.id();
         String targetUserId = targetMessage == null ? "" : targetMessage.speaker();
-        pendingRecords.add(new ReplyEffectRecord(
+        ReplyEffectRecord record = new ReplyEffectRecord(
+                sessionId,
+                sessionName,
                 targetMessageId,
+                targetUserId,
                 targetUserId,
                 replyText,
                 replySegments,
                 plannerReasoning,
                 referenceInfo
-        ));
+        );
+        pendingRecords.add(record);
+        safeSaveNew(record);
     }
 
     public synchronized void observeUserMessage(ChatMessage message) {
@@ -48,16 +66,10 @@ public final class ReplyEffectTracker {
             if (record.finalized()) {
                 continue;
             }
-            double latency = Math.max(0.0, Duration.between(record.createdAt(), Instant.now()).toMillis() / 1000.0);
-            FollowupMessageSnapshot followup = new FollowupMessageSnapshot(
-                    message.id(),
-                    message.timestamp(),
-                    message.speaker(),
-                    message.content(),
-                    latency,
-                    !record.targetUserId().isBlank() && record.targetUserId().equals(message.speaker())
-            );
+            FollowupMessageSnapshot followup = buildFollowupSnapshot(message, record);
             record.addFollowup(followup);
+            safeSave(record);
+
             String reason = resolveFinalizeReason(record);
             if (!reason.isBlank()) {
                 finalizeRecord(record, reason);
@@ -66,7 +78,27 @@ public final class ReplyEffectTracker {
         pendingRecords.removeIf(ReplyEffectRecord::finalized);
     }
 
+    public synchronized void finalizeExpired() {
+        for (ReplyEffectRecord record : new ArrayList<>(pendingRecords)) {
+            if (!record.finalized() && observationWindowExpired(record)) {
+                finalizeRecord(record, "window_timeout");
+            }
+        }
+        pendingRecords.removeIf(ReplyEffectRecord::finalized);
+    }
+
+    public synchronized void finalizeAll(String reason) {
+        String normalizedReason = reason == null || reason.isBlank() ? "runtime_stop" : reason;
+        for (ReplyEffectRecord record : new ArrayList<>(pendingRecords)) {
+            if (!record.finalized()) {
+                finalizeRecord(record, normalizedReason);
+            }
+        }
+        pendingRecords.removeIf(ReplyEffectRecord::finalized);
+    }
+
     public synchronized ReplyEffectSummary latestSummary() {
+        finalizeExpired();
         ReplyEffectRecord record = latestFinalizedRecord;
         if (record == null || record.scores() == null) {
             return ReplyEffectSummary.neutral();
@@ -81,6 +113,26 @@ public final class ReplyEffectTracker {
                 friction.explicitNegative() >= 1.0 || localNegative,
                 friction.repairLoop() >= 1.0 || localRepair,
                 record.followups().size()
+        );
+    }
+
+    public synchronized List<ReplyEffectRecord> pendingRecords() {
+        return List.copyOf(pendingRecords);
+    }
+
+    private FollowupMessageSnapshot buildFollowupSnapshot(ChatMessage message, ReplyEffectRecord record) {
+        double latency = Math.max(0.0, Duration.between(record.createdAt(), Instant.now()).toMillis() / 1000.0);
+        boolean targetUser = !record.targetUserId().isBlank() && record.targetUserId().equals(message.speaker());
+        return new FollowupMessageSnapshot(
+                message.id(),
+                message.timestamp(),
+                message.speaker(),
+                message.speaker(),
+                message.content(),
+                message.content(),
+                latency,
+                targetUser,
+                List.of()
         );
     }
 
@@ -123,7 +175,7 @@ public final class ReplyEffectTracker {
                 return "session_followups_limit";
             }
         }
-        if (Duration.between(record.createdAt(), Instant.now()).toSeconds() >= OBSERVATION_WINDOW_SECONDS) {
+        if (observationWindowExpired(record)) {
             return "window_timeout";
         }
         return "";
@@ -133,6 +185,27 @@ public final class ReplyEffectTracker {
         ReplyEffectScores scores = ReplyEffectScoring.score(record.followups(), record.targetUserId());
         record.finalizeWith(reason, scores);
         latestFinalizedRecord = record;
+        safeSave(record);
+    }
+
+    private boolean observationWindowExpired(ReplyEffectRecord record) {
+        return Duration.between(record.createdAt(), Instant.now()).toSeconds() >= OBSERVATION_WINDOW_SECONDS;
+    }
+
+    private void safeSaveNew(ReplyEffectRecord record) {
+        try {
+            storage.createRecordFile(record);
+        } catch (RuntimeException ignored) {
+            // reply_effect 是观察侧能力，落盘失败不应打断聊天。
+        }
+    }
+
+    private void safeSave(ReplyEffectRecord record) {
+        try {
+            storage.saveRecord(record);
+        } catch (RuntimeException ignored) {
+            // reply_effect 是观察侧能力，落盘失败不应打断聊天。
+        }
     }
 
     private static boolean containsLocalNegative(List<FollowupMessageSnapshot> followups) {
@@ -151,6 +224,11 @@ public final class ReplyEffectTracker {
             }
         }
         return false;
+    }
+
+    private static String normalize(String value, String fallback) {
+        String text = value == null ? "" : value.trim();
+        return text.isBlank() ? fallback : text;
     }
 
     public record ReplyEffectSummary(

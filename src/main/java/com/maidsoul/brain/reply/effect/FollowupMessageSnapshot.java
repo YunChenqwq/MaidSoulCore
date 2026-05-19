@@ -12,8 +12,21 @@ public record FollowupMessageSnapshot(
         String messageId,
         Instant timestamp,
         String userId,
+        String nickname,
+        String visibleText,
         String plainText,
         double latencySeconds,
-        boolean targetUser
+        boolean targetUser,
+        java.util.List<String> quoteTargetIds
 ) {
+    public FollowupMessageSnapshot(
+            String messageId,
+            Instant timestamp,
+            String userId,
+            String plainText,
+            double latencySeconds,
+            boolean targetUser
+    ) {
+        this(messageId, timestamp, userId, userId, plainText, plainText, latencySeconds, targetUser, java.util.List.of());
+    }
 }
