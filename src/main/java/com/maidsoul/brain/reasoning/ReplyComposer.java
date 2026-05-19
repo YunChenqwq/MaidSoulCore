@@ -1,6 +1,8 @@
 package com.maidsoul.brain.reasoning;
 
 import com.maidsoul.brain.config.BrainConfig;
+import com.maidsoul.brain.expression.ExpressionSelectionResult;
+import com.maidsoul.brain.expression.ExpressionSelector;
 import com.maidsoul.brain.llm.ChatPayload;
 import com.maidsoul.brain.llm.InterruptFlag;
 import com.maidsoul.brain.llm.LlmClient;
@@ -21,6 +23,7 @@ final class ReplyComposer {
     private final ReplyPostProcessor postProcessor = new ReplyPostProcessor();
     private final RiskFallbackPolicy fallbackPolicy = new RiskFallbackPolicy();
     private final ReplyerHookRunner hookRunner = new ReplyerHookRunner();
+    private final ExpressionSelector expressionSelector = new ExpressionSelector();
     private static final int REPLYER_MAX_HOOK_RETRIES = 3;
 
     ReplyComposer(BrainConfig config, PromptCatalog prompts, LlmClient llm) {
@@ -67,7 +70,14 @@ final class ReplyComposer {
                 "group_chat_attention_block", "",
                 "replyer_at_block", ""
         ));
-        String finalUserMessage = buildFinalUserMessage(targetText, replyReason, referenceInfo, context);
+        ExpressionSelectionResult expressionSelection = expressionSelector.selectForReply(
+                "prototype-session",
+                List.of(),
+                target,
+                replyReason
+        );
+        String effectiveReferenceInfo = joinReference(referenceInfo, expressionSelection.expressionHabits());
+        String finalUserMessage = buildFinalUserMessage(targetText, replyReason, effectiveReferenceInfo, context);
         List<ChatPayload> messages = List.of(
                 ChatPayload.system(systemPrompt),
                 ChatPayload.user(finalUserMessage)
@@ -100,7 +110,7 @@ final class ReplyComposer {
                 target,
                 targetText,
                 replyReason,
-                referenceInfo,
+                effectiveReferenceInfo,
                 context,
                 systemPrompt,
                 interruptFlag
