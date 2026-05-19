@@ -7,6 +7,10 @@ import com.maidsoul.brain.affect.AffectProfileStore;
 import com.maidsoul.brain.affect.AffectSnapshot;
 import com.maidsoul.brain.character.CharacterPackage;
 import com.maidsoul.brain.config.MemoryConfig;
+import com.maidsoul.brain.memory.v2.MemorySearchResult;
+import com.maidsoul.brain.memory.v2.MemoryV2Store;
+import com.maidsoul.brain.memory.v2.MemoryWriteResult;
+import com.maidsoul.brain.memory.v2.PersonProfileSnapshot;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -21,6 +25,7 @@ public final class MemoryRuntime {
     private final AffectEngine affectEngine = new AffectEngine();
     private final MemoryCandidateExtractor extractor = new MemoryCandidateExtractor();
     private final LifeMemoryStore memoryStore;
+    private final MemoryV2Store memoryV2Store;
     private final DailyMemoryConsolidator dailyConsolidator;
     private final AffectProfileStore affectStore;
     private final UserProfileStore profileStore;
@@ -31,6 +36,7 @@ public final class MemoryRuntime {
     public MemoryRuntime(MemoryConfig config) {
         this.config = config;
         this.memoryStore = new LifeMemoryStore(config);
+        this.memoryV2Store = new MemoryV2Store(config);
         this.dailyConsolidator = new DailyMemoryConsolidator(memoryStore.dailyDir());
         Path maidDir = memoryStore.maidDir();
         Path characterRoot = Path.of(config.characterRoot()).resolve(config.maidId());
@@ -61,6 +67,14 @@ public final class MemoryRuntime {
                     AffectSnapshot.from(affectProfile)
             );
             memoryStore.append(memory);
+            ingestV2(
+                    "life:" + memory.id,
+                    "chat",
+                    "user",
+                    text,
+                    candidate.importance(),
+                    candidate.tags()
+            );
             updateProfileFrom(memory);
         }
         saveState();
@@ -74,7 +88,7 @@ public final class MemoryRuntime {
         affectEngine.observeAssistantReply(affectProfile, text);
         MemoryCandidateExtractor.Candidate candidate = extractor.extractAssistantMessage(text);
         if (candidate.shouldRemember()) {
-            memoryStore.append(LifeMemory.of(
+            LifeMemory memory = LifeMemory.of(
                     config.maidId(),
                     config.ownerId(),
                     config.worldId(),
@@ -85,7 +99,16 @@ public final class MemoryRuntime {
                     candidate.importance(),
                     candidate.tags(),
                     AffectSnapshot.from(affectProfile)
-            ));
+            );
+            memoryStore.append(memory);
+            ingestV2(
+                    "life:" + memory.id,
+                    "chat",
+                    "assistant",
+                    text,
+                    candidate.importance(),
+                    candidate.tags()
+            );
         }
         saveState();
         refreshDailySummary();
@@ -96,7 +119,7 @@ public final class MemoryRuntime {
             return;
         }
         affectEngine.observeWorldEvent(affectProfile, eventType);
-        memoryStore.append(LifeMemory.of(
+        LifeMemory memory = LifeMemory.of(
                 config.maidId(),
                 config.ownerId(),
                 config.worldId(),
@@ -107,7 +130,16 @@ public final class MemoryRuntime {
                 4,
                 List.of("world", eventType == null ? "event" : eventType),
                 AffectSnapshot.from(affectProfile)
-        ));
+        );
+        memoryStore.append(memory);
+        ingestV2(
+                "life:" + memory.id,
+                "world",
+                "event",
+                content == null || content.isBlank() ? eventType : content,
+                4,
+                List.of("world", eventType == null ? "event" : eventType)
+        );
         saveState();
         refreshDailySummary();
     }
@@ -126,7 +158,9 @@ public final class MemoryRuntime {
             return "";
         }
         String memories = memoryStore.renderPromptBlock(latestText, config.promptMemoryLimit());
+        String v2Memories = memoryV2Store.renderPromptBlock(latestText, config.promptMemoryLimit());
         String profile = userProfile.renderForPrompt(config.promptProfileLimit());
+        PersonProfileSnapshot ownerProfile = memoryV2Store.getPersonProfile(config.ownerId(), config.promptProfileLimit());
         StringBuilder builder = new StringBuilder();
         builder.append(characterPackage.renderPromptBlock(affectProfile, latestText, config.promptMemoryLimit()))
                 .append("\n\n[当前情绪关系]\n")
@@ -137,6 +171,10 @@ public final class MemoryRuntime {
                 .append(affectProfile.proactiveHint())
                 .append("\n\n[相关人生记忆]\n")
                 .append(memories == null || memories.isBlank() ? "none" : memories)
+                .append("\n\n[A-Memorix风格长期记忆]\n")
+                .append(v2Memories == null || v2Memories.isBlank() ? "none" : v2Memories)
+                .append("\n\n[A-Memorix人物画像]\n")
+                .append(ownerProfile.profileText == null || ownerProfile.profileText.isBlank() ? "none" : ownerProfile.profileText)
                 .append("\n\n[用户画像]\n")
                 .append(profile == null || profile.isBlank() ? "none" : profile);
         return builder.toString();
@@ -146,7 +184,12 @@ public final class MemoryRuntime {
         if (!config.enabled()) {
             return "记忆系统未启用。";
         }
-        List<LifeMemory> hits = memoryStore.search(query, limit <= 0 ? config.retrievalLimit() : limit);
+        int safeLimit = limit <= 0 ? config.retrievalLimit() : limit;
+        MemorySearchResult v2Result = memoryV2Store.search(query, "aggregate", safeLimit);
+        if (v2Result.success() && v2Result.hits() != null && !v2Result.hits().isEmpty()) {
+            return v2Result.toPromptText(safeLimit);
+        }
+        List<LifeMemory> hits = memoryStore.search(query, safeLimit);
         if (hits.isEmpty()) {
             return "未找到相关记忆。";
         }
@@ -200,6 +243,30 @@ public final class MemoryRuntime {
         if (text.contains("喜欢") || text.contains("希望") || text.contains("想要")) {
             userProfile.reinforcePreference("explicit_preference", "玩家表达过明确偏好，后续回复应优先尊重。", memory.id);
         }
+    }
+
+    private void ingestV2(
+            String externalId,
+            String sourceType,
+            String role,
+            String text,
+            int importance,
+            List<String> tags
+    ) {
+        List<String> participants = role == null || role.isBlank()
+                ? List.of(config.ownerId())
+                : List.of(config.ownerId(), role);
+        MemoryWriteResult ignored = memoryV2Store.ingestText(
+                externalId,
+                sourceType,
+                config.worldId(),
+                role,
+                text,
+                participants,
+                tags,
+                "maidId=" + config.maidId() + ";ownerId=" + config.ownerId(),
+                Math.max(1, Math.min(10, importance * 2))
+        );
     }
 
     private void saveState() {
