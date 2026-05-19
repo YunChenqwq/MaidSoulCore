@@ -37,6 +37,7 @@ public final class RuntimeLoopSmokeTest {
         testInterruptDuringRunning();
         testRepairComplaintDoesNotNoAction();
         testSemanticUserInputOverridesNoAction();
+        testShortSemanticInputOverridesNoAction();
         System.out.println("RUNTIME_LOOP_SMOKE_OK");
     }
 
@@ -161,6 +162,32 @@ public final class RuntimeLoopSmokeTest {
             String reply = replies.poll(5, TimeUnit.SECONDS);
             if (reply == null) {
                 throw new IllegalStateException("有语义的用户反馈不能被 planner no_action 吞掉。");
+            }
+        }
+    }
+
+    private static void testShortSemanticInputOverridesNoAction() throws Exception {
+        Path root = Path.of("").toAbsolutePath();
+        BrainConfig config = withFlow(BrainConfig.load(root.resolve("config")), 30, 2);
+        PromptCatalog prompts = new PromptCatalog(root.resolve("prompts").resolve("zh-CN"));
+        BlockingQueue<String> replies = new LinkedBlockingQueue<>();
+        ScriptedClient client = new ScriptedClient(false);
+        client.forcePlannerNoAction = true;
+        client.replyText = "嗯，我在听。";
+
+        try (ConversationRuntime runtime = new ConversationRuntime(
+                config,
+                prompts,
+                client,
+                replies::offer,
+                RuntimeTraceSink.console(500)
+        )) {
+            runtime.start();
+            runtime.receiveUserMessage(config.identity().ownerName(), "嗯");
+
+            String reply = replies.poll(5, TimeUnit.SECONDS);
+            if (reply == null) {
+                throw new IllegalStateException("真实短反馈不能被 planner no_action 吞掉。");
             }
         }
     }

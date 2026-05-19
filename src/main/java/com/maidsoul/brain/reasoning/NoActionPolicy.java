@@ -29,7 +29,18 @@ final class NoActionPolicy {
         if (dialogueState != null && dialogueState.mode() != DialogueMode.NORMAL_CHAT) {
             return true;
         }
-        // 极短冷反馈可以被当作暂不回复；有语义、追问、提醒和投诉的输入不能被吞掉。
-        return text.length() >= 4 || text.contains("？") || text.contains("?") || text.contains("吗");
+        // 私聊里真实用户输入不能因为“太短”就被吞掉；只允许纯标点/空白这类无语义占位沉默。
+        return hasSemanticCharacter(text) || text.contains("？") || text.contains("?");
+    }
+
+    private static boolean hasSemanticCharacter(String text) {
+        for (int i = 0; i < text.length(); ) {
+            int codePoint = text.codePointAt(i);
+            if (Character.isLetterOrDigit(codePoint)) {
+                return true;
+            }
+            i += Character.charCount(codePoint);
+        }
+        return false;
     }
 }

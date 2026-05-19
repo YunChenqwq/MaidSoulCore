@@ -307,6 +307,11 @@ public final class ConversationRuntime implements AutoCloseable {
             if (running && state != RuntimeState.WAIT && session.hasPendingMessages()) {
                 scheduleMessageTurn();
             }
+            if (result != null
+                    && (result.kind() == ReasoningEngine.ResultKind.NO_ACTION
+                    || result.kind() == ReasoningEngine.ResultKind.WAIT)) {
+                clearReplyLatencyMeasurement();
+            }
             if (running && proactiveAwaitingCycle && cycleVersion == version.get() && result != null
                     && result.kind() == ReasoningEngine.ResultKind.WAIT) {
                 proactiveSilentDecisionsSinceLastUser++;
@@ -583,6 +588,10 @@ public final class ConversationRuntime implements AutoCloseable {
         recentReplyLatencies.addLast(new ReplyLatencySample(now, duration));
         pruneReplyLatencies(now);
         trace.trace("runtime.reply_latency", "duration=" + duration + "ms samples=" + recentReplyLatencies.size());
+    }
+
+    private synchronized void clearReplyLatencyMeasurement() {
+        replyLatencyMeasurementStartedAtMillis = 0;
     }
 
     private synchronized Long averageReplyLatencyMillis() {
