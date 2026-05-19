@@ -17,6 +17,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -42,6 +43,7 @@ public final class BrainGui {
     private final Path root = Path.of("").toAbsolutePath();
     private final JTextArea chatArea = new JTextArea();
     private final JTextArea traceArea = new JTextArea();
+    private final JTextArea characterArea = new JTextArea();
     private final JTextField inputField = new JTextField();
     private final JLabel statusLabel = new JLabel("未启动");
     private final JCheckBox fastProactiveBox = new JCheckBox("快速主动测试", true);
@@ -55,6 +57,7 @@ public final class BrainGui {
     private final JButton presetLoverButton = new JButton("恋人");
     private final JButton presetHurtButton = new JButton("受伤");
     private final JButton presetRepairedButton = new JButton("修复后");
+    private final JButton refreshCharacterButton = new JButton("刷新角色包");
 
     private BrainConfig config;
     private ConversationRuntime runtime;
@@ -78,10 +81,19 @@ public final class BrainGui {
         traceArea.setWrapStyleWord(true);
         traceArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
+        characterArea.setEditable(false);
+        characterArea.setLineWrap(true);
+        characterArea.setWrapStyleWord(true);
+        characterArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
+        JTabbedPane rightTabs = new JTabbedPane();
+        rightTabs.addTab("Trace", new JScrollPane(traceArea));
+        rightTabs.addTab("角色包", new JScrollPane(characterArea));
+
         JSplitPane split = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
                 withTitle("聊天", new JScrollPane(chatArea)),
-                withTitle("Trace", new JScrollPane(traceArea))
+                withTitle("调试", rightTabs)
         );
         split.setResizeWeight(0.58);
 
@@ -101,6 +113,7 @@ public final class BrainGui {
         presetPanel.add(presetLoverButton);
         presetPanel.add(presetHurtButton);
         presetPanel.add(presetRepairedButton);
+        presetPanel.add(refreshCharacterButton);
 
         JPanel north = new JPanel(new BorderLayout());
         north.add(top, BorderLayout.NORTH);
@@ -129,6 +142,7 @@ public final class BrainGui {
         presetLoverButton.addActionListener(event -> applyStatePreset(StatePreset.lover()));
         presetHurtButton.addActionListener(event -> applyStatePreset(StatePreset.hurtPreset()));
         presetRepairedButton.addActionListener(event -> applyStatePreset(StatePreset.repaired()));
+        refreshCharacterButton.addActionListener(event -> refreshCharacterPackageView());
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
@@ -137,14 +151,15 @@ public final class BrainGui {
         });
 
         setRunningUi(false);
+        refreshCharacterPackageView();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
-    private JPanel withTitle(String title, JScrollPane scrollPane) {
+    private JPanel withTitle(String title, java.awt.Component content) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder(title));
-        panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(content, BorderLayout.CENTER);
         return panel;
     }
 
@@ -233,9 +248,59 @@ public final class BrainGui {
             } else {
                 appendSystem("已切到关系预设：" + preset.name() + "。启动后会加载这个状态。");
             }
+            refreshCharacterPackageView();
             appendTrace("GUI_PRESET", "preset=" + preset.name() + " characterDir=" + characterDir);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+
+    private void refreshCharacterPackageView() {
+        try {
+            BrainConfig loaded = config != null ? config : BrainConfig.load(root.resolve("config"));
+            Path characterDir = root.resolve(loaded.memory().characterRoot())
+                    .resolve(loaded.memory().maidId())
+                    .toAbsolutePath()
+                    .normalize();
+
+            // 角色包视图只读展示落盘文件，方便确认“长期人设”和“短期状态”到底注入了什么。
+            // 后续如果要做编辑器，可以在这里继续拆成结构化表单；当前先保持原文可见，便于调试。
+            StringBuilder builder = new StringBuilder();
+            builder.append("角色包目录\n")
+                    .append(characterDir)
+                    .append("\n\n");
+            appendFileSection(builder, characterDir.resolve("character.properties"), "character.properties / 稳定人设");
+            appendFileSection(builder, characterDir.resolve("traits.properties"), "traits.properties / 人格参数");
+            appendFileSection(builder, characterDir.resolve("relationship.json"), "relationship.json / 长期关系参考");
+            appendFileSection(builder, characterDir.resolve("affect_state.json"), "affect_state.json / 当前心情状态");
+            appendFileSection(builder, characterDir.resolve("memories").resolve("core_memories.jsonl"), "memories/core_memories.jsonl / 核心记忆");
+
+            SwingUtilities.invokeLater(() -> {
+                characterArea.setText(builder.toString());
+                characterArea.setCaretPosition(0);
+            });
+        } catch (Exception e) {
+            SwingUtilities.invokeLater(() -> characterArea.setText(
+                    "角色包加载失败：\n" + e.getClass().getSimpleName() + ": " + e.getMessage()
+            ));
+        }
+    }
+
+    private static void appendFileSection(StringBuilder builder, Path path, String title) {
+        builder.append("==== ").append(title).append(" ====\n");
+        builder.append(path).append("\n");
+        if (!Files.exists(path)) {
+            builder.append("(文件不存在)\n\n");
+            return;
+        }
+        try {
+            builder.append(Files.readString(path, StandardCharsets.UTF_8)).append("\n\n");
+        } catch (Exception e) {
+            builder.append("(读取失败：")
+                    .append(e.getClass().getSimpleName())
+                    .append(": ")
+                    .append(e.getMessage())
+                    .append(")\n\n");
         }
     }
 
