@@ -592,6 +592,7 @@ public final class ConversationRuntime implements AutoCloseable {
                     proactiveStageIndex,
                     activeCuriosity,
                     proactiveFiredCandidatesSinceLastUser,
+                    proactiveLongSilenceChecksSinceLastUser,
                     memoryRuntime.proactiveAffectHint()
             );
             long newVersion = version.incrementAndGet();

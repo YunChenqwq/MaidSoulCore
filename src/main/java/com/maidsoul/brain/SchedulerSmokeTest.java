@@ -65,9 +65,13 @@ public final class SchedulerSmokeTest {
         if (scheduler.shouldScheduleAfterSilentDecision(90, 1, 4)) {
             throw new IllegalStateException("达到主动候选上限后不应继续排候选。");
         }
-        String event = scheduler.buildEvent(45, ProactiveScheduler.STAGE_RELATION_CANDIDATE, 82, 2, "主动好奇较高。");
+        String event = scheduler.buildEvent(45, ProactiveScheduler.STAGE_RELATION_CANDIDATE, 82, 2, 0, "主动好奇较高。");
         if (!event.contains("planner 可以 reply、wait 或 no_action")) {
             throw new IllegalStateException("主动候选事件必须声明最终动作由 planner 决定。");
+        }
+        String longSilenceEvent = scheduler.buildEvent(120, ProactiveScheduler.STAGE_LONG_SILENCE_CHECK, 35, 1, 0, "");
+        if (!longSilenceEvent.contains("第一次复检应明显偏向轻量确认")) {
+            throw new IllegalStateException("长沉默复检必须把第一次偏向轻量确认的策略交给 planner。");
         }
     }
 
