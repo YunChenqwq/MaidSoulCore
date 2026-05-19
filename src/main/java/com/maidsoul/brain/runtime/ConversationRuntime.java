@@ -63,6 +63,7 @@ public final class ConversationRuntime implements AutoCloseable {
     private volatile int proactiveStageIndex;
     private volatile long proactiveGeneration;
     private volatile boolean proactiveAwaitingCycle;
+    private volatile int proactiveAwaitingStage = -1;
     private volatile int proactiveVisibleRepliesSinceLastUser;
     private volatile int proactiveFiredCandidatesSinceLastUser;
     private volatile int proactiveSilentDecisionsSinceLastUser;
@@ -111,6 +112,7 @@ public final class ConversationRuntime implements AutoCloseable {
         }
         proactiveGeneration++;
         cancelProactiveTimer();
+        proactiveAwaitingStage = -1;
         proactiveVisibleRepliesSinceLastUser = 0;
         proactiveFiredCandidatesSinceLastUser = 0;
         proactiveSilentDecisionsSinceLastUser = 0;
@@ -119,7 +121,8 @@ public final class ConversationRuntime implements AutoCloseable {
         long newVersion = version.incrementAndGet();
         long now = System.currentTimeMillis();
         lastMessageReceivedAtMillis = now;
-        if (oldestPendingMessageReceivedAtMillis <= 0) {
+        boolean hadPendingBeforeAppend = session.hasPendingMessages();
+        if (!hadPendingBeforeAppend) {
             oldestPendingMessageReceivedAtMillis = now;
         }
         ChatMessage userMessage = ChatMessage.user(speaker, content.trim());
@@ -320,10 +323,12 @@ public final class ConversationRuntime implements AutoCloseable {
                     && result.kind() == ReasoningEngine.ResultKind.WAIT) {
                 proactiveSilentDecisionsSinceLastUser++;
                 proactiveAwaitingCycle = false;
+                proactiveAwaitingStage = -1;
                 trace.trace("proactive.wait", "planner 对主动候选选择 wait，运行时尊重等待，不覆盖为回复。");
             }
             if (running && state != RuntimeState.WAIT && proactiveAwaitingCycle && cycleVersion == version.get() && result != null) {
                 proactiveAwaitingCycle = false;
+                proactiveAwaitingStage = -1;
                 if (result.kind() == ReasoningEngine.ResultKind.NO_ACTION) {
                     proactiveSilentDecisionsSinceLastUser++;
                     // 本轮已经明确选择沉默，下一阶段要从“这次决定沉默”之后重新计时，
@@ -449,7 +454,10 @@ public final class ConversationRuntime implements AutoCloseable {
         proactiveAwaitingCycle = false;
         proactiveVisibleRepliesSinceLastUser++;
         proactiveSilentDecisionsSinceLastUser = 0;
-        proactiveLongSilenceChecksSinceLastUser = 0;
+        if (proactiveAwaitingStage != ProactiveScheduler.STAGE_LONG_SILENCE_CHECK) {
+            proactiveLongSilenceChecksSinceLastUser = 0;
+        }
+        proactiveAwaitingStage = -1;
         if (proactiveVisibleRepliesSinceLastUser >= proactiveScheduler.maxVisibleReplies()) {
             trace.trace("proactive.stop", "本轮玩家沉默期间已达到主动上限，进入沉默状态等待玩家回应。");
             return;
@@ -604,6 +612,7 @@ public final class ConversationRuntime implements AutoCloseable {
             if (proactiveStageIndex == ProactiveScheduler.STAGE_LONG_SILENCE_CHECK) {
                 proactiveLongSilenceChecksSinceLastUser++;
             }
+            proactiveAwaitingStage = proactiveStageIndex;
             proactiveStageIndex = proactiveScheduler.nextStageAfterFire(proactiveStageIndex);
             proactiveFiredCandidatesSinceLastUser++;
             proactiveAwaitingCycle = true;
@@ -669,6 +678,7 @@ public final class ConversationRuntime implements AutoCloseable {
         long now = System.currentTimeMillis();
         long duration = Math.max(0L, now - replyLatencyMeasurementStartedAtMillis);
         replyLatencyMeasurementStartedAtMillis = 0;
+        oldestPendingMessageReceivedAtMillis = 0;
         recentReplyLatencies.addLast(new ReplyLatencySample(now, duration));
         pruneReplyLatencies(now);
         trace.trace("runtime.reply_latency", "duration=" + duration + "ms samples=" + recentReplyLatencies.size());
@@ -676,6 +686,7 @@ public final class ConversationRuntime implements AutoCloseable {
 
     private synchronized void clearReplyLatencyMeasurement() {
         replyLatencyMeasurementStartedAtMillis = 0;
+        oldestPendingMessageReceivedAtMillis = 0;
     }
 
     private synchronized Long averageReplyLatencyMillis() {
