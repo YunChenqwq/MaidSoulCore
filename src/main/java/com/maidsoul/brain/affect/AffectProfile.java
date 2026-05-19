@@ -25,28 +25,57 @@ public final class AffectProfile {
                 + "，信赖=" + trust
                 + "，熟悉=" + familiarity
                 + "，好感=" + affection
+                + "，关系=" + relationshipLevel()
                 + "，安全感=" + security
                 + "，好奇心=" + curiosity
                 + "，主动好奇=" + effectiveCuriosity();
     }
 
     public String stateHint() {
+        String relation = "当前关系层级：" + relationshipLevel() + "。" + relationshipHint() + " ";
         if (hurt >= 55 || anger >= 55) {
-            return "她还明显受伤或生气，不适合立刻热情关心玩家。";
+            return relation + "她还明显受伤或生气，不适合立刻热情关心玩家。";
         }
         if (hurt >= 30 || anger >= 30 || tension >= 55) {
-            return "她有些别扭和防备，可以继续聊，但语气会更短、更谨慎。";
+            return relation + "她有些别扭和防备，可以继续聊，但语气会更短、更谨慎。";
         }
         if (effectiveCuriosity() >= 70 && mood >= 55) {
-            return "她现在对玩家的状态很在意，容易主动追问或轻轻推进话题。";
+            return relation + "她现在对玩家的状态很在意，容易主动追问或轻轻推进话题。";
         }
         if (mood >= 70 && trust >= 55) {
-            return "她现在比较放松，愿意自然接话和轻轻主动。";
+            return relation + "她现在比较放松，愿意自然接话和轻轻主动。";
         }
         if (mood <= 35) {
-            return "她心情偏低，需要更安静、克制的表达。";
+            return relation + "她心情偏低，需要更安静、克制的表达。";
         }
-        return "她当前情绪基本平稳，可以正常聊天。";
+        return relation + "她当前情绪基本平稳，可以正常聊天。";
+    }
+
+    public String relationshipLevel() {
+        int score = (affection * 4 + trust * 3 + familiarity * 2 + security) / 10;
+        if (score >= 90 && affection >= 85 && trust >= 80) {
+            return "伴侣";
+        }
+        if (score >= 78 && affection >= 75 && trust >= 70) {
+            return "恋人";
+        }
+        if (score >= 65 && affection >= 60 && familiarity >= 55) {
+            return "暧昧";
+        }
+        if (score >= 50 && trust >= 45) {
+            return "熟悉";
+        }
+        return "初识";
+    }
+
+    private String relationshipHint() {
+        return switch (relationshipLevel()) {
+            case "伴侣" -> "可以更自然亲密，但仍要保留自己的情绪和边界。";
+            case "恋人" -> "可以主动表达在意，撒娇和别扭都应带着真实关心。";
+            case "暧昧" -> "可以有轻微试探和害羞，但不要默认过度亲密。";
+            case "熟悉" -> "可以放松一点接话，但亲密表达要看上下文。";
+            default -> "表达应保持礼貌和适度距离，先建立熟悉感。";
+        };
     }
 
     /**

@@ -1,6 +1,8 @@
 package com.maidsoul.brain.reasoning;
 
 import com.maidsoul.brain.config.BrainConfig;
+import com.maidsoul.brain.affect.AffectEvent;
+import com.maidsoul.brain.affect.AffectEventKind;
 import com.maidsoul.brain.llm.ChatPayload;
 import com.maidsoul.brain.llm.InterruptFlag;
 import com.maidsoul.brain.llm.LlmClient;
@@ -91,20 +93,39 @@ final class PlannerAgent {
             return new PlanDecision("no_action", "", 0, "规划器理由明确要求停止发言，覆盖错误的 reply 工具调用。", "");
         }
         String compactReason = compactReason(reason);
+        AffectEvent affectEvent = affectEventFromArgs(args);
         return switch (action) {
             case "reply" -> new PlanDecision(
                     "reply",
                     stringArg(args, "target_message_id", ""),
                     0,
                     compactReason,
-                    stringArg(args, "reference_info", "")
+                    stringArg(args, "reference_info", ""),
+                    affectEvent
             );
-            case "wait" -> new PlanDecision("wait", "", intArg(args, "seconds", config.flow().defaultWaitSeconds()), compactReason, "");
-            case "no_action" -> new PlanDecision("no_action", "", 0, compactReason, "");
+            case "wait" -> new PlanDecision("wait", "", intArg(args, "seconds", config.flow().defaultWaitSeconds()), compactReason, "", affectEvent);
+            case "no_action" -> new PlanDecision("no_action", "", 0, compactReason, "", affectEvent);
             case "finish" -> new PlanDecision("no_action", "", 0, compactReason, "");
             case "query_memory" -> new PlanDecision("query_memory", stringArg(args, "query", ""), 0, compactReason, "");
             default -> PlanDecision.replyLatest("规划器调用了未知工具，按最新消息回复。");
         };
+    }
+
+    private static AffectEvent affectEventFromArgs(Map<String, Object> args) {
+        String kindText = stringArg(args, "affect_event_kind", "");
+        if (kindText.isBlank()) {
+            return null;
+        }
+        try {
+            AffectEventKind kind = AffectEventKind.valueOf(kindText.trim().toUpperCase());
+            int intensity = Math.max(0, Math.min(100, intArg(args, "affect_event_intensity", 50)));
+            if (intensity <= 0) {
+                return null;
+            }
+            return AffectEvent.of(kind, intensity, "planner", stringArg(args, "affect_event_note", ""));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     private PlanDecision fallbackFromText(String content) {

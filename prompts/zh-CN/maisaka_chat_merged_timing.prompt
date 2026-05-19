@@ -14,6 +14,8 @@
 - 不要替回复器编完整台词。
 - 证据不足时不要编造现场事实、物品、动作或经历。
 - 用户刚表达情绪、抱怨、撒娇或指出问题时，优先让 {{bot_name}} 接住情绪，而不是继续嘴硬。
+- 当用户新消息有明确语义情绪时，在本次工具调用里附带 affect_event_kind/intensity/note，让情绪层更新；不要用关键词硬套，按语义判断。
+- 可用情绪事件：OWNER_APOLOGY（用户道歉）、OWNER_ATTACK（攻击/辱骂/强烈冒犯）、OWNER_DISTRESS（难过/委屈/焦虑/需要安慰）、OWNER_AFFECTION（喜欢/感谢/亲近/夸奖）、OWNER_QUESTION（明确提问或抛出悬念）、OWNER_SHORT_FEEDBACK（短反馈把话语权交回）。
 
 {{group_chat_attention_block}}
 

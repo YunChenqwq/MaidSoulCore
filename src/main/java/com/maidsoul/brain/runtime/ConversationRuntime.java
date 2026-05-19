@@ -64,6 +64,7 @@ public final class ConversationRuntime implements AutoCloseable {
     private volatile long proactiveGeneration;
     private volatile boolean proactiveAwaitingCycle;
     private volatile int proactiveVisibleRepliesSinceLastUser;
+    private volatile int proactiveFiredCandidatesSinceLastUser;
     private volatile int proactiveSilentDecisionsSinceLastUser;
     private volatile boolean messageArrivedDuringRun;
     private volatile boolean plannerInterruptRequested;
@@ -110,6 +111,7 @@ public final class ConversationRuntime implements AutoCloseable {
         proactiveGeneration++;
         cancelProactiveTimer();
         proactiveVisibleRepliesSinceLastUser = 0;
+        proactiveFiredCandidatesSinceLastUser = 0;
         proactiveSilentDecisionsSinceLastUser = 0;
         proactiveStageIndex = ProactiveScheduler.STAGE_LIGHT_FOLLOWUP;
         long newVersion = version.incrementAndGet();
@@ -326,13 +328,21 @@ public final class ConversationRuntime implements AutoCloseable {
                     // 不能继续用上一句发言结束时间，否则模型一慢就会立刻连触发下一阶段。
                     lastAssistantFinishedAtMillis = System.currentTimeMillis();
                     int activeCuriosity = memoryRuntime.activeCuriosity();
-                    if (proactiveScheduler.shouldScheduleAfterSilentDecision(activeCuriosity, proactiveSilentDecisionsSinceLastUser)) {
+                    if (proactiveScheduler.shouldScheduleAfterSilentDecision(
+                            activeCuriosity,
+                            proactiveSilentDecisionsSinceLastUser,
+                            proactiveFiredCandidatesSinceLastUser)) {
                         scheduleNextProactiveCheckLocked(proactiveGeneration);
                     } else {
                         trace.trace("proactive.stop", "planner 已连续选择沉默，主动好奇="
                                 + activeCuriosity + "，停止主动候选，等待玩家下一条消息。");
                     }
                 }
+            }
+            if (running && !proactiveCycle && state != RuntimeState.WAIT && kind == TurnKind.MESSAGE
+                    && cycleVersion == version.get() && result != null
+                    && result.kind() == ReasoningEngine.ResultKind.NO_ACTION) {
+                markConversationAnchorAfterUserNoAction();
             }
         }
     }
@@ -428,11 +438,23 @@ public final class ConversationRuntime implements AutoCloseable {
         proactiveAwaitingCycle = false;
         proactiveVisibleRepliesSinceLastUser++;
         proactiveSilentDecisionsSinceLastUser = 0;
-        if (proactiveVisibleRepliesSinceLastUser >= 1) {
-            trace.trace("proactive.stop", "本轮玩家消息后已经主动说过一次，停止继续主动，等待玩家回应。");
+        if (proactiveVisibleRepliesSinceLastUser >= proactiveScheduler.maxVisibleReplies()) {
+            trace.trace("proactive.stop", "本轮玩家沉默期间已达到主动上限，进入沉默状态等待玩家回应。");
             return;
         }
-        proactiveStageIndex = Math.max(proactiveStageIndex, ProactiveScheduler.STAGE_TOPIC_PUSH);
+        proactiveStageIndex = proactiveVisibleRepliesSinceLastUser >= proactiveScheduler.maxVisibleReplies() - 1
+                ? ProactiveScheduler.STAGE_FINAL_NOTICE
+                : Math.max(proactiveStageIndex, ProactiveScheduler.STAGE_TOPIC_PUSH);
+        scheduleNextProactiveCheckLocked(proactiveGeneration);
+    }
+
+    private synchronized void markConversationAnchorAfterUserNoAction() {
+        // 玩家真实发言被 planner 判断为暂不回应时，也要留下一个节奏锚点。
+        // 否则之后 30s/75s 的长沉默不会再提交给 planner，看起来就像系统彻底暂停。
+        lastAssistantFinishedAtMillis = System.currentTimeMillis();
+        proactiveStageIndex = ProactiveScheduler.STAGE_TOPIC_PUSH;
+        proactiveGeneration++;
+        proactiveSilentDecisionsSinceLastUser = 0;
         scheduleNextProactiveCheckLocked(proactiveGeneration);
     }
 
@@ -475,8 +497,8 @@ public final class ConversationRuntime implements AutoCloseable {
         if (!running || !config.flow().enableProactiveRhythm() || lastAssistantFinishedAtMillis <= 0) {
             return;
         }
-        if (proactiveVisibleRepliesSinceLastUser >= 1) {
-            trace.trace("proactive.skip", "玩家未回应前已经主动说过一次，不再继续排主动检查。");
+        if (proactiveVisibleRepliesSinceLastUser >= proactiveScheduler.maxVisibleReplies()) {
+            trace.trace("proactive.skip", "玩家未回应前已经达到主动上限，不再继续排主动检查。");
             return;
         }
 
@@ -484,7 +506,8 @@ public final class ConversationRuntime implements AutoCloseable {
         int nextSeconds = proactiveScheduler.nextDelaySeconds(
                 proactiveStageIndex,
                 activeCuriosity,
-                proactiveSilentDecisionsSinceLastUser
+                proactiveSilentDecisionsSinceLastUser,
+                proactiveFiredCandidatesSinceLastUser
         );
         if (nextSeconds <= 0) {
             trace.trace("proactive.skip", "主动好奇=" + activeCuriosity + "，当前阶段不再排主动候选。");
@@ -513,6 +536,7 @@ public final class ConversationRuntime implements AutoCloseable {
                     silentSeconds,
                     proactiveStageIndex,
                     activeCuriosity,
+                    proactiveFiredCandidatesSinceLastUser,
                     memoryRuntime.proactiveAffectHint()
             );
             long newVersion = version.incrementAndGet();
@@ -522,6 +546,7 @@ public final class ConversationRuntime implements AutoCloseable {
                     + " activeCuriosity=" + activeCuriosity
                     + " silentSeconds=" + silentSeconds);
             proactiveStageIndex = proactiveScheduler.nextStageAfterFire(proactiveStageIndex);
+            proactiveFiredCandidatesSinceLastUser++;
             proactiveAwaitingCycle = true;
             internalTurnQueue.offer(TurnKind.PROACTIVE);
         }

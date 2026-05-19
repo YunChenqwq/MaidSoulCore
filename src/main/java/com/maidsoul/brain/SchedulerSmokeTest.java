@@ -44,13 +44,16 @@ public final class SchedulerSmokeTest {
 
     private static void testProactiveCandidateDoesNotForceReply() {
         ProactiveScheduler scheduler = new ProactiveScheduler(flow());
-        if (!scheduler.shouldScheduleAfterSilentDecision(80, 1)) {
+        if (!scheduler.shouldScheduleAfterSilentDecision(80, 1, 1)) {
             throw new IllegalStateException("主动好奇较高时可以继续排候选。");
         }
-        if (scheduler.shouldScheduleAfterSilentDecision(40, 2)) {
+        if (scheduler.shouldScheduleAfterSilentDecision(40, 2, 2)) {
             throw new IllegalStateException("主动好奇较低且已连续沉默时不应继续排候选。");
         }
-        String event = scheduler.buildEvent(45, ProactiveScheduler.STAGE_RELATION_CANDIDATE, 82, "主动好奇较高。");
+        if (scheduler.shouldScheduleAfterSilentDecision(90, 1, 4)) {
+            throw new IllegalStateException("达到主动候选上限后不应继续排候选。");
+        }
+        String event = scheduler.buildEvent(45, ProactiveScheduler.STAGE_RELATION_CANDIDATE, 82, 2, "主动好奇较高。");
         if (!event.contains("planner 可以 reply、wait 或 no_action")) {
             throw new IllegalStateException("主动候选事件必须声明最终动作由 planner 决定。");
         }
@@ -68,6 +71,7 @@ public final class SchedulerSmokeTest {
                 3000,
                 false,
                 true,
+                4,
                 12,
                 30,
                 75,

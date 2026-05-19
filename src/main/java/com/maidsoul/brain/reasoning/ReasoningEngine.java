@@ -164,6 +164,7 @@ public final class ReasoningEngine {
                 plan = PlanDecision.replyLatest("规划器请求失败，直接回应最新消息。");
             }
             trace.trace("planner", plan.action() + " target=" + plan.targetMessageId() + " / " + plan.reason());
+            applyPlannerAffectEvent(plan);
             if ("wait".equals(plan.action())) {
                 return Result.waiting(plan.waitSeconds() > 0 ? plan.waitSeconds() : config.flow().defaultWaitSeconds());
             }
@@ -224,6 +225,16 @@ public final class ReasoningEngine {
             return Result.streamed(reply, target, effectiveReason, plan.referenceInfo());
         }
         return Result.noAction();
+    }
+
+    private void applyPlannerAffectEvent(PlanDecision plan) {
+        if (memoryRuntime == null || plan == null || plan.affectEvent() == null) {
+            return;
+        }
+        memoryRuntime.observeAffectEvent(plan.affectEvent());
+        trace.trace("affect.event", plan.affectEvent().kind()
+                + " intensity=" + plan.affectEvent().intensity()
+                + " / " + memoryRuntime.affectSummary());
     }
 
     private ChatMessage resolveReplyTarget(PlanDecision plan, ChatMessage anchor, boolean proactiveEvent) {

@@ -31,7 +31,10 @@ public final class BuiltinToolSet {
                 objectSchema(Map.of(
                         "target_message_id", stringSchema("要回应的消息 id；没有明确目标时留空。"),
                         "reason", stringSchema("为什么现在应该回复，以及回复方向；只写一句短方向，不超过40个中文字符，不要写长篇分析。"),
-                        "reference_info", stringSchema("可选参考信息，只给回复器看，不会直接展示；不要编造现场事实。")
+                        "reference_info", stringSchema("可选参考信息，只给回复器看，不会直接展示；不要编造现场事实。"),
+                        "affect_event_kind", stringSchema("可选结构化情绪事件：OWNER_APOLOGY/OWNER_ATTACK/OWNER_DISTRESS/OWNER_AFFECTION/OWNER_QUESTION/OWNER_SHORT_FEEDBACK；无明确事件留空。"),
+                        "affect_event_intensity", numberSchema("可选情绪事件强度，0-100；普通轻微=25，中等=50，强烈=75。"),
+                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括，不要复述长聊天。")
                 ), List.of("reason")),
                 Map.of("stage", "action")
         );
@@ -43,7 +46,10 @@ public final class BuiltinToolSet {
                 "等待一段时间后再判断。用于用户可能还没说完，或者当前更适合把发言权交还给用户。",
                 objectSchema(Map.of(
                         "seconds", numberSchema("等待秒数。"),
-                        "reason", stringSchema("为什么等待。")
+                        "reason", stringSchema("为什么等待。"),
+                        "affect_event_kind", stringSchema("可选结构化情绪事件；无明确事件留空。"),
+                        "affect_event_intensity", numberSchema("可选情绪事件强度，0-100。"),
+                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括。")
                 ), List.of()),
                 Map.of("stage", "timing")
         );
@@ -53,7 +59,12 @@ public final class BuiltinToolSet {
         return new ToolSpec(
                 "no_action",
                 "本轮不发言，等待新的外部消息。",
-                objectSchema(Map.of("reason", stringSchema("为什么本轮不发言。")), List.of()),
+                objectSchema(Map.of(
+                        "reason", stringSchema("为什么本轮不发言。"),
+                        "affect_event_kind", stringSchema("可选结构化情绪事件；无明确事件留空。"),
+                        "affect_event_intensity", numberSchema("可选情绪事件强度，0-100。"),
+                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括。")
+                ), List.of()),
                 Map.of("stage", "timing")
         );
     }

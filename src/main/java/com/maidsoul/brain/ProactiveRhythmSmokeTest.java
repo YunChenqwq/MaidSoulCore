@@ -83,6 +83,7 @@ public final class ProactiveRhythmSmokeTest {
                 old.timingGateNonContinueCooldownMillis(),
                 old.directReplyOnUserMessage(),
                 true,
+                old.proactiveMaxVisibleReplies(),
                 1,
                 2,
                 4,

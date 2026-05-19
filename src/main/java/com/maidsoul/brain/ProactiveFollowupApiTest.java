@@ -83,6 +83,7 @@ public final class ProactiveFollowupApiTest {
                 old.timingGateNonContinueCooldownMillis(),
                 old.directReplyOnUserMessage(),
                 true,
+                old.proactiveMaxVisibleReplies(),
                 3,
                 6,
                 14,

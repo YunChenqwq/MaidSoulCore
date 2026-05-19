@@ -205,6 +205,7 @@ public final class RuntimeLoopSmokeTest {
                 old.timingGateNonContinueCooldownMillis(),
                 old.directReplyOnUserMessage(),
                 false,
+                old.proactiveMaxVisibleReplies(),
                 old.proactiveInputProtectionSeconds(),
                 old.proactiveLightFollowupAfterSeconds(),
                 old.proactiveTopicPushAfterSeconds(),
