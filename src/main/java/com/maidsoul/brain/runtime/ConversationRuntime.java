@@ -4,6 +4,7 @@ import com.maidsoul.brain.config.BrainConfig;
 import com.maidsoul.brain.llm.InterruptFlag;
 import com.maidsoul.brain.llm.LlmClient;
 import com.maidsoul.brain.memory.MemoryRuntime;
+import com.maidsoul.brain.memory.v2.MemoryMaintenanceReport;
 import com.maidsoul.brain.message.ChatMessage;
 import com.maidsoul.brain.prompt.PromptCatalog;
 import com.maidsoul.brain.reply.effect.ReplyEffectTracker;
@@ -104,6 +105,14 @@ public final class ConversationRuntime implements AutoCloseable {
         running = true;
         ensureInternalLoopRunning();
         scheduleMessageTurn();
+    }
+
+    public MemoryMaintenanceReport maintainV2() {
+        return memoryRuntime.maintainV2();
+    }
+
+    public String debugMemoryV2(String query, int limit) {
+        return memoryRuntime.debugMemoryV2(query, limit);
     }
 
     public void receiveUserMessage(String speaker, String content) {

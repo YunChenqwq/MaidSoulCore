@@ -9,7 +9,10 @@ import com.maidsoul.brain.character.CharacterPackage;
 import com.maidsoul.brain.config.MemoryConfig;
 import com.maidsoul.brain.memory.v2.MemorySearchResult;
 import com.maidsoul.brain.memory.v2.MemoryV2Store;
+import com.maidsoul.brain.memory.v2.MemoryMaintenanceReport;
+import com.maidsoul.brain.memory.v2.MemoryWritePlan;
 import com.maidsoul.brain.memory.v2.MemoryWriteResult;
+import com.maidsoul.brain.memory.v2.MemoryWriteStrategy;
 import com.maidsoul.brain.memory.v2.PersonProfileSnapshot;
 
 import java.nio.file.Path;
@@ -24,6 +27,7 @@ public final class MemoryRuntime {
     private final MemoryConfig config;
     private final AffectEngine affectEngine = new AffectEngine();
     private final MemoryCandidateExtractor extractor = new MemoryCandidateExtractor();
+    private final MemoryWriteStrategy writeStrategy = new MemoryWriteStrategy();
     private final LifeMemoryStore memoryStore;
     private final MemoryV2Store memoryV2Store;
     private final DailyMemoryConsolidator dailyConsolidator;
@@ -32,6 +36,7 @@ public final class MemoryRuntime {
     private final CharacterPackage characterPackage;
     private final AffectProfile affectProfile;
     private final UserProfile userProfile;
+    private int v2WritesSinceMaintenance;
 
     public MemoryRuntime(MemoryConfig config) {
         this.config = config;
@@ -72,6 +77,7 @@ public final class MemoryRuntime {
                     "chat",
                     "user",
                     text,
+                    candidate.type(),
                     candidate.importance(),
                     candidate.tags()
             );
@@ -106,6 +112,7 @@ public final class MemoryRuntime {
                     "chat",
                     "assistant",
                     text,
+                    candidate.type(),
                     candidate.importance(),
                     candidate.tags()
             );
@@ -137,6 +144,7 @@ public final class MemoryRuntime {
                 "world",
                 "event",
                 content == null || content.isBlank() ? eventType : content,
+                MemoryType.WORLD,
                 4,
                 List.of("world", eventType == null ? "event" : eventType)
         );
@@ -149,6 +157,17 @@ public final class MemoryRuntime {
             return;
         }
         affectEngine.apply(affectProfile, event);
+        if (event.intensity() >= 45 || event.kind().name().contains("HURT") || event.kind().name().contains("APOLOGY")) {
+            ingestV2(
+                    "affect:" + event.kind().name() + ":" + System.nanoTime(),
+                    "affect",
+                    "affect_event",
+                    event.kind().name() + " intensity=" + event.intensity() + " note=" + event.note(),
+                    MemoryType.EMOTION,
+                    Math.max(3, event.intensity() / 12),
+                    List.of("affect_event", "repair_debt", event.kind().name().toLowerCase())
+            );
+        }
         saveState();
         refreshDailySummary();
     }
@@ -213,6 +232,14 @@ public final class MemoryRuntime {
         return builder.toString().trim();
     }
 
+    public synchronized MemoryMaintenanceReport maintainV2() {
+        return memoryV2Store.maintainCycle();
+    }
+
+    public synchronized String debugMemoryV2(String query, int limit) {
+        return memoryV2Store.debugDump(query, limit);
+    }
+
     public synchronized String affectSummary() {
         return affectProfile.brief();
     }
@@ -250,23 +277,35 @@ public final class MemoryRuntime {
             String sourceType,
             String role,
             String text,
+            MemoryType type,
             int importance,
             List<String> tags
     ) {
+        MemoryWritePlan plan = writeStrategy.plan(role, text, type, importance, tags);
+        if (!plan.shouldStore()) {
+            return;
+        }
         List<String> participants = role == null || role.isBlank()
                 ? List.of(config.ownerId())
                 : List.of(config.ownerId(), role);
         MemoryWriteResult ignored = memoryV2Store.ingestText(
                 externalId,
-                sourceType,
+                plan.sourceType(),
                 config.worldId(),
                 role,
                 text,
                 participants,
-                tags,
-                "maidId=" + config.maidId() + ";ownerId=" + config.ownerId(),
-                Math.max(1, Math.min(10, importance * 2))
+                plan.tags(),
+                "maidId=" + config.maidId() + ";ownerId=" + config.ownerId() + ";" + plan.metadataSuffix(),
+                plan.salience()
         );
+        if (ignored.success() && !ignored.storedIds().isEmpty()) {
+            v2WritesSinceMaintenance++;
+            if (v2WritesSinceMaintenance >= 12) {
+                memoryV2Store.maintainCycle();
+                v2WritesSinceMaintenance = 0;
+            }
+        }
     }
 
     private void saveState() {

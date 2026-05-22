@@ -13,10 +13,12 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A_Memorix 风格长期记忆核心。
@@ -71,6 +73,12 @@ public final class MemoryV2Store {
                 metadata,
                 salience
         );
+        if (metadata != null && metadata.contains("protect=true")) {
+            paragraph.protectedUntil = MemoryParagraph.now() + 7 * 24 * 3600.0;
+        }
+        if (metadata != null && metadata.contains("permanent=true")) {
+            paragraph.permanent = true;
+        }
         appendLine(paragraphPath(), paragraph.toJsonLine());
         appendLine(externalRefsPath(), id + "\t" + paragraph.hash);
 
@@ -166,6 +174,128 @@ public final class MemoryV2Store {
         snapshot.updatedAt = MemoryParagraph.now();
         appendLine(profileSnapshotsPath(), snapshot.toJsonLine());
         return snapshot;
+    }
+
+    public synchronized MemoryMaintenanceReport maintainCycle() {
+        List<MemoryParagraph> paragraphs = new ArrayList<>(allParagraphs());
+        double now = MemoryParagraph.now();
+        int deduplicated = 0;
+        int decayed = 0;
+        int solidified = 0;
+        int correctionMarked = 0;
+        int forgotten = 0;
+
+        Map<String, MemoryParagraph> canonical = new LinkedHashMap<>();
+        for (MemoryParagraph paragraph : paragraphs) {
+            if (paragraph.deleted) {
+                continue;
+            }
+            String key = canonicalKey(paragraph.content);
+            MemoryParagraph keeper = canonical.get(key);
+            if (keeper == null) {
+                canonical.put(key, paragraph);
+                continue;
+            }
+            MemoryParagraph winner = betterKeeper(keeper, paragraph);
+            MemoryParagraph loser = winner == keeper ? paragraph : keeper;
+            winner.salience = Math.max(winner.salience, loser.salience);
+            winner.accessCount += Math.max(0, loser.accessCount);
+            winner.tags = mergeCsv(winner.tags, loser.tags);
+            loser.deleted = true;
+            loser.updatedAt = now;
+            canonical.put(key, winner);
+            deduplicated++;
+        }
+
+        for (MemoryParagraph paragraph : paragraphs) {
+            if (paragraph.deleted) {
+                continue;
+            }
+            boolean protectedNow = paragraph.permanent || paragraph.protectedUntil > now;
+            String tags = paragraph.tags == null ? "" : paragraph.tags;
+            boolean important = containsAny(tags, "boundary", "promise", "relationship_event", "repair_debt", "self_memory")
+                    || paragraph.salience >= 9;
+            if (important && !paragraph.permanent) {
+                paragraph.permanent = true;
+                paragraph.protectedUntil = Math.max(paragraph.protectedUntil, now + 30 * 24 * 3600.0);
+                paragraph.updatedAt = now;
+                solidified++;
+            }
+
+            if (looksLikeCorrection(paragraph.content, tags)) {
+                paragraph.tags = mergeCsv(paragraph.tags, "correction,error_mark");
+                paragraph.salience = Math.max(paragraph.salience, 8);
+                paragraph.protectedUntil = Math.max(paragraph.protectedUntil, now + 14 * 24 * 3600.0);
+                paragraph.updatedAt = now;
+                correctionMarked++;
+            }
+
+            double ageDays = Math.max(0, (now - paragraph.updatedAt) / 86400.0);
+            if (!protectedNow && ageDays >= 7 && paragraph.salience > 1 && paragraph.accessCount == 0) {
+                paragraph.salience--;
+                paragraph.updatedAt = now;
+                decayed++;
+            }
+            if (!protectedNow && ageDays >= 30 && paragraph.salience <= 2) {
+                paragraph.deleted = true;
+                paragraph.updatedAt = now;
+                forgotten++;
+            }
+        }
+
+        writeAll(paragraphPath(), paragraphs.stream().map(MemoryParagraph::toJsonLine).toList());
+        MemoryMaintenanceReport report = new MemoryMaintenanceReport(
+                paragraphs.size(),
+                deduplicated,
+                decayed,
+                solidified,
+                correctionMarked,
+                forgotten,
+                "维护策略=dedupe+solidify+correction_mark+age_decay"
+        );
+        appendLine(maintenanceLogPath(), report.toJsonLine());
+        return report;
+    }
+
+    public synchronized String debugDump(String query, int limit) {
+        int safeLimit = Math.max(1, Math.min(30, limit));
+        StringBuilder builder = new StringBuilder();
+        builder.append("A-Memorix v2 记忆库\n")
+                .append("root=").append(root).append("\n\n");
+
+        builder.append("---- 检索结果 ----\n");
+        MemorySearchResult result = search(query == null ? "" : query, "aggregate", safeLimit);
+        builder.append(result.toPromptText(safeLimit)).append("\n\n");
+
+        builder.append("---- 最近段落 ----\n");
+        for (MemoryParagraph paragraph : allParagraphs().stream()
+                .sorted(Comparator.comparingDouble((MemoryParagraph p) -> p.eventTimeEnd).reversed())
+                .limit(safeLimit)
+                .toList()) {
+            builder.append(paragraph.deleted ? "[deleted] " : "")
+                    .append("salience=").append(paragraph.salience)
+                    .append(", permanent=").append(paragraph.permanent)
+                    .append(", tags=").append(paragraph.tags)
+                    .append("\n")
+                    .append(paragraph.content)
+                    .append("\n\n");
+        }
+
+        builder.append("---- 关系图谱 ----\n");
+        for (MemoryRelation relation : allRelations().stream()
+                .filter(relation -> !relation.inactive)
+                .sorted(Comparator.comparingDouble((MemoryRelation r) -> r.confidence).reversed())
+                .limit(safeLimit)
+                .toList()) {
+            builder.append("- ").append(relation.readable())
+                    .append(" conf=").append(String.format(Locale.ROOT, "%.2f", relation.confidence))
+                    .append("\n");
+        }
+
+        builder.append("\n---- 最近维护日志 ----\n");
+        List<String> logs = readLines(maintenanceLogPath());
+        logs.stream().skip(Math.max(0, logs.size() - safeLimit)).forEach(line -> builder.append(line).append('\n'));
+        return builder.toString().trim();
     }
 
     public synchronized MemoryWriteResult maintain(String action, String target, double hours) {
@@ -535,6 +665,47 @@ public final class MemoryV2Store {
         return String.join(",", ids);
     }
 
+    private static MemoryParagraph betterKeeper(MemoryParagraph first, MemoryParagraph second) {
+        if (first.permanent != second.permanent) {
+            return first.permanent ? first : second;
+        }
+        if (first.salience != second.salience) {
+            return first.salience > second.salience ? first : second;
+        }
+        return first.createdAt <= second.createdAt ? first : second;
+    }
+
+    private static String canonicalKey(String content) {
+        String clean = normalize(content)
+                .replaceAll("[\\p{Punct}，。！？、；：“”‘’（）【】《》…\\s]+", "");
+        if (clean.length() > 80) {
+            clean = clean.substring(0, 80);
+        }
+        return clean;
+    }
+
+    private static String mergeCsv(String first, String second) {
+        Set<String> values = new HashSet<>();
+        values.addAll(split(first));
+        values.addAll(split(second));
+        return String.join(",", values.stream().filter(v -> v != null && !v.isBlank()).sorted().toList());
+    }
+
+    private static boolean looksLikeCorrection(String content, String tags) {
+        String text = normalize((content == null ? "" : content) + " " + (tags == null ? "" : tags));
+        return containsAny(text, "correction", "error_mark", "不是", "不对", "错了", "记错", "说错", "其实是", "改成");
+    }
+
+    private static boolean containsAny(String text, String... needles) {
+        String value = text == null ? "" : text;
+        for (String needle : needles) {
+            if (needle != null && !needle.isBlank() && value.contains(needle.toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private Path paragraphPath() {
         return root.resolve("paragraphs.jsonl");
     }
@@ -557,5 +728,9 @@ public final class MemoryV2Store {
 
     private Path profileSnapshotsPath() {
         return root.resolve("person_profile_snapshots.jsonl");
+    }
+
+    private Path maintenanceLogPath() {
+        return root.resolve("maintenance_log.jsonl");
     }
 }

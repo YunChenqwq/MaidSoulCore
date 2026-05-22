@@ -3,6 +3,8 @@ package com.maidsoul.brain;
 import com.maidsoul.brain.config.BrainConfig;
 import com.maidsoul.brain.config.FlowConfig;
 import com.maidsoul.brain.llm.OpenAiCompatibleClient;
+import com.maidsoul.brain.memory.v2.MemoryMaintenanceReport;
+import com.maidsoul.brain.memory.v2.MemoryV2Store;
 import com.maidsoul.brain.prompt.PromptCatalog;
 import com.maidsoul.brain.runtime.ConversationRuntime;
 import com.maidsoul.brain.runtime.RuntimeTraceSink;
@@ -44,7 +46,9 @@ public final class BrainGui {
     private final JTextArea chatArea = new JTextArea();
     private final JTextArea traceArea = new JTextArea();
     private final JTextArea characterArea = new JTextArea();
+    private final JTextArea memoryArea = new JTextArea();
     private final JTextField inputField = new JTextField();
+    private final JTextField memorySearchField = new JTextField(18);
     private final JLabel statusLabel = new JLabel("未启动");
     private final JCheckBox fastProactiveBox = new JCheckBox("快速主动测试", true);
     private final JButton startButton = new JButton("启动");
@@ -58,6 +62,9 @@ public final class BrainGui {
     private final JButton presetHurtButton = new JButton("受伤");
     private final JButton presetRepairedButton = new JButton("修复后");
     private final JButton refreshCharacterButton = new JButton("刷新角色包");
+    private final JButton refreshMemoryButton = new JButton("刷新记忆");
+    private final JButton searchMemoryButton = new JButton("检索记忆");
+    private final JButton maintainMemoryButton = new JButton("维护记忆");
 
     private BrainConfig config;
     private ConversationRuntime runtime;
@@ -86,9 +93,25 @@ public final class BrainGui {
         characterArea.setWrapStyleWord(true);
         characterArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
 
+        memoryArea.setEditable(false);
+        memoryArea.setLineWrap(true);
+        memoryArea.setWrapStyleWord(true);
+        memoryArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+
+        JPanel memoryPanel = new JPanel(new BorderLayout(6, 6));
+        JPanel memoryTools = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        memoryTools.add(new JLabel("检索："));
+        memoryTools.add(memorySearchField);
+        memoryTools.add(searchMemoryButton);
+        memoryTools.add(refreshMemoryButton);
+        memoryTools.add(maintainMemoryButton);
+        memoryPanel.add(memoryTools, BorderLayout.NORTH);
+        memoryPanel.add(new JScrollPane(memoryArea), BorderLayout.CENTER);
+
         JTabbedPane rightTabs = new JTabbedPane();
         rightTabs.addTab("Trace", new JScrollPane(traceArea));
         rightTabs.addTab("角色包", new JScrollPane(characterArea));
+        rightTabs.addTab("记忆", memoryPanel);
 
         JSplitPane split = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
@@ -143,6 +166,10 @@ public final class BrainGui {
         presetHurtButton.addActionListener(event -> applyStatePreset(StatePreset.hurtPreset()));
         presetRepairedButton.addActionListener(event -> applyStatePreset(StatePreset.repaired()));
         refreshCharacterButton.addActionListener(event -> refreshCharacterPackageView());
+        refreshMemoryButton.addActionListener(event -> refreshMemoryView());
+        searchMemoryButton.addActionListener(event -> refreshMemoryView());
+        memorySearchField.addActionListener(event -> refreshMemoryView());
+        maintainMemoryButton.addActionListener(event -> maintainMemory());
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
@@ -152,6 +179,7 @@ public final class BrainGui {
 
         setRunningUi(false);
         refreshCharacterPackageView();
+        refreshMemoryView();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
@@ -301,6 +329,42 @@ public final class BrainGui {
                     .append(": ")
                     .append(e.getMessage())
                     .append(")\n\n");
+        }
+    }
+
+    private void refreshMemoryView() {
+        try {
+            BrainConfig loaded = config != null ? config : BrainConfig.load(root.resolve("config"));
+            String query = memorySearchField.getText() == null ? "" : memorySearchField.getText().trim();
+            String text;
+            if (runtime != null) {
+                text = runtime.debugMemoryV2(query, 12);
+            } else {
+                text = new MemoryV2Store(loaded.memory()).debugDump(query, 12);
+            }
+
+            SwingUtilities.invokeLater(() -> {
+                memoryArea.setText(text);
+                memoryArea.setCaretPosition(0);
+            });
+        } catch (Exception e) {
+            SwingUtilities.invokeLater(() -> memoryArea.setText(
+                    "记忆加载失败：\n" + e.getClass().getSimpleName() + ": " + e.getMessage()
+            ));
+        }
+    }
+
+    private void maintainMemory() {
+        try {
+            BrainConfig loaded = config != null ? config : BrainConfig.load(root.resolve("config"));
+            MemoryMaintenanceReport report = runtime != null
+                    ? runtime.maintainV2()
+                    : new MemoryV2Store(loaded.memory()).maintainCycle();
+            appendSystem("记忆维护完成：" + report.toHumanText());
+            refreshMemoryView();
+            appendTrace("MEMORY_MAINTAIN", report.toHumanText());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
