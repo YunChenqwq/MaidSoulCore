@@ -283,7 +283,7 @@
     @media (max-width: 900px) {
       .app {
         grid-template-columns: 1fr;
-        grid-template-rows: auto minmax(0, 1fr) 320px;
+        grid-template-rows: auto minmax(360px, 1fr) minmax(300px, 42vh);
       }
 
       header,
@@ -319,6 +319,7 @@
         <input id="fileInput" type="file" accept="application/json,.json">
       </label>
       <button id="sampleBtn" type="button">示例</button>
+      <button id="reflowBtn" type="button">重排</button>
       <button id="fitBtn" type="button">适配</button>
       <input id="searchInput" type="search" placeholder="搜索节点、标签、证据">
       <select id="kindFilter" title="按节点类型过滤">
@@ -376,6 +377,7 @@
     const stage = document.getElementById("stage");
     const fileInput = document.getElementById("fileInput");
     const sampleBtn = document.getElementById("sampleBtn");
+    const reflowBtn = document.getElementById("reflowBtn");
     const fitBtn = document.getElementById("fitBtn");
     const searchInput = document.getElementById("searchInput");
     const kindFilter = document.getElementById("kindFilter");
@@ -435,6 +437,7 @@
     let zoom = 1;
     let pointer = { x: 0, y: 0, down: false, moved: false };
     let animationId = 0;
+    let simulationHeat = 0;
 
     function resizeCanvas() {
       const rect = stage.getBoundingClientRect();
@@ -482,16 +485,19 @@
       fitToView();
       setStatus(sourceLabel + " / " + graph.nodes.length + " nodes, " + graph.edges.length + " edges");
       dropHint.style.display = graph.nodes.length ? "none" : "grid";
-      startSimulation();
+      startSimulation(1.4);
     }
 
     function seedLayout() {
       const rect = stage.getBoundingClientRect();
-      const radius = Math.max(80, Math.min(rect.width, rect.height) * 0.32);
+      const radius = Math.max(120, Math.min(rect.width, rect.height) * 0.26);
       graph.nodes.forEach((node, index) => {
         const angle = (index / Math.max(1, graph.nodes.length)) * Math.PI * 2;
-        node.x = Math.cos(angle) * radius;
-        node.y = Math.sin(angle) * radius;
+        const ring = radius * (0.55 + (index % 4) * 0.18);
+        node.x = Math.cos(angle) * ring + (Math.random() - 0.5) * 80;
+        node.y = Math.sin(angle) * ring + (Math.random() - 0.5) * 80;
+        node.vx = (Math.random() - 0.5) * 8;
+        node.vy = (Math.random() - 0.5) * 8;
         node.r = Math.max(7, Math.min(22, 6 + Math.sqrt(node.weight) * 4));
       });
     }
@@ -526,26 +532,31 @@
       const visibleIds = new Set(visibleNodes.map((node) => node.id));
       visibleEdges = graph.edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to));
       draw();
+      startSimulation(0.9);
     }
 
-    function startSimulation() {
+    function startSimulation(heat = 1) {
       cancelAnimationFrame(animationId);
+      simulationHeat = Math.max(simulationHeat, heat);
       let ticks = 0;
       const tick = () => {
-        simulate();
+        simulate(simulationHeat);
         draw();
         ticks += 1;
-        if (ticks === 80 || ticks === 220) {
+        simulationHeat *= 0.992;
+        if (ticks === 120 || ticks === 300) {
           fitToView();
         }
-        if (ticks < 520) {
+        if (ticks < 1200 && simulationHeat > 0.035) {
           animationId = requestAnimationFrame(tick);
+        } else {
+          animationId = 0;
         }
       };
       tick();
     }
 
-    function simulate() {
+    function simulate(heat) {
       const nodes = visibleNodes.length ? visibleNodes : graph.nodes;
       const edges = visibleEdges.length ? visibleEdges : graph.edges;
       const degrees = new Map();
@@ -561,7 +572,7 @@
           const dx = b.x - a.x || 0.01;
           const dy = b.y - a.y || 0.01;
           const dist2 = dx * dx + dy * dy;
-          const force = Math.min(1800 / dist2, 0.9);
+          const force = Math.min((5200 * heat) / dist2, 2.4);
           const fx = dx * force;
           const fy = dy * force;
           a.vx -= fx;
@@ -578,8 +589,8 @@
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const dist = Math.max(1, Math.hypot(dx, dy));
-        const desired = 90 + 90 * (1 - Math.min(1, edge.weight));
-        const force = (dist - desired) * 0.008;
+        const desired = 120 + 110 * (1 - Math.min(1, edge.weight));
+        const force = (dist - desired) * 0.014 * heat;
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
         a.vx += fx;
@@ -590,19 +601,19 @@
 
       nodes.forEach((node) => {
         const degree = degrees.get(node.id) || 1;
-        node.vx += (-node.x * 0.0015) + (degree > 2 ? -node.x * 0.0005 : 0);
-        node.vy += (-node.y * 0.0015) + (degree > 2 ? -node.y * 0.0005 : 0);
+        node.vx += ((-node.x * 0.0028) + (degree > 2 ? -node.x * 0.0008 : 0)) * heat;
+        node.vy += ((-node.y * 0.0028) + (degree > 2 ? -node.y * 0.0008 : 0)) * heat;
         const distanceFromCenter = Math.hypot(node.x, node.y);
         if (distanceFromCenter > 520) {
-          node.vx += (-node.x / distanceFromCenter) * 0.9;
-          node.vy += (-node.y / distanceFromCenter) * 0.9;
+          node.vx += (-node.x / distanceFromCenter) * 1.8 * heat;
+          node.vy += (-node.y / distanceFromCenter) * 1.8 * heat;
         }
         if (node !== dragging) {
           node.x += node.vx;
           node.y += node.vy;
         }
-        node.vx *= 0.82;
-        node.vy *= 0.82;
+        node.vx *= 0.88;
+        node.vy *= 0.88;
       });
     }
 
@@ -797,6 +808,12 @@
       loadGraph(sampleGraph, "sample");
     });
 
+    reflowBtn.addEventListener("click", () => {
+      seedLayout();
+      fitToView();
+      startSimulation(1.5);
+    });
+
     clearBtn.addEventListener("click", () => {
       jsonInput.value = "";
       loadGraph({ nodes: [], edges: [] }, "cleared");
@@ -837,6 +854,9 @@
         pan.x += dx;
         pan.y += dy;
       }
+      if (dragging) {
+        startSimulation(0.45);
+      }
       draw();
     });
 
@@ -848,6 +868,7 @@
       dragging = null;
       canvas.classList.remove("dragging");
       canvas.releasePointerCapture(event.pointerId);
+      startSimulation(0.65);
     });
 
     canvas.addEventListener("wheel", (event) => {
