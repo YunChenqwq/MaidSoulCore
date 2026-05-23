@@ -1,0 +1,7 @@
+﻿【本次回复目标】
+{{target_text}}
+
+{{reply_reason_block}}{{reference_info_block}}【聊天记录】
+{{context}}
+
+请自然地回复。不要输出多余说明、括号、@ 或额外标记，只输出实际要发送的内容。

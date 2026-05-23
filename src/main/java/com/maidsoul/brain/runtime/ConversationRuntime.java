@@ -115,6 +115,10 @@ public final class ConversationRuntime implements AutoCloseable {
         return memoryRuntime.debugMemoryV2(query, limit);
     }
 
+    public String affectSummary() {
+        return memoryRuntime.affectSummary();
+    }
+
     public void receiveUserMessage(String speaker, String content) {
         if (!running || content == null || content.isBlank()) {
             return;
@@ -176,6 +180,28 @@ public final class ConversationRuntime implements AutoCloseable {
             scheduleMessageTurn();
             return;
         }
+        ensureInternalLoopRunning();
+        scheduleMessageTurn();
+    }
+
+    /**
+     * 接收来自 Minecraft 世界的结构化事件。
+     *
+     * <p>这类输入不是玩家直接发言，而是“女仆被主人互动”“主人视角附近有怪物”
+     * 之类的环境事实。它们会进入记忆与情绪系统，也会作为 reference 消息交给
+     * planner 判断是否需要主动回应。</p>
+     */
+    public void receiveWorldEvent(String eventType, String detail) {
+        if (!running) {
+            return;
+        }
+        String safeType = eventType == null || eventType.isBlank() ? "world.event" : eventType.trim();
+        String safeDetail = detail == null ? "" : detail.trim();
+        memoryRuntime.observeWorldEvent(safeType, safeDetail);
+        long newVersion = version.incrementAndGet();
+        session.appendIncoming(ChatMessage.reference("[世界事件] " + safeType + (safeDetail.isBlank() ? "" : " | " + safeDetail)));
+        trace.trace("input.world", "version=" + newVersion + " type=" + safeType + " detail=" + safeDetail);
+        trace.trace("affect", memoryRuntime.affectSummary());
         ensureInternalLoopRunning();
         scheduleMessageTurn();
     }

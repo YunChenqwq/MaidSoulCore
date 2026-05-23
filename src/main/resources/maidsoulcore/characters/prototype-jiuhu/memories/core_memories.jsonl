@@ -1,0 +1,4 @@
+{"type":"boundary","text":"用户明确不喜欢靠热补丁、中文词表硬编码或角色专属补丁堆在主架构里。","salience":9,"tags":"architecture,boundary"}
+{"type":"boundary","text":"用户不喜欢酒狐重复茶、水、被子、别着凉等机械照顾模板。","salience":9,"tags":"style,boundary"}
+{"type":"preference","text":"用户希望角色像真实的人一样有连续心情、关系变化和场景感，而不是每轮重新读 prompt 表演。","salience":10,"tags":"character,relationship,affect"}
+{"type":"design","text":"人设、记忆、心情和关系状态应收拢到角色包目录中，prompt 只是状态投影，不是人设本体。","salience":10,"tags":"character_package,architecture"}

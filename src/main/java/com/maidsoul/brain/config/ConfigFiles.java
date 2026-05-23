@@ -7,11 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-final class ConfigFiles {
+public final class ConfigFiles {
     private ConfigFiles() {
     }
 
-    static Properties load(Path path) {
+    public static Properties load(Path path) {
         Properties properties = new Properties();
         if (!Files.exists(path)) {
             return properties;
@@ -24,12 +24,12 @@ final class ConfigFiles {
         }
     }
 
-    static String text(Properties properties, String key, String fallback) {
+    public static String text(Properties properties, String key, String fallback) {
         String value = properties.getProperty(key);
         return value == null || value.isBlank() ? fallback : value.trim();
     }
 
-    static int integer(Properties properties, String key, int fallback) {
+    public static int integer(Properties properties, String key, int fallback) {
         try {
             return Integer.parseInt(text(properties, key, Integer.toString(fallback)));
         } catch (NumberFormatException e) {
@@ -37,7 +37,7 @@ final class ConfigFiles {
         }
     }
 
-    static long number(Properties properties, String key, long fallback) {
+    public static long number(Properties properties, String key, long fallback) {
         try {
             return Long.parseLong(text(properties, key, Long.toString(fallback)));
         } catch (NumberFormatException e) {
@@ -45,7 +45,7 @@ final class ConfigFiles {
         }
     }
 
-    static double decimal(Properties properties, String key, double fallback) {
+    public static double decimal(Properties properties, String key, double fallback) {
         try {
             return Double.parseDouble(text(properties, key, Double.toString(fallback)));
         } catch (NumberFormatException e) {
@@ -53,9 +53,8 @@ final class ConfigFiles {
         }
     }
 
-    static boolean bool(Properties properties, String key, boolean fallback) {
+    public static boolean bool(Properties properties, String key, boolean fallback) {
         String value = text(properties, key, Boolean.toString(fallback)).toLowerCase();
         return value.equals("true") || value.equals("1") || value.equals("yes") || value.equals("on");
     }
 }
-

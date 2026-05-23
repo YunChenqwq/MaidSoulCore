@@ -2,6 +2,9 @@
 .vscode/
 out/
 logs/
+build/
+.gradle/
+run/
 data/*
 !data/characters/
 !data/characters/**

@@ -16,6 +16,23 @@ public record BrainConfig(
         MemoryConfig memory,
         DebugConfig debug
 ) {
+    /**
+     * 返回绑定到具体女仆、主人和世界的配置副本。
+     *
+     * <p>Forge/TLM 层只负责告诉核心“这是谁的会话”，不应该重新实现记忆路径规则。
+     * 这样每只女仆都会写入自己的记忆目录，同时仍然共享同一个模组级推荐配置。</p>
+     */
+    public BrainConfig withRuntimeIdentity(String maidId, String ownerId, String worldId) {
+        return new BrainConfig(
+                identity,
+                model,
+                flow,
+                splitter,
+                memory.withRuntimeIdentity(maidId, ownerId, worldId),
+                debug
+        );
+    }
+
     public static BrainConfig load(Path configRoot) {
         return new BrainConfig(
                 IdentityConfig.load(configRoot.resolve("bot").resolve("identity.properties")),
