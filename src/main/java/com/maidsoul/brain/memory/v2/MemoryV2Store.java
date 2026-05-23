@@ -35,9 +35,10 @@ public final class MemoryV2Store {
     public MemoryV2Store(MemoryConfig config) {
         Path configured = Path.of(config.dataRoot());
         Path dataRoot = configured.isAbsolute() ? configured : Path.of("").toAbsolutePath().resolve(configured).normalize();
-        this.root = dataRoot.resolve("maids")
-                .resolve(config.maidId())
-                .resolve(config.worldId())
+        Path maidRoot = dataRoot.resolve("maids").resolve(config.maidId());
+        this.root = (config.worldId() == null || config.worldId().isBlank() || "*".equals(config.worldId())
+                ? maidRoot
+                : maidRoot.resolve(config.worldId()))
                 .resolve("a_memorix");
     }
 

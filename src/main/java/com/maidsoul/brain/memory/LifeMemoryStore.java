@@ -119,6 +119,9 @@ public final class LifeMemoryStore {
     }
 
     public Path maidDir() {
+        if (config.worldId() == null || config.worldId().isBlank() || "*".equals(config.worldId())) {
+            return root.resolve("maids").resolve(config.maidId());
+        }
         return root.resolve("maids")
                 .resolve(config.maidId())
                 .resolve(config.worldId());

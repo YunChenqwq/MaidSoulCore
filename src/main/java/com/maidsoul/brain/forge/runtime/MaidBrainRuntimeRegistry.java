@@ -7,6 +7,7 @@ import com.maidsoul.brain.forge.config.ForgeBrainConfigInstaller;
 import com.maidsoul.brain.forge.config.ForgeDebugOptions;
 import com.maidsoul.brain.forge.debug.OwnerChatDebugEcho;
 import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
+import com.maidsoul.brain.forge.soul.SoulBindingData;
 import com.maidsoul.brain.llm.OpenAiCompatibleClient;
 import com.maidsoul.brain.prompt.PromptCatalog;
 import com.maidsoul.brain.runtime.ConversationRuntime;
@@ -26,7 +27,7 @@ public final class MaidBrainRuntimeRegistry {
     }
 
     public static ConversationRuntime getOrCreate(EntityMaid maid) {
-        return RUNTIMES.computeIfAbsent(maid.getUUID(), ignored -> createRuntime(maid));
+        return RUNTIMES.computeIfAbsent(runtimeKey(maid), ignored -> createRuntime(maid));
     }
 
     public static void receiveOwnerChat(EntityMaid maid, String content) {
@@ -44,10 +45,11 @@ public final class MaidBrainRuntimeRegistry {
     private static ConversationRuntime createRuntime(EntityMaid maid) {
         Path root = ForgeBrainConfigInstaller.configRoot();
         BrainConfig baseConfig = BrainConfig.load(root);
+        SoulBindingData binding = SoulBindingData.fromTag(maid.getPersistentData());
         BrainConfig runtimeConfig = baseConfig.withRuntimeIdentity(
-                maid.getUUID().toString(),
+                binding.isBound() ? binding.soulId() : "unbound-" + maid.getUUID(),
                 ownerId(maid),
-                worldId(maid)
+                binding.isBound() ? "*" : worldId(maid)
         );
         PromptCatalog prompts = new PromptCatalog(ForgeBrainConfigInstaller.promptRoot());
         ForgeDebugOptions debug = ForgeDebugOptions.load(root);
@@ -81,9 +83,28 @@ public final class MaidBrainRuntimeRegistry {
         return owner == null ? "主人" : owner.getName().getString();
     }
 
+    public static void invalidate(EntityMaid maid) {
+        if (maid == null) {
+            return;
+        }
+        ConversationRuntime runtime = RUNTIMES.remove(runtimeKey(maid));
+        if (runtime != null) {
+            runtime.close();
+        }
+        RUNTIMES.remove(maid.getUUID());
+    }
+
+    private static UUID runtimeKey(EntityMaid maid) {
+        return maid.getUUID();
+    }
+
     private static String ownerId(EntityMaid maid) {
         LivingEntity owner = maid.getOwner();
         return owner == null ? "owner-unknown" : owner.getUUID().toString();
+    }
+
+    public static String worldIdFor(EntityMaid maid) {
+        return worldId(maid);
     }
 
     private static String worldId(EntityMaid maid) {
