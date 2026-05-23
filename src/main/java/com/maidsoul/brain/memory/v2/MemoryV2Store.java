@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -300,6 +301,144 @@ public final class MemoryV2Store {
         List<String> logs = readLines(maintenanceLogPath());
         logs.stream().skip(Math.max(0, logs.size() - safeLimit)).forEach(line -> builder.append(line).append('\n'));
         return builder.toString().trim();
+    }
+
+    public synchronized MemoryGraphSnapshot graphSnapshot(String query, int limit) {
+        int safeLimit = Math.max(1, Math.min(80, limit));
+        String normalizedQuery = query == null ? "" : query.trim();
+        List<MemoryParagraph> allParagraphs = allParagraphs();
+        List<MemoryRelation> allRelations = allRelations();
+        List<MemoryEntity> allEntities = allEntities();
+        List<MemoryEpisode> allEpisodes = allEpisodes();
+
+        Map<String, MemoryGraphSnapshot.Node> nodes = new LinkedHashMap<>();
+        Map<String, MemoryGraphSnapshot.Edge> edges = new LinkedHashMap<>();
+        Set<String> selectedParagraphs = new HashSet<>();
+
+        List<MemoryParagraph> paragraphs = allParagraphs.stream()
+                .filter(paragraph -> !paragraph.deleted)
+                .filter(paragraph -> normalizedQuery.isBlank()
+                        || containsIgnoreCase(paragraph.content, normalizedQuery)
+                        || containsIgnoreCase(paragraph.tags, normalizedQuery)
+                        || containsIgnoreCase(paragraph.participants, normalizedQuery)
+                        || containsIgnoreCase(paragraph.sourceType, normalizedQuery))
+                .sorted(Comparator.comparingDouble((MemoryParagraph p) -> p.salience).reversed()
+                        .thenComparing(Comparator.comparingDouble((MemoryParagraph p) -> p.eventTimeEnd).reversed()))
+                .limit(safeLimit)
+                .toList();
+
+        if (paragraphs.isEmpty() && !normalizedQuery.isBlank()) {
+            paragraphs = allParagraphs.stream()
+                    .filter(paragraph -> !paragraph.deleted)
+                    .sorted(Comparator.comparingDouble((MemoryParagraph p) -> p.eventTimeEnd).reversed())
+                    .limit(Math.min(12, safeLimit))
+                    .toList();
+        }
+
+        for (MemoryParagraph paragraph : paragraphs) {
+            String paragraphId = nodeId("paragraph", paragraph.hash);
+            selectedParagraphs.add(paragraph.hash);
+            addNode(nodes, paragraphNode(paragraph));
+            for (String participant : split(paragraph.participants)) {
+                String personId = nodeId("person", participant);
+                addNode(nodes, new MemoryGraphSnapshot.Node(personId, "person", participant, "participant", 3));
+                addEdge(edges, personId, paragraphId, "participates_in", paragraph.hash, 0.55);
+            }
+            for (String tag : split(paragraph.tags)) {
+                String tagId = nodeId("tag", tag);
+                addNode(nodes, new MemoryGraphSnapshot.Node(tagId, "tag", tag, "memory tag", 2));
+                addEdge(edges, paragraphId, tagId, "tagged_as", paragraph.hash, Math.max(0.2, paragraph.salience / 10.0));
+            }
+            if (!paragraph.sourceType.isBlank()) {
+                String sourceId = nodeId("source", paragraph.sourceType);
+                addNode(nodes, new MemoryGraphSnapshot.Node(sourceId, "source", paragraph.sourceType, "source type", 1));
+                addEdge(edges, sourceId, paragraphId, "emits", paragraph.hash, 0.45);
+            }
+        }
+
+        for (MemoryRelation relation : allRelations.stream()
+                .filter(relation -> !relation.inactive)
+                .filter(relation -> selectedParagraphs.contains(relation.sourceParagraph)
+                        || normalizedQuery.isBlank()
+                        || containsIgnoreCase(relation.subject, normalizedQuery)
+                        || containsIgnoreCase(relation.predicate, normalizedQuery)
+                        || containsIgnoreCase(relation.object, normalizedQuery))
+                .sorted(Comparator.comparingDouble((MemoryRelation r) -> r.confidence).reversed())
+                .limit(safeLimit)
+                .toList()) {
+            String subjectId = nodeId("concept", relation.subject);
+            String objectId = nodeId("concept", relation.object);
+            addNode(nodes, new MemoryGraphSnapshot.Node(subjectId, "concept", relation.subject, "relation subject", relation.confidence * 5));
+            addNode(nodes, new MemoryGraphSnapshot.Node(objectId, "concept", relation.object, "relation object", relation.confidence * 5));
+            addEdge(edges, subjectId, objectId, relation.predicate, relation.sourceParagraph, relation.confidence);
+            if (!relation.sourceParagraph.isBlank() && selectedParagraphs.contains(relation.sourceParagraph)) {
+                addEdge(edges, nodeId("paragraph", relation.sourceParagraph), subjectId, "evidence_for", relation.sourceParagraph, relation.confidence);
+            }
+        }
+
+        for (MemoryEntity entity : allEntities.stream()
+                .filter(entity -> !entity.deleted)
+                .filter(entity -> normalizedQuery.isBlank()
+                        || containsIgnoreCase(entity.name, normalizedQuery)
+                        || containsIgnoreCase(entity.kind, normalizedQuery))
+                .sorted(Comparator.comparingInt((MemoryEntity e) -> e.appearanceCount).reversed())
+                .limit(Math.max(8, safeLimit / 2))
+                .toList()) {
+            addNode(nodes, new MemoryGraphSnapshot.Node(
+                    nodeId("entity", entity.name),
+                    "entity",
+                    entity.name,
+                    entity.kind + " appearances=" + entity.appearanceCount,
+                    entity.appearanceCount
+            ));
+        }
+
+        for (MemoryEpisode episode : allEpisodes.stream()
+                .filter(episode -> intersects(selectedParagraphs, split(episode.evidenceIds))
+                        || normalizedQuery.isBlank()
+                        || containsIgnoreCase(episode.summary, normalizedQuery)
+                        || containsIgnoreCase(episode.keywords, normalizedQuery))
+                .sorted(Comparator.comparingDouble((MemoryEpisode e) -> e.eventTimeEnd).reversed())
+                .limit(Math.max(6, safeLimit / 3))
+                .toList()) {
+            String episodeId = nodeId("episode", episode.episodeId);
+            addNode(nodes, new MemoryGraphSnapshot.Node(episodeId, "episode", episode.title, clip(episode.summary, 120), episode.confidence * 5));
+            for (String evidence : split(episode.evidenceIds)) {
+                if (selectedParagraphs.contains(evidence)) {
+                    addEdge(edges, episodeId, nodeId("paragraph", evidence), "contains_evidence", evidence, episode.confidence);
+                }
+            }
+        }
+
+        return new MemoryGraphSnapshot(
+                List.copyOf(nodes.values()),
+                List.copyOf(edges.values()),
+                allParagraphs.size(),
+                allRelations.size(),
+                allEntities.size(),
+                allEpisodes.size(),
+                normalizedQuery,
+                Instant.now().toString()
+        );
+    }
+
+    public synchronized String debugGraph(String query, int limit) {
+        return graphSnapshot(query, limit).toHumanText(Math.max(20, limit * 6));
+    }
+
+    public synchronized String exportGraphJson(String query, int limit) {
+        return graphSnapshot(query, limit).toJson();
+    }
+
+    public synchronized Path writeGraphJson(String query, int limit, Path outputPath) {
+        Path target = outputPath == null ? root.resolve("graph_snapshot.json") : outputPath;
+        try {
+            Files.createDirectories(target.toAbsolutePath().normalize().getParent());
+            Files.writeString(target, exportGraphJson(query, limit), StandardCharsets.UTF_8);
+            return target;
+        } catch (IOException e) {
+            throw new UncheckedIOException("写入记忆图谱 JSON 失败: " + target, e);
+        }
     }
 
     public synchronized MemoryWriteResult maintain(String action, String target, double hours) {
@@ -631,6 +770,61 @@ public final class MemoryV2Store {
 
     private static boolean containsIgnoreCase(String text, String needle) {
         return normalize(text).contains(normalize(needle));
+    }
+
+    private static MemoryGraphSnapshot.Node paragraphNode(MemoryParagraph paragraph) {
+        return new MemoryGraphSnapshot.Node(
+                nodeId("paragraph", paragraph.hash),
+                "paragraph",
+                clip(paragraph.content, 80),
+                "role=" + paragraph.role + " salience=" + paragraph.salience + " tags=" + paragraph.tags,
+                paragraph.salience
+        );
+    }
+
+    private static void addNode(Map<String, MemoryGraphSnapshot.Node> nodes, MemoryGraphSnapshot.Node node) {
+        if (node.id().isBlank()) {
+            return;
+        }
+        MemoryGraphSnapshot.Node old = nodes.get(node.id());
+        if (old == null || node.weight() > old.weight()) {
+            nodes.put(node.id(), node);
+        }
+    }
+
+    private static void addEdge(
+            Map<String, MemoryGraphSnapshot.Edge> edges,
+            String from,
+            String to,
+            String label,
+            String evidenceId,
+            double weight
+    ) {
+        if (from == null || from.isBlank() || to == null || to.isBlank()) {
+            return;
+        }
+        MemoryGraphSnapshot.Edge edge = new MemoryGraphSnapshot.Edge(from, to, label, evidenceId, weight);
+        edges.putIfAbsent(MemoryHash.of(edge.from() + "\n" + edge.to() + "\n" + edge.label() + "\n" + edge.evidenceId()), edge);
+    }
+
+    private static boolean intersects(Set<String> selected, List<String> values) {
+        if (selected.isEmpty() || values.isEmpty()) {
+            return false;
+        }
+        for (String value : values) {
+            if (selected.contains(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String nodeId(String kind, String key) {
+        String value = key == null ? "" : key.trim();
+        if (value.isBlank()) {
+            return "";
+        }
+        return kind + ":" + MemoryHash.of(value);
     }
 
     private static String normalize(String text) {

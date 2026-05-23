@@ -277,6 +277,18 @@ public final class MemoryRuntime {
         return memoryV2Store.debugDump(query, limit);
     }
 
+    public synchronized String debugMemoryGraph(String query, int limit) {
+        return memoryV2Store.debugGraph(query, limit);
+    }
+
+    public synchronized String exportMemoryGraphJson(String query, int limit) {
+        return memoryV2Store.exportGraphJson(query, limit);
+    }
+
+    public synchronized Path writeMemoryGraphJson(String query, int limit, Path outputPath) {
+        return memoryV2Store.writeGraphJson(query, limit, outputPath);
+    }
+
     public synchronized String affectSummary() {
         return affectProfile.brief();
     }
