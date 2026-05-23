@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MaidSoulCore Memory Graph</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #657182;
+      --line: #d8dde6;
+      --accent: #2563eb;
+      --green: #059669;
+      --amber: #b45309;
+      --rose: #be123c;
+      --violet: #7c3aed;
+      --cyan: #0891b2;
+      --shadow: 0 12px 28px rgba(16, 24, 40, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      grid-template-rows: 58px minmax(0, 1fr);
+      height: 100vh;
+    }
+
+    header {
+      grid-column: 1 / 3;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 2px 12px rgba(16, 24, 40, 0.04);
+      z-index: 2;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      min-width: 190px;
+      margin-right: 4px;
+    }
+
+    .brand strong {
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    button,
+    label.file-button,
+    select,
+    input[type="search"] {
+      height: 36px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 8px;
+      font: inherit;
+      font-size: 13px;
+    }
+
+    button,
+    label.file-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    input[type="search"] {
+      width: min(28vw, 280px);
+      min-width: 160px;
+      padding: 0 10px;
+    }
+
+    select {
+      width: 132px;
+      padding: 0 8px;
+    }
+
+    .stage {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      background:
+        linear-gradient(rgba(24, 32, 42, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(24, 32, 42, 0.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    canvas.dragging {
+      cursor: grabbing;
+    }
+
+    .drop-hint {
+      position: absolute;
+      inset: 18px;
+      display: grid;
+      place-items: center;
+      border: 2px dashed #b8c2d5;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--muted);
+      pointer-events: none;
+      text-align: center;
+      padding: 28px;
+    }
+
+    .drop-hint strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    aside {
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+      background: var(--panel);
+      border-left: 1px solid var(--line);
+      padding: 14px;
+    }
+
+    .section {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+    }
+
+    .section:last-child {
+      border-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    h2,
+    h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fbfcfe;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 18px;
+      line-height: 22px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .legend label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--accent);
+    }
+
+    .details {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+      font-size: 13px;
+      color: #243041;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font: 12px Consolas, "Microsoft YaHei", monospace;
+      line-height: 1.45;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .spacer {
+      flex: 1 1 auto;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 12px;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr) 320px;
+      }
+
+      header,
+      aside {
+        grid-column: 1;
+      }
+
+      header {
+        flex-wrap: wrap;
+        height: auto;
+      }
+
+      input[type="search"] {
+        width: 100%;
+      }
+
+      aside {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <strong>Memory Graph</strong>
+        <span>A-Memorix JSON Viewer</span>
+      </div>
+      <label class="file-button" title="加载 MemoryGraphExportTool 导出的 JSON">
+        打开 JSON
+        <input id="fileInput" type="file" accept="application/json,.json">
+      </label>
+      <button id="sampleBtn" type="button">示例</button>
+      <button id="fitBtn" type="button">适配</button>
+      <input id="searchInput" type="search" placeholder="搜索节点、标签、证据">
+      <select id="kindFilter" title="按节点类型过滤">
+        <option value="all">全部节点</option>
+      </select>
+      <div class="spacer"></div>
+      <span id="status" class="status">等待图谱 JSON</span>
+    </header>
+
+    <main class="stage" id="stage">
+      <canvas id="graphCanvas"></canvas>
+      <div id="dropHint" class="drop-hint">
+        <div>
+          <strong>拖入 graph_snapshot.json</strong>
+          <div>也可以用右侧粘贴 JSON，或点击“示例”。</div>
+        </div>
+      </div>
+    </main>
+
+    <aside>
+      <section class="section">
+        <h2>概览</h2>
+        <div class="stats">
+          <div class="stat"><b id="nodeCount">0</b><span>nodes</span></div>
+          <div class="stat"><b id="edgeCount">0</b><span>edges</span></div>
+          <div class="stat"><b id="paragraphCount">0</b><span>paragraphs</span></div>
+          <div class="stat"><b id="relationCount">0</b><span>relations</span></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>图例</h3>
+        <div id="legend" class="legend"></div>
+      </section>
+
+      <section class="section">
+        <h3>选中</h3>
+        <div id="details" class="empty">点击节点或边查看详情。</div>
+      </section>
+
+      <section class="section">
+        <h3>JSON</h3>
+        <textarea id="jsonInput" spellcheck="false" placeholder="粘贴 graph_snapshot.json 内容"></textarea>
+        <div class="row" style="margin-top: 8px;">
+          <button id="loadTextBtn" class="primary" type="button">加载文本</button>
+          <button id="clearBtn" type="button">清空</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("graphCanvas");
+    const ctx = canvas.getContext("2d");
+    const stage = document.getElementById("stage");
+    const fileInput = document.getElementById("fileInput");
+    const sampleBtn = document.getElementById("sampleBtn");
+    const fitBtn = document.getElementById("fitBtn");
+    const searchInput = document.getElementById("searchInput");
+    const kindFilter = document.getElementById("kindFilter");
+    const jsonInput = document.getElementById("jsonInput");
+    const loadTextBtn = document.getElementById("loadTextBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const dropHint = document.getElementById("dropHint");
+    const statusEl = document.getElementById("status");
+    const detailsEl = document.getElementById("details");
+    const legendEl = document.getElementById("legend");
+
+    const palette = {
+      paragraph: "#2563eb",
+      person: "#059669",
+      tag: "#b45309",
+      source: "#6b7280",
+      concept: "#7c3aed",
+      entity: "#0891b2",
+      episode: "#be123c",
+      edge: "#9aa4b2"
+    };
+
+    const sampleGraph = {
+      query: "boundary",
+      generatedAt: new Date().toISOString(),
+      paragraphCount: 2,
+      relationCount: 2,
+      entityCount: 4,
+      episodeCount: 1,
+      nodes: [
+        { id: "person:owner", kind: "person", label: "prototype-owner", detail: "participant", weight: 3 },
+        { id: "person:maid", kind: "person", label: "prototype-jiuhu", detail: "participant", weight: 3 },
+        { id: "paragraph:pref", kind: "paragraph", label: "User prefers direct but gentle tone.", detail: "role=user salience=8 tags=user_profile,preference,boundary", weight: 8 },
+        { id: "paragraph:repair", kind: "paragraph", label: "User and maid repaired a trust moment.", detail: "role=user salience=8 tags=relationship_event,repair_debt", weight: 8 },
+        { id: "tag:boundary", kind: "tag", label: "boundary", detail: "memory tag", weight: 2 },
+        { id: "tag:repair", kind: "tag", label: "repair_debt", detail: "memory tag", weight: 2 },
+        { id: "episode:1", kind: "episode", label: "关系修复片段", detail: "trust repaired", weight: 3 }
+      ],
+      edges: [
+        { from: "person:owner", to: "paragraph:pref", label: "participates_in", evidenceId: "paragraph:pref", weight: 0.55 },
+        { from: "paragraph:pref", to: "tag:boundary", label: "tagged_as", evidenceId: "paragraph:pref", weight: 0.8 },
+        { from: "person:owner", to: "paragraph:repair", label: "participates_in", evidenceId: "paragraph:repair", weight: 0.55 },
+        { from: "person:maid", to: "paragraph:repair", label: "participates_in", evidenceId: "paragraph:repair", weight: 0.55 },
+        { from: "paragraph:repair", to: "tag:repair", label: "tagged_as", evidenceId: "paragraph:repair", weight: 0.8 },
+        { from: "episode:1", to: "paragraph:repair", label: "contains_evidence", evidenceId: "paragraph:repair", weight: 0.6 }
+      ]
+    };
+
+    let graph = { nodes: [], edges: [] };
+    let nodeMap = new Map();
+    let visibleNodes = [];
+    let visibleEdges = [];
+    let selected = null;
+    let hovered = null;
+    let dragging = null;
+    let pan = { x: 0, y: 0 };
+    let zoom = 1;
+    let pointer = { x: 0, y: 0, down: false, moved: false };
+    let animationId = 0;
+
+    function resizeCanvas() {
+      const rect = stage.getBoundingClientRect();
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.floor(rect.width * scale));
+      canvas.height = Math.max(1, Math.floor(rect.height * scale));
+      canvas.style.width = rect.width + "px";
+      canvas.style.height = rect.height + "px";
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      draw();
+    }
+
+    function loadGraph(data, sourceLabel) {
+      if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges)) {
+        throw new Error("JSON 缺少 nodes 或 edges");
+      }
+      graph = {
+        ...data,
+        nodes: data.nodes.map((node, index) => ({
+          id: String(node.id || "node:" + index),
+          kind: String(node.kind || "concept"),
+          label: String(node.label || node.id || "node"),
+          detail: String(node.detail || ""),
+          weight: Number(node.weight || 1),
+          x: 0,
+          y: 0,
+          vx: 0,
+          vy: 0,
+          r: 0
+        })),
+        edges: data.edges.map((edge) => ({
+          from: String(edge.from || ""),
+          to: String(edge.to || ""),
+          label: String(edge.label || ""),
+          evidenceId: String(edge.evidenceId || ""),
+          weight: Number(edge.weight || 0.4)
+        }))
+      };
+      nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
+      graph.edges = graph.edges.filter((edge) => nodeMap.has(edge.from) && nodeMap.has(edge.to));
+      seedLayout();
+      refreshFilters();
+      updateStats();
+      applyFilters();
+      fitToView();
+      setStatus(sourceLabel + " / " + graph.nodes.length + " nodes, " + graph.edges.length + " edges");
+      dropHint.style.display = graph.nodes.length ? "none" : "grid";
+      startSimulation();
+    }
+
+    function seedLayout() {
+      const rect = stage.getBoundingClientRect();
+      const radius = Math.max(80, Math.min(rect.width, rect.height) * 0.32);
+      graph.nodes.forEach((node, index) => {
+        const angle = (index / Math.max(1, graph.nodes.length)) * Math.PI * 2;
+        node.x = Math.cos(angle) * radius;
+        node.y = Math.sin(angle) * radius;
+        node.r = Math.max(7, Math.min(22, 6 + Math.sqrt(node.weight) * 4));
+      });
+    }
+
+    function refreshFilters() {
+      const kinds = [...new Set(graph.nodes.map((node) => node.kind))].sort();
+      const current = kindFilter.value;
+      kindFilter.innerHTML = '<option value="all">全部节点</option>' + kinds.map((kind) => (
+        '<option value="' + escapeHtml(kind) + '">' + escapeHtml(kind) + '</option>'
+      )).join("");
+      kindFilter.value = kinds.includes(current) ? current : "all";
+      legendEl.innerHTML = kinds.map((kind) => (
+        '<label><span class="dot" style="background:' + colorFor(kind) + '"></span>' + escapeHtml(kind) + '</label>'
+      )).join("");
+    }
+
+    function updateStats() {
+      document.getElementById("nodeCount").textContent = graph.nodes.length;
+      document.getElementById("edgeCount").textContent = graph.edges.length;
+      document.getElementById("paragraphCount").textContent = graph.paragraphCount || 0;
+      document.getElementById("relationCount").textContent = graph.relationCount || 0;
+    }
+
+    function applyFilters() {
+      const q = searchInput.value.trim().toLowerCase();
+      const kind = kindFilter.value;
+      visibleNodes = graph.nodes.filter((node) => {
+        const kindOk = kind === "all" || node.kind === kind;
+        const text = (node.label + " " + node.detail + " " + node.id).toLowerCase();
+        return kindOk && (!q || text.includes(q));
+      });
+      const visibleIds = new Set(visibleNodes.map((node) => node.id));
+      visibleEdges = graph.edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to));
+      draw();
+    }
+
+    function startSimulation() {
+      cancelAnimationFrame(animationId);
+      let ticks = 0;
+      const tick = () => {
+        simulate();
+        draw();
+        ticks += 1;
+        if (ticks === 80 || ticks === 220) {
+          fitToView();
+        }
+        if (ticks < 520) {
+          animationId = requestAnimationFrame(tick);
+        }
+      };
+      tick();
+    }
+
+    function simulate() {
+      const nodes = visibleNodes.length ? visibleNodes : graph.nodes;
+      const edges = visibleEdges.length ? visibleEdges : graph.edges;
+      const degrees = new Map();
+      edges.forEach((edge) => {
+        degrees.set(edge.from, (degrees.get(edge.from) || 0) + 1);
+        degrees.set(edge.to, (degrees.get(edge.to) || 0) + 1);
+      });
+
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+        for (let j = i + 1; j < nodes.length; j++) {
+          const b = nodes[j];
+          const dx = b.x - a.x || 0.01;
+          const dy = b.y - a.y || 0.01;
+          const dist2 = dx * dx + dy * dy;
+          const force = Math.min(1800 / dist2, 0.9);
+          const fx = dx * force;
+          const fy = dy * force;
+          a.vx -= fx;
+          a.vy -= fy;
+          b.vx += fx;
+          b.vy += fy;
+        }
+      }
+
+      edges.forEach((edge) => {
+        const a = nodeMap.get(edge.from);
+        const b = nodeMap.get(edge.to);
+        if (!a || !b) return;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const desired = 90 + 90 * (1 - Math.min(1, edge.weight));
+        const force = (dist - desired) * 0.008;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        a.vx += fx;
+        a.vy += fy;
+        b.vx -= fx;
+        b.vy -= fy;
+      });
+
+      nodes.forEach((node) => {
+        const degree = degrees.get(node.id) || 1;
+        node.vx += (-node.x * 0.0015) + (degree > 2 ? -node.x * 0.0005 : 0);
+        node.vy += (-node.y * 0.0015) + (degree > 2 ? -node.y * 0.0005 : 0);
+        const distanceFromCenter = Math.hypot(node.x, node.y);
+        if (distanceFromCenter > 520) {
+          node.vx += (-node.x / distanceFromCenter) * 0.9;
+          node.vy += (-node.y / distanceFromCenter) * 0.9;
+        }
+        if (node !== dragging) {
+          node.x += node.vx;
+          node.y += node.vy;
+        }
+        node.vx *= 0.82;
+        node.vy *= 0.82;
+      });
+    }
+
+    function draw() {
+      const rect = stage.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.save();
+      ctx.translate(rect.width / 2 + pan.x, rect.height / 2 + pan.y);
+      ctx.scale(zoom, zoom);
+
+      const related = selected ? relatedIds(selected) : new Set();
+      visibleEdges.forEach((edge) => drawEdge(edge, related));
+      visibleNodes.forEach((node) => drawNode(node, related));
+
+      ctx.restore();
+    }
+
+    function drawEdge(edge, related) {
+      const a = nodeMap.get(edge.from);
+      const b = nodeMap.get(edge.to);
+      if (!a || !b) return;
+      const active = !selected || selected.id === edge.from || selected.id === edge.to || related.has(edge.from) || related.has(edge.to);
+      ctx.globalAlpha = active ? 0.74 : 0.12;
+      ctx.strokeStyle = palette.edge;
+      ctx.lineWidth = Math.max(1, edge.weight * 2.5);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+
+      if (zoom > 0.72 && active) {
+        const mx = (a.x + b.x) / 2;
+        const my = (a.y + b.y) / 2;
+        ctx.globalAlpha = 0.72;
+        ctx.fillStyle = "#4b5563";
+        ctx.font = "10px Segoe UI, sans-serif";
+        ctx.fillText(edge.label, mx + 4, my - 4);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawNode(node, related) {
+      const isSelected = selected && selected.id === node.id;
+      const isHovered = hovered && hovered.id === node.id;
+      const active = !selected || isSelected || related.has(node.id);
+      ctx.globalAlpha = active ? 1 : 0.2;
+
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, node.r + (isSelected ? 4 : isHovered ? 2 : 0), 0, Math.PI * 2);
+      ctx.fillStyle = colorFor(node.kind);
+      ctx.fill();
+
+      ctx.lineWidth = isSelected ? 3 : 1.5;
+      ctx.strokeStyle = isSelected ? "#111827" : "#ffffff";
+      ctx.stroke();
+
+      if (zoom > 0.46 || isSelected || isHovered) {
+        const label = node.label.length > 28 ? node.label.slice(0, 28) + "..." : node.label;
+        ctx.font = isSelected ? "600 12px Segoe UI, sans-serif" : "11px Segoe UI, sans-serif";
+        ctx.fillStyle = "#111827";
+        ctx.globalAlpha = active ? 0.95 : 0.25;
+        ctx.fillText(label, node.x + node.r + 6, node.y + 4);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function relatedIds(node) {
+      const ids = new Set();
+      graph.edges.forEach((edge) => {
+        if (edge.from === node.id) ids.add(edge.to);
+        if (edge.to === node.id) ids.add(edge.from);
+      });
+      return ids;
+    }
+
+    function fitToView() {
+      const nodes = visibleNodes.length ? visibleNodes : graph.nodes;
+      if (!nodes.length) return;
+      const rect = stage.getBoundingClientRect();
+      const xs = nodes.map((node) => node.x);
+      const ys = nodes.map((node) => node.y);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const width = Math.max(1, maxX - minX + 120);
+      const height = Math.max(1, maxY - minY + 120);
+      zoom = Math.max(0.18, Math.min(1.5, Math.min(rect.width / width, rect.height / height)));
+      pan.x = -((minX + maxX) / 2) * zoom;
+      pan.y = -((minY + maxY) / 2) * zoom;
+      draw();
+    }
+
+    function hitTest(screenX, screenY) {
+      const world = screenToWorld(screenX, screenY);
+      for (let i = visibleNodes.length - 1; i >= 0; i--) {
+        const node = visibleNodes[i];
+        if (Math.hypot(node.x - world.x, node.y - world.y) <= node.r + 5) {
+          return node;
+        }
+      }
+      return null;
+    }
+
+    function screenToWorld(x, y) {
+      const rect = stage.getBoundingClientRect();
+      return {
+        x: (x - rect.left - rect.width / 2 - pan.x) / zoom,
+        y: (y - rect.top - rect.height / 2 - pan.y) / zoom
+      };
+    }
+
+    function showDetails(item) {
+      selected = item;
+      if (!item) {
+        detailsEl.className = "empty";
+        detailsEl.textContent = "点击节点或边查看详情。";
+        draw();
+        return;
+      }
+      detailsEl.className = "details";
+      detailsEl.textContent = [
+        "id: " + item.id,
+        "kind: " + item.kind,
+        "label: " + item.label,
+        "weight: " + item.weight,
+        "",
+        item.detail || "(no detail)"
+      ].join("\n");
+      draw();
+    }
+
+    function colorFor(kind) {
+      return palette[kind] || "#374151";
+    }
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function escapeHtml(text) {
+      return String(text).replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    async function readFile(file) {
+      const text = await file.text();
+      jsonInput.value = text;
+      loadGraph(JSON.parse(text), file.name);
+    }
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      try {
+        await readFile(file);
+      } catch (error) {
+        setStatus("加载失败: " + error.message);
+      }
+    });
+
+    stage.addEventListener("dragover", (event) => {
+      event.preventDefault();
+    });
+
+    stage.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      const file = event.dataTransfer.files && event.dataTransfer.files[0];
+      if (!file) return;
+      try {
+        await readFile(file);
+      } catch (error) {
+        setStatus("加载失败: " + error.message);
+      }
+    });
+
+    loadTextBtn.addEventListener("click", () => {
+      try {
+        loadGraph(JSON.parse(jsonInput.value), "pasted JSON");
+      } catch (error) {
+        setStatus("JSON 解析失败: " + error.message);
+      }
+    });
+
+    sampleBtn.addEventListener("click", () => {
+      jsonInput.value = JSON.stringify(sampleGraph, null, 2);
+      loadGraph(sampleGraph, "sample");
+    });
+
+    clearBtn.addEventListener("click", () => {
+      jsonInput.value = "";
+      loadGraph({ nodes: [], edges: [] }, "cleared");
+    });
+
+    fitBtn.addEventListener("click", fitToView);
+    searchInput.addEventListener("input", applyFilters);
+    kindFilter.addEventListener("change", applyFilters);
+
+    canvas.addEventListener("pointerdown", (event) => {
+      const hit = hitTest(event.clientX, event.clientY);
+      pointer = { x: event.clientX, y: event.clientY, down: true, moved: false };
+      dragging = hit;
+      canvas.classList.add("dragging");
+      if (hit) {
+        showDetails(hit);
+      }
+      canvas.setPointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      hovered = hitTest(event.clientX, event.clientY);
+      if (!pointer.down) {
+        draw();
+        return;
+      }
+      const dx = event.clientX - pointer.x;
+      const dy = event.clientY - pointer.y;
+      pointer.moved = pointer.moved || Math.abs(dx) + Math.abs(dy) > 2;
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      if (dragging) {
+        dragging.x += dx / zoom;
+        dragging.y += dy / zoom;
+        dragging.vx = 0;
+        dragging.vy = 0;
+      } else {
+        pan.x += dx;
+        pan.y += dy;
+      }
+      draw();
+    });
+
+    canvas.addEventListener("pointerup", (event) => {
+      if (!pointer.moved && !dragging) {
+        showDetails(hitTest(event.clientX, event.clientY));
+      }
+      pointer.down = false;
+      dragging = null;
+      canvas.classList.remove("dragging");
+      canvas.releasePointerCapture(event.pointerId);
+    });
+
+    canvas.addEventListener("wheel", (event) => {
+      event.preventDefault();
+      const oldZoom = zoom;
+      const delta = event.deltaY < 0 ? 1.1 : 0.9;
+      zoom = Math.max(0.14, Math.min(3, zoom * delta));
+      const rect = stage.getBoundingClientRect();
+      const cx = event.clientX - rect.left - rect.width / 2;
+      const cy = event.clientY - rect.top - rect.height / 2;
+      pan.x = cx - (cx - pan.x) * (zoom / oldZoom);
+      pan.y = cy - (cy - pan.y) * (zoom / oldZoom);
+      draw();
+    }, { passive: false });
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+  </script>
+</body>
+</html>
