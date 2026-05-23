@@ -212,8 +212,12 @@ public final class MemoryV2Store {
                 continue;
             }
             boolean protectedNow = paragraph.permanent || paragraph.protectedUntil > now;
-            String tags = paragraph.tags == null ? "" : paragraph.tags;
-            boolean important = containsAny(tags, "boundary", "promise", "relationship_event", "repair_debt", "self_memory")
+            List<String> tagList = split(paragraph.tags);
+            boolean important = tagList.contains("boundary")
+                    || tagList.contains("promise")
+                    || tagList.contains("relationship_event")
+                    || tagList.contains("repair_debt")
+                    || tagList.contains("self_memory")
                     || paragraph.salience >= 9;
             if (important && !paragraph.permanent) {
                 paragraph.permanent = true;
@@ -222,8 +226,8 @@ public final class MemoryV2Store {
                 solidified++;
             }
 
-            if (looksLikeCorrection(paragraph.content, tags)) {
-                paragraph.tags = mergeCsv(paragraph.tags, "correction,error_mark");
+            if (tagList.contains("correction")) {
+                paragraph.tags = mergeCsv(paragraph.tags, "error_mark");
                 paragraph.salience = Math.max(paragraph.salience, 8);
                 paragraph.protectedUntil = Math.max(paragraph.protectedUntil, now + 14 * 24 * 3600.0);
                 paragraph.updatedAt = now;
@@ -251,7 +255,7 @@ public final class MemoryV2Store {
                 solidified,
                 correctionMarked,
                 forgotten,
-                "维护策略=dedupe+solidify+correction_mark+age_decay"
+                "维护策略=dedupe+solidify+explicit_correction_mark+age_decay"
         );
         appendLine(maintenanceLogPath(), report.toJsonLine());
         return report;
@@ -474,11 +478,12 @@ public final class MemoryV2Store {
             MemoryRelation involved = MemoryRelation.create(participant, "参与了", paragraph.sourceType, paragraph.hash, 0.55);
             relations.putIfAbsent(involved.hash, involved);
         }
-        if (paragraph.tags.contains("preference")) {
+        List<String> tags = split(paragraph.tags);
+        if (tags.contains("preference")) {
             MemoryRelation preference = MemoryRelation.create(actor, "表达偏好", clip(paragraph.content, 80), paragraph.hash, 0.75);
             relations.putIfAbsent(preference.hash, preference);
         }
-        if (paragraph.tags.contains("boundary")) {
+        if (tags.contains("boundary")) {
             MemoryRelation boundary = MemoryRelation.create(actor, "表达边界", clip(paragraph.content, 80), paragraph.hash, 0.80);
             relations.putIfAbsent(boundary.hash, boundary);
         }
@@ -689,21 +694,6 @@ public final class MemoryV2Store {
         values.addAll(split(first));
         values.addAll(split(second));
         return String.join(",", values.stream().filter(v -> v != null && !v.isBlank()).sorted().toList());
-    }
-
-    private static boolean looksLikeCorrection(String content, String tags) {
-        String text = normalize((content == null ? "" : content) + " " + (tags == null ? "" : tags));
-        return containsAny(text, "correction", "error_mark", "不是", "不对", "错了", "记错", "说错", "其实是", "改成");
-    }
-
-    private static boolean containsAny(String text, String... needles) {
-        String value = text == null ? "" : text;
-        for (String needle : needles) {
-            if (needle != null && !needle.isBlank() && value.contains(needle.toLowerCase(Locale.ROOT))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private Path paragraphPath() {

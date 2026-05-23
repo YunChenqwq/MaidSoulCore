@@ -7,6 +7,8 @@ import com.maidsoul.brain.llm.ChatPayload;
 import com.maidsoul.brain.llm.InterruptFlag;
 import com.maidsoul.brain.llm.LlmClient;
 import com.maidsoul.brain.llm.LlmResponse;
+import com.maidsoul.brain.memory.MemoryType;
+import com.maidsoul.brain.memory.StructuredMemoryEvent;
 import com.maidsoul.brain.planner.hook.PlannerHookRunner;
 import com.maidsoul.brain.prompt.PromptCatalog;
 import com.maidsoul.brain.prompt.PromptRenderer;
@@ -94,6 +96,7 @@ final class PlannerAgent {
         }
         String compactReason = compactReason(reason);
         AffectEvent affectEvent = affectEventFromArgs(args);
+        StructuredMemoryEvent memoryEvent = memoryEventFromArgs(args);
         return switch (action) {
             case "reply" -> new PlanDecision(
                     "reply",
@@ -101,14 +104,49 @@ final class PlannerAgent {
                     0,
                     compactReason,
                     stringArg(args, "reference_info", ""),
-                    affectEvent
+                    affectEvent,
+                    memoryEvent
             );
-            case "wait" -> new PlanDecision("wait", "", intArg(args, "seconds", config.flow().defaultWaitSeconds()), compactReason, "", affectEvent);
-            case "no_action" -> new PlanDecision("no_action", "", 0, compactReason, "", affectEvent);
+            case "wait" -> new PlanDecision("wait", "", intArg(args, "seconds", config.flow().defaultWaitSeconds()), compactReason, "", affectEvent, memoryEvent);
+            case "no_action" -> new PlanDecision("no_action", "", 0, compactReason, "", affectEvent, memoryEvent);
             case "finish" -> new PlanDecision("no_action", "", 0, compactReason, "");
             case "query_memory" -> new PlanDecision("query_memory", stringArg(args, "query", ""), 0, compactReason, "");
             default -> PlanDecision.replyLatest("规划器调用了未知工具，按最新消息回复。");
         };
+    }
+
+    private static StructuredMemoryEvent memoryEventFromArgs(Map<String, Object> args) {
+        String content = stringArg(args, "memory_event_content", "");
+        if (content.isBlank()) {
+            return null;
+        }
+        String typeText = stringArg(args, "memory_event_type", "DIALOGUE");
+        MemoryType type;
+        try {
+            type = MemoryType.valueOf(typeText.trim().toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            type = MemoryType.DIALOGUE;
+        }
+        int importance = Math.max(1, Math.min(5, intArg(args, "memory_event_importance", 3)));
+        return new StructuredMemoryEvent(
+                type,
+                stringArg(args, "memory_event_layer", ""),
+                "planner",
+                content,
+                importance,
+                splitTags(stringArg(args, "memory_event_tags", "")),
+                "planner"
+        );
+    }
+
+    private static List<String> splitTags(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(text -> !text.isBlank())
+                .toList();
     }
 
     private static AffectEvent affectEventFromArgs(Map<String, Object> args) {

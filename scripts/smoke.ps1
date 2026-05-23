@@ -8,4 +8,5 @@ java -cp (Join-Path $root "out\classes") com.maidsoul.brain.RuntimeLoopSmokeTest
 java -cp (Join-Path $root "out\classes") com.maidsoul.brain.ProactiveRhythmSmokeTest
 java -cp (Join-Path $root "out\classes") com.maidsoul.brain.MemoryV2SmokeTest
 java -cp (Join-Path $root "out\classes") com.maidsoul.brain.MemoryStrategyMaintenanceSmokeTest
+java -cp (Join-Path $root "out\classes") com.maidsoul.brain.PlannerStructuredMemorySmokeTest
 java -cp (Join-Path $root "out\classes") com.maidsoul.brain.SmokeTest

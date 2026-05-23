@@ -1,5 +1,6 @@
 package com.maidsoul.brain.tool;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,13 +29,18 @@ public final class BuiltinToolSet {
         return new ToolSpec(
                 "reply",
                 "当现在应该对用户发出一条真正可见的回复时调用。调用后由回复器生成可见发言。",
-                objectSchema(Map.of(
+                objectSchema(properties(
                         "target_message_id", stringSchema("要回应的消息 id；没有明确目标时留空。"),
                         "reason", stringSchema("为什么现在应该回复，以及回复方向；只写一句短方向，不超过40个中文字符，不要写长篇分析。"),
                         "reference_info", stringSchema("可选参考信息，只给回复器看，不会直接展示；不要编造现场事实。"),
                         "affect_event_kind", stringSchema("结构化情绪事件：OWNER_APOLOGY/OWNER_ATTACK/OWNER_DISTRESS/OWNER_AFFECTION/OWNER_QUESTION/OWNER_SHORT_FEEDBACK；无明确事件填空字符串。"),
                         "affect_event_intensity", numberSchema("情绪事件强度，0-100；无明确事件填0，普通轻微=25，中等=50，强烈=75。"),
-                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括，不要复述长聊天。")
+                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括，不要复述长聊天。"),
+                        "memory_event_type", stringSchema("可选结构化记忆类型：DIALOGUE/PREFERENCE/PROMISE/RELATION/EMOTION/WORLD/SUMMARY；没有明确长期价值填空字符串。"),
+                        "memory_event_layer", stringSchema("可选结构化记忆层：user_profile/relationship_event/self_memory/world_fact/repair_debt/summary；不要从关键词猜，只有语义明确时填写。"),
+                        "memory_event_content", stringSchema("可选结构化记忆内容，用稳定事实句概括；没有明确长期价值填空字符串。"),
+                        "memory_event_tags", stringSchema("可选结构化标签，用英文逗号分隔，如 preference,boundary；没有则空。"),
+                        "memory_event_importance", numberSchema("可选记忆重要度 1-5；没有明确长期价值填0。")
                 ), List.of("reason", "affect_event_kind", "affect_event_intensity")),
                 Map.of("stage", "action")
         );
@@ -44,12 +50,17 @@ public final class BuiltinToolSet {
         return new ToolSpec(
                 "wait",
                 "等待一段时间后再判断。用于用户可能还没说完，或者当前更适合把发言权交还给用户。",
-                objectSchema(Map.of(
+                objectSchema(properties(
                         "seconds", numberSchema("等待秒数。"),
                         "reason", stringSchema("为什么等待。"),
                         "affect_event_kind", stringSchema("结构化情绪事件；无明确事件填空字符串。"),
                         "affect_event_intensity", numberSchema("情绪事件强度，0-100；无明确事件填0。"),
-                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括。")
+                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括。"),
+                        "memory_event_type", stringSchema("可选结构化记忆类型；没有明确长期价值填空字符串。"),
+                        "memory_event_layer", stringSchema("可选结构化记忆层；没有明确长期价值填空字符串。"),
+                        "memory_event_content", stringSchema("可选结构化记忆内容；没有明确长期价值填空字符串。"),
+                        "memory_event_tags", stringSchema("可选结构化标签，用英文逗号分隔。"),
+                        "memory_event_importance", numberSchema("可选记忆重要度 1-5；没有明确长期价值填0。")
                 ), List.of("affect_event_kind", "affect_event_intensity")),
                 Map.of("stage", "timing")
         );
@@ -59,11 +70,16 @@ public final class BuiltinToolSet {
         return new ToolSpec(
                 "no_action",
                 "本轮不发言，等待新的外部消息。",
-                objectSchema(Map.of(
+                objectSchema(properties(
                         "reason", stringSchema("为什么本轮不发言。"),
                         "affect_event_kind", stringSchema("结构化情绪事件；无明确事件填空字符串。"),
                         "affect_event_intensity", numberSchema("情绪事件强度，0-100；无明确事件填0。"),
-                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括。")
+                        "affect_event_note", stringSchema("可选事件依据，用一句短话概括。"),
+                        "memory_event_type", stringSchema("可选结构化记忆类型；没有明确长期价值填空字符串。"),
+                        "memory_event_layer", stringSchema("可选结构化记忆层；没有明确长期价值填空字符串。"),
+                        "memory_event_content", stringSchema("可选结构化记忆内容；没有明确长期价值填空字符串。"),
+                        "memory_event_tags", stringSchema("可选结构化标签，用英文逗号分隔。"),
+                        "memory_event_importance", numberSchema("可选记忆重要度 1-5；没有明确长期价值填0。")
                 ), List.of("affect_event_kind", "affect_event_intensity")),
                 Map.of("stage", "timing")
         );
@@ -105,6 +121,17 @@ public final class BuiltinToolSet {
                 "properties", properties,
                 "required", required
         );
+    }
+
+    private static Map<String, Object> properties(Object... keyValues) {
+        if (keyValues.length % 2 != 0) {
+            throw new IllegalArgumentException("properties requires key/value pairs");
+        }
+        Map<String, Object> properties = new LinkedHashMap<>();
+        for (int i = 0; i < keyValues.length; i += 2) {
+            properties.put((String) keyValues[i], keyValues[i + 1]);
+        }
+        return properties;
     }
 
     private static Map<String, Object> stringSchema(String description) {

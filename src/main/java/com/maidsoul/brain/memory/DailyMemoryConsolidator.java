@@ -67,7 +67,9 @@ public final class DailyMemoryConsolidator {
 
     private List<String> buildCarePoints(List<LifeMemory> memories, AffectProfile affect, UserProfile profile) {
         java.util.ArrayList<String> points = new java.util.ArrayList<>();
-        boolean hasStress = memories.stream().anyMatch(memory -> containsAny(memory.content, "烦", "累", "生气", "难受"));
+        boolean hasStress = memories.stream().anyMatch(memory -> memory.tags.contains("stress_response")
+                || memory.tags.contains("repair_debt")
+                || memory.tags.contains("affect_event"));
         boolean hasStyle = memories.stream().anyMatch(memory -> memory.tags.contains("conversation_style"));
         if (hasStress) {
             points.add("下次可以先轻轻确认玩家现在心情有没有好一点，不要一上来讲方案。");
@@ -98,16 +100,6 @@ public final class DailyMemoryConsolidator {
         } catch (IOException e) {
             throw new UncheckedIOException("保存每日记忆整理失败: " + dailyDir, e);
         }
-    }
-
-    private static boolean containsAny(String text, String... needles) {
-        String value = text == null ? "" : text;
-        for (String needle : needles) {
-            if (needle != null && !needle.isBlank() && value.contains(needle)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static String clip(String text, int max) {

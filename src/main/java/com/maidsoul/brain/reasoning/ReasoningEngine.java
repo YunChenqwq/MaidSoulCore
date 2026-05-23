@@ -165,6 +165,7 @@ public final class ReasoningEngine {
             }
             trace.trace("planner", plan.action() + " target=" + plan.targetMessageId() + " / " + plan.reason());
             applyPlannerAffectEvent(plan);
+            applyPlannerMemoryEvent(plan);
             if ("wait".equals(plan.action())) {
                 return Result.waiting(plan.waitSeconds() > 0 ? plan.waitSeconds() : config.flow().defaultWaitSeconds());
             }
@@ -235,6 +236,16 @@ public final class ReasoningEngine {
         trace.trace("affect.event", plan.affectEvent().kind()
                 + " intensity=" + plan.affectEvent().intensity()
                 + " / " + memoryRuntime.affectSummary());
+    }
+
+    private void applyPlannerMemoryEvent(PlanDecision plan) {
+        if (memoryRuntime == null || plan == null || plan.memoryEvent() == null) {
+            return;
+        }
+        memoryRuntime.observeStructuredMemory(plan.memoryEvent());
+        trace.trace("memory.event", plan.memoryEvent().type()
+                + " layer=" + plan.memoryEvent().layer()
+                + " tags=" + String.join(",", plan.memoryEvent().tags()));
     }
 
     private ChatMessage resolveReplyTarget(PlanDecision plan, ChatMessage anchor, boolean proactiveEvent) {

@@ -2,6 +2,7 @@ package com.maidsoul.brain.memory;
 
 import com.maidsoul.brain.affect.AffectEngine;
 import com.maidsoul.brain.affect.AffectEvent;
+import com.maidsoul.brain.affect.AffectEventKind;
 import com.maidsoul.brain.affect.AffectProfile;
 import com.maidsoul.brain.affect.AffectProfileStore;
 import com.maidsoul.brain.affect.AffectSnapshot;
@@ -16,6 +17,7 @@ import com.maidsoul.brain.memory.v2.MemoryWriteStrategy;
 import com.maidsoul.brain.memory.v2.PersonProfileSnapshot;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -157,7 +159,7 @@ public final class MemoryRuntime {
             return;
         }
         affectEngine.apply(affectProfile, event);
-        if (event.intensity() >= 45 || event.kind().name().contains("HURT") || event.kind().name().contains("APOLOGY")) {
+        if (shouldPersistAffectEvent(event)) {
             ingestV2(
                     "affect:" + event.kind().name() + ":" + System.nanoTime(),
                     "affect",
@@ -168,6 +170,41 @@ public final class MemoryRuntime {
                     List.of("affect_event", "repair_debt", event.kind().name().toLowerCase())
             );
         }
+        saveState();
+        refreshDailySummary();
+    }
+
+    public synchronized void observeStructuredMemory(StructuredMemoryEvent event) {
+        if (!config.enabled() || event == null || event.content().isBlank()) {
+            return;
+        }
+        List<String> tags = new ArrayList<>(event.tags());
+        if (!event.layer().isBlank()) {
+            tags.add(event.layer());
+        }
+        LifeMemory memory = LifeMemory.of(
+                config.maidId(),
+                config.ownerId(),
+                config.worldId(),
+                event.type(),
+                event.source().isBlank() ? "structured" : event.source(),
+                event.role().isBlank() ? "event" : event.role(),
+                event.content(),
+                event.importance(),
+                tags,
+                AffectSnapshot.from(affectProfile)
+        );
+        memoryStore.append(memory);
+        ingestV2(
+                "structured:" + memory.id,
+                event.source().isBlank() ? "structured" : event.source(),
+                event.role().isBlank() ? "event" : event.role(),
+                event.content(),
+                event.type(),
+                event.importance(),
+                tags
+        );
+        updateProfileFrom(memory);
         saveState();
         refreshDailySummary();
     }
@@ -253,7 +290,6 @@ public final class MemoryRuntime {
     }
 
     private void updateProfileFrom(LifeMemory memory) {
-        String text = memory.content;
         if (memory.tags.contains("conversation_style")) {
             userProfile.reinforcePreference(
                     "conversation_style",
@@ -261,15 +297,22 @@ public final class MemoryRuntime {
                     memory.id
             );
         }
-        if (text.contains("不喜欢") || text.contains("讨厌")) {
-            userProfile.reinforceBoundary("dislike_boundary", "玩家会明确指出不喜欢的表达方式，需要后续避免复读。", memory.id);
+        if (memory.tags.contains("boundary")) {
+            userProfile.reinforceBoundary("explicit_boundary", "玩家表达过明确边界，后续回应需要优先尊重。", memory.id);
         }
-        if (text.contains("烦") || text.contains("累") || text.contains("难受")) {
+        if (memory.tags.contains("stress_response")) {
             userProfile.reinforceTrait("stress_response", "玩家情绪烦躁时需要先被接住，再慢慢展开话题。", memory.id);
         }
-        if (text.contains("喜欢") || text.contains("希望") || text.contains("想要")) {
+        if (memory.tags.contains("preference")) {
             userProfile.reinforcePreference("explicit_preference", "玩家表达过明确偏好，后续回复应优先尊重。", memory.id);
         }
+    }
+
+    private static boolean shouldPersistAffectEvent(AffectEvent event) {
+        return event.intensity() >= 45
+                || event.kind() == AffectEventKind.OWNER_APOLOGY
+                || event.kind() == AffectEventKind.MAID_HURT_BY_OWNER
+                || event.kind() == AffectEventKind.MAID_HURT_BY_WORLD;
     }
 
     private void ingestV2(
