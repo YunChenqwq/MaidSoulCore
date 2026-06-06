@@ -58,7 +58,7 @@ final class PlannerAgent {
                 "bot_name", config.identity().botName(),
                 "identity", config.identity().renderPrompt(),
                 "group_chat_attention_block", "",
-                "file_tools_section", "",
+                "file_tools_section", buildFileToolsSection(),
                 "timing_gate_wait_rule", "- wait：固定再等待一段时间，时间到后再重新判断。\n"
                         + "- 长期记忆工具已经接入，但必须克制使用。只有用户明确说“之前、上次、还记得吗、我说过、我的偏好”等依赖过去的信息，或回复必须依赖承诺/关系历史/长期偏好时，才调用 query_memory。即时情绪、沉默后的追问、普通接话只看最近聊天记录和长期状态参考。"
         ));
@@ -91,6 +91,17 @@ final class PlannerAgent {
                 response.totalTokens()
         );
         return new PlannerResult(decision, response.model(), response.metricsSummary());
+    }
+
+    private String buildFileToolsSection() {
+        if (!viewObservationAvailable) {
+            return "";
+        }
+        return """
+                - observe_view(reason)：当本轮回复依赖主人当前 Minecraft 第一人称画面、附近危险、可见实体/方块、地点氛围或现场状态时，可以调用这个工具获取文字视角摘要。
+                  如果上下文里已经有最近可靠的 [视角摘要] 或 owner.view.vision_summary，可以先直接使用；如果没有可靠证据，不要编造当前画面。
+                  这不是强制工具：普通情绪接话、寒暄、关系推进、仅依赖聊天文本的回应，直接使用 reply/wait/no_action。
+                """;
     }
 
     private PlanDecision fromToolCall(ToolCall call, String reasoning) {

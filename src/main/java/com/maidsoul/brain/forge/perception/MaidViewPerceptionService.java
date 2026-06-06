@@ -32,9 +32,10 @@ public final class MaidViewPerceptionService {
     /**
      * 轻量视角摘要。
      *
-     * <p>这里不是做视觉大模型，而是把车万女仆和主人附近最关键的 MC 状态压成结构化
-     * 世界事件：主人看向什么、附近是否有怪、时间/天气/生命值如何。只有风险或显著变化
-     * 才会送入核心，避免 tick 级刷屏。</p>
+     * <p>这里不是直接调用视觉大模型，而是每 45 秒把车万女仆和主人附近最关键的 MC
+     * 状态压成结构化世界事件：主人看向什么、附近是否有怪、时间/天气/生命值如何。
+     * 这条轻量事件会交给 planner 当作现场话题信息；planner 如果判断需要更真实的画面，
+     * 再主动调用 observe_view 工具触发截图/VLM。</p>
      */
     public static void onMaidTick(EntityMaid maid) {
         if (maid.tickCount % 40 != 0 || maid.getOwner() == null) {
@@ -49,19 +50,18 @@ public final class MaidViewPerceptionService {
 
         ViewSummary summary = capture(maid);
         Integer previous = LAST_SIGNATURE.put(maid.getUUID(), summary.signature());
-        if (previous != null && previous == summary.signature()) {
-            return;
+        boolean changed = previous == null || previous != summary.signature();
+        String eventType = summary.notable()
+                ? summary.eventType()
+                : changed ? "owner.view.changed" : "owner.view.snapshot";
+        MaidBrainRuntimeRegistry.receiveWorldEvent(maid, eventType, summary.text());
+        if (changed || summary.notable()) {
+            Long lastNotable = LAST_NOTABLE_EVENT.get(maid.getUUID());
+            if (lastNotable == null || now - lastNotable >= NOTABLE_EVENT_COOLDOWN_MILLIS) {
+                LAST_NOTABLE_EVENT.put(maid.getUUID(), now);
+                MaidVisionService.requestAutoSummary(maid, summary.text());
+            }
         }
-        if (!summary.notable()) {
-            return;
-        }
-        Long lastNotable = LAST_NOTABLE_EVENT.get(maid.getUUID());
-        if (lastNotable != null && now - lastNotable < NOTABLE_EVENT_COOLDOWN_MILLIS) {
-            return;
-        }
-        LAST_NOTABLE_EVENT.put(maid.getUUID(), now);
-        MaidBrainRuntimeRegistry.receiveWorldEvent(maid, summary.eventType(), summary.text());
-        MaidVisionService.requestAutoSummary(maid, summary.text());
     }
 
     private static ViewSummary capture(EntityMaid maid) {
