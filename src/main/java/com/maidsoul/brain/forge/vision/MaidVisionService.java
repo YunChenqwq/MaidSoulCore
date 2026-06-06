@@ -18,6 +18,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * 服务端视觉入口。
@@ -29,6 +32,7 @@ import java.util.concurrent.ConcurrentMap;
 public final class MaidVisionService {
     private static final ConcurrentMap<UUID, Long> LAST_AUTO_REQUEST = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, Long> LAST_MANUAL_REQUEST = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<UUID, CompletableFuture<String>> PENDING_SUMMARIES = new ConcurrentHashMap<>();
 
     private MaidVisionService() {
     }
@@ -41,19 +45,63 @@ public final class MaidVisionService {
         return requestSummary(maid, sceneHint, true);
     }
 
-    public static void receiveSummary(ServerPlayer player, UUID maidUuid, String reason, String summary, String sceneHint) {
+    public static String requestPlannerSummary(EntityMaid maid, String sceneHint, long timeoutMillis) {
+        VisionConfig config = VisionConfig.load(ForgeBrainConfigInstaller.configRoot());
+        if (!config.available()) {
+            return "[视角摘要] 视觉模型未启用或未配置。";
+        }
+        LivingEntity owner = maid.getOwner();
+        if (!(owner instanceof ServerPlayer player)) {
+            return "[视角摘要] 找不到可截图的主人客户端。";
+        }
+        UUID requestId = UUID.randomUUID();
+        CompletableFuture<String> future = new CompletableFuture<>();
+        PENDING_SUMMARIES.put(requestId, future);
+        ModNetwork.CHANNEL.send(
+                PacketDistributor.PLAYER.with(() -> player),
+                new VisionCaptureRequestPacket(
+                        maid.getUUID(),
+                        requestId,
+                        "planner",
+                        sceneHint,
+                        config.maxImageWidth(),
+                        config.maxImageHeight(),
+                        config.jpegQuality()
+                )
+        );
+        try {
+            long waitMillis = Math.max(1000L, timeoutMillis);
+            return future.get(waitMillis, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            PENDING_SUMMARIES.remove(requestId);
+            return "[视角摘要] 视觉观察超时，暂时没有拿到当前画面。";
+        } catch (InterruptedException e) {
+            PENDING_SUMMARIES.remove(requestId);
+            Thread.currentThread().interrupt();
+            return "[视角摘要] 视觉观察被中断。";
+        } catch (ExecutionException e) {
+            PENDING_SUMMARIES.remove(requestId);
+            String message = e.getCause() == null ? e.getMessage() : e.getCause().getMessage();
+            return "[视角摘要] 视觉观察失败：" + clip(message, 160);
+        }
+    }
+
+    public static void receiveSummary(ServerPlayer player, UUID maidUuid, UUID requestId, String reason, String summary, String sceneHint) {
         EntityMaid maid = findOwnedMaid(player, maidUuid);
         if (maid == null) {
             player.sendSystemMessage(Component.literal("没有找到可写入视觉摘要的女仆。"));
+            completePending(requestId, "[视角摘要] 没有找到可绑定的女仆。");
             return;
         }
         String cleanSummary = summary == null ? "" : summary.trim();
         if (cleanSummary.isBlank()) {
+            completePending(requestId, "[视角摘要] 视觉摘要是空的。");
             if ("manual".equals(reason)) {
                 MaidSpeechDispatcher.queueSpeechOnServer(maid, "唔，视觉摘要是空的。");
             }
             return;
         }
+        completePending(requestId, cleanSummary);
         String detail = "source=" + reason
                 + ", owner=" + player.getName().getString()
                 + ", scene_hint=" + clip(sceneHint, 300)
@@ -66,23 +114,26 @@ public final class MaidVisionService {
         }
     }
 
-    public static void receiveProxyImage(ServerPlayer player, UUID maidUuid, String reason, String imageFormat, String imageBase64, String sceneHint) {
+    public static void receiveProxyImage(ServerPlayer player, UUID maidUuid, UUID requestId, String reason, String imageFormat, String imageBase64, String sceneHint) {
         VisionConfig config = VisionConfig.load(ForgeBrainConfigInstaller.configRoot());
         if (!config.available()) {
             player.sendSystemMessage(Component.literal("MaidSoulCore 视觉模型未启用或未配置。"));
+            completePending(requestId, "[视角摘要] 视觉模型未启用或未配置。");
             return;
         }
         EntityMaid maid = findOwnedMaid(player, maidUuid);
         if (maid == null) {
             player.sendSystemMessage(Component.literal("没有找到可写入视觉摘要的女仆。"));
+            completePending(requestId, "[视角摘要] 没有找到可绑定的女仆。");
             return;
         }
         CompletableFuture.runAsync(() -> {
             try {
                 String summary = new VisionSummaryClient(config).summarize(imageFormat, imageBase64, sceneHint);
-                receiveSummary(player, maidUuid, reason, summary, sceneHint);
+                receiveSummary(player, maidUuid, requestId, reason, summary, sceneHint);
             } catch (RuntimeException e) {
                 MaidSoulCoreForgeMod.LOGGER.warn("MaidSoulCore server proxy vision summary failed for maid {}", maidUuid, e);
+                completePending(requestId, "[视角摘要失败] " + clip(e.getMessage(), 160));
                 if ("manual".equals(reason)) {
                     MaidSpeechDispatcher.queueSpeechOnServer(maid, "唔，视觉摘要失败了：" + clip(e.getMessage(), 90));
                 }
@@ -112,6 +163,7 @@ public final class MaidVisionService {
                 PacketDistributor.PLAYER.with(() -> player),
                 new VisionCaptureRequestPacket(
                         maidUuid,
+                        UUID.randomUUID(),
                         manual ? "manual" : "auto",
                         sceneHint,
                         config.maxImageWidth(),
@@ -120,6 +172,16 @@ public final class MaidVisionService {
                 )
         );
         return true;
+    }
+
+    private static void completePending(UUID requestId, String summary) {
+        if (requestId == null) {
+            return;
+        }
+        CompletableFuture<String> future = PENDING_SUMMARIES.remove(requestId);
+        if (future != null) {
+            future.complete(summary);
+        }
     }
 
     private static EntityMaid findOwnedMaid(ServerPlayer player, UUID maidUuid) {

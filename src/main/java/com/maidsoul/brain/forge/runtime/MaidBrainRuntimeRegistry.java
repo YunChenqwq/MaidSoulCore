@@ -11,8 +11,11 @@ import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.forge.soul.SoulBindingData;
 import com.maidsoul.brain.llm.OpenAiCompatibleClient;
 import com.maidsoul.brain.prompt.PromptCatalog;
+import com.maidsoul.brain.reasoning.ViewObservationTool;
 import com.maidsoul.brain.runtime.ConversationRuntime;
 import com.maidsoul.brain.runtime.RuntimeTraceSink;
+import com.maidsoul.brain.forge.vision.MaidVisionService;
+import com.maidsoul.brain.vision.VisionConfig;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -86,7 +89,8 @@ public final class MaidBrainRuntimeRegistry {
                 text -> {
                     deliverToTlmChatBoxOrFallback(maid, debug, text);
                 },
-                trace
+                trace,
+                plannerViewTool(maid)
         );
         holder[0] = runtime;
         runtime.start();
@@ -107,6 +111,20 @@ public final class MaidBrainRuntimeRegistry {
             OwnerChatDebugEcho.echoImportant(maid, debug, "reply", text);
         }
         MaidSpeechDispatcher.queueSpeechOnServer(maid, text);
+    }
+
+    private static ViewObservationTool plannerViewTool(EntityMaid maid) {
+        return new ViewObservationTool() {
+            @Override
+            public boolean available() {
+                return VisionConfig.load(ForgeBrainConfigInstaller.configRoot()).available();
+            }
+
+            @Override
+            public String observe(String reason, long timeoutMillis) {
+                return MaidVisionService.requestPlannerSummary(maid, reason, timeoutMillis);
+            }
+        };
     }
 
     private static String ownerName(EntityMaid maid) {

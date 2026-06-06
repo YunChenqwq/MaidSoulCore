@@ -57,9 +57,9 @@ public final class ForgeBrainConfigInstaller {
             installFile(root.resolve("model").resolve("vision.properties"), """
                     enabled=false
                     mode=client_direct
-                    baseUrl=https://api.openai.com/v1/chat/completions
+                    baseUrl=https://api.siliconflow.cn/v1/chat/completions
                     apiKey=
-                    model=gpt-4o-mini
+                    model=
                     temperature=0.2
                     maxTokens=220
                     timeoutMillis=60000
@@ -86,7 +86,7 @@ public final class ForgeBrainConfigInstaller {
                     talkFrequency=1.0
                     plannerInterruptMaxConsecutiveCount=2
                     timingGateNonContinueCooldownMillis=3000
-                    directReplyOnUserMessage=true
+                    directReplyOnUserMessage=false
                     enableProactiveRhythm=true
                     proactiveMaxVisibleReplies=4
                     proactiveInputProtectionSeconds=12
@@ -193,7 +193,6 @@ public final class ForgeBrainConfigInstaller {
 
     private static void syncForgeConfigToCoreFiles(Path root) throws IOException {
         updateProperties(root.resolve("conversation").resolve("flow.properties"), properties -> {
-            properties.setProperty("directReplyOnUserMessage", String.valueOf(MaidSoulForgeConfig.DIRECT_REPLY_ON_USER_MESSAGE.get()));
             properties.setProperty("messageDebounceMillis", String.valueOf(MaidSoulForgeConfig.MESSAGE_DEBOUNCE_MILLIS.get()));
         });
         updateProperties(root.resolve("model").resolve("llm.properties"), properties -> {

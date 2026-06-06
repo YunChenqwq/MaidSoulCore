@@ -30,11 +30,17 @@ final class PlannerAgent {
     private final PromptCatalog prompts;
     private final LlmClient llm;
     private final PlannerHookRunner hookRunner = new PlannerHookRunner();
+    private final boolean viewObservationAvailable;
 
     PlannerAgent(BrainConfig config, PromptCatalog prompts, LlmClient llm) {
+        this(config, prompts, llm, false);
+    }
+
+    PlannerAgent(BrainConfig config, PromptCatalog prompts, LlmClient llm, boolean viewObservationAvailable) {
         this.config = config;
         this.prompts = prompts;
         this.llm = llm;
+        this.viewObservationAvailable = viewObservationAvailable;
     }
 
     PlanDecision plan(String context) {
@@ -56,7 +62,7 @@ final class PlannerAgent {
                 "timing_gate_wait_rule", "- wait：固定再等待一段时间，时间到后再重新判断。\n"
                         + "- 长期记忆工具已经接入，但必须克制使用。只有用户明确说“之前、上次、还记得吗、我说过、我的偏好”等依赖过去的信息，或回复必须依赖承诺/关系历史/长期偏好时，才调用 query_memory。即时情绪、沉默后的追问、普通接话只看最近聊天记录和长期状态参考。"
         ));
-        List<ToolSpec> tools = BuiltinToolSet.plannerTools(mergedTiming).stream()
+        List<ToolSpec> tools = BuiltinToolSet.plannerTools(mergedTiming, viewObservationAvailable).stream()
                 .filter(tool -> config.memory().queryMemoryToolEnabled() || !"query_memory".equals(tool.name()))
                 .toList();
         PlannerHookRunner.BeforeOutcome beforeOutcome = hookRunner.beforeRequest(
@@ -111,6 +117,7 @@ final class PlannerAgent {
             case "no_action" -> new PlanDecision("no_action", "", 0, compactReason, "", affectEvent, memoryEvent);
             case "finish" -> new PlanDecision("no_action", "", 0, compactReason, "");
             case "query_memory" -> new PlanDecision("query_memory", stringArg(args, "query", ""), 0, compactReason, "");
+            case "observe_view" -> new PlanDecision("observe_view", "", 0, compactReason, "");
             default -> PlanDecision.replyLatest("规划器调用了未知工具，按最新消息回复。");
         };
     }

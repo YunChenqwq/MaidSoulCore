@@ -32,7 +32,7 @@ public final class ReasoningEngine {
     private final ReplyComposer replyComposer;
     private final DialogueStateTracker dialogueStateTracker = new DialogueStateTracker();
     private final NoActionPolicy noActionPolicy = new NoActionPolicy();
-    private final DirectReplyPolicy directReplyPolicy = new DirectReplyPolicy();
+    private final ViewObservationTool viewObservationTool;
     private final MemoryRuntime memoryRuntime;
     private final ReplyEffectTracker replyEffectTracker;
     private final Consumer<String> streamDeltaConsumer;
@@ -49,6 +49,22 @@ public final class ReasoningEngine {
             Consumer<String> streamDeltaConsumer,
             Runnable streamFlush
     ) {
+        this(config, prompts, llm, session, trace, memoryRuntime, replyEffectTracker,
+                streamDeltaConsumer, streamFlush, ViewObservationTool.NONE);
+    }
+
+    public ReasoningEngine(
+            BrainConfig config,
+            PromptCatalog prompts,
+            LlmClient llm,
+            ChatSession session,
+            RuntimeTraceSink trace,
+            MemoryRuntime memoryRuntime,
+            ReplyEffectTracker replyEffectTracker,
+            Consumer<String> streamDeltaConsumer,
+            Runnable streamFlush,
+            ViewObservationTool viewObservationTool
+    ) {
         this.config = config;
         this.session = session;
         this.trace = trace;
@@ -56,9 +72,10 @@ public final class ReasoningEngine {
         this.streamDeltaConsumer = streamDeltaConsumer;
         this.streamFlush = streamFlush;
         this.memoryRuntime = memoryRuntime;
+        this.viewObservationTool = viewObservationTool == null ? ViewObservationTool.NONE : viewObservationTool;
         this.contextWindow = new ContextWindow(config, memoryRuntime == null ? null : memoryRuntime::renderPromptBlock);
         this.timingGate = new TimingGate(config, prompts, llm);
-        this.planner = new PlannerAgent(config, prompts, llm);
+        this.planner = new PlannerAgent(config, prompts, llm, this.viewObservationTool.available());
         this.replyComposer = new ReplyComposer(config, prompts, llm);
     }
 
@@ -80,40 +97,8 @@ public final class ReasoningEngine {
             return Result.noAction();
         }
 
-        // 玩家刚发来的普通聊天是最高频场景。这里默认走单次回复器快路径：
-        // 不先跑规划器，避免“planner 超时后再 replyer”的串行等待。
-        // 以后接入真实工具、长期记忆和主动事件时，再按事件类型切回完整规划链路。
-        if (!pending.isEmpty() && config.flow().directReplyOnUserMessage() && directReplyPolicy.canReplyDirectly(pending)) {
-            if (session.hasForcedContinue()) {
-                trace.trace("timing.skip", session.consumeForceReason());
-            }
-            String context = contextWindow.renderForReplyer(session.contextWindow(config.flow().historyWindow()), dialogueState);
-            ChatMessage target = pending.get(pending.size() - 1);
-            long replyStarted = System.currentTimeMillis();
-            try {
-                ReplyComposer.LlmReply composed = replyComposer.composeStreamingWithMeta(
-                        context,
-                        target,
-                        "玩家刚发来新消息，直接自然回应并适当推进话题。",
-                        "",
-                        guardedDeltaConsumer(cycleVersion, currentVersion),
-                        interruptFlag
-                );
-                flushStream(cycleVersion, currentVersion);
-                trace.trace("llm.replyer.done", "direct=true model=" + composed.model()
-                        + " elapsed=" + (System.currentTimeMillis() - replyStarted) + "ms "
-                        + composed.metricsSummary());
-                return Result.streamed(composed.content(), target, "玩家刚发来新消息，直接自然回应并适当推进话题。", "");
-            } catch (LlmRequestException e) {
-                if ("aborted".equals(e.failureKind())) {
-                    trace.trace("llm.replyer.aborted", e.traceText());
-                    return Result.noAction();
-                }
-                trace.trace("llm.replyer.error", e.traceText());
-            return Result.reply(fallbackReply(target, e), target, "回复器请求失败后的兜底回复。", "");
-            }
-        }
         boolean memoryQueried = false;
+        boolean viewObserved = false;
 
         for (int round = 0; round < Math.max(1, config.flow().maxInternalRounds()); round++) {
             if (cycleVersion != currentVersion.getAsLong()) {
@@ -189,6 +174,18 @@ public final class ReasoningEngine {
                     // 当前原型还没有真实长期记忆后端。继续回到规划器只会多打一轮模型请求，
                     // 而且检索结果已经足够交给回复器参考，所以这里直接进入可见回复阶段。
                     plan = PlanDecision.replyLatest("已完成一次记忆检索，直接结合检索结果和最近聊天回复。", memoryText);
+                }
+            }
+            if ("observe_view".equals(plan.action())) {
+                if (viewObserved) {
+                    trace.trace("tool.observe_view.skip", "本轮已经观察过当前视角，避免重复截图。");
+                    plan = PlanDecision.replyLatest("本轮已经获取过当前视角摘要，直接结合观察结果回复。");
+                } else {
+                    viewObserved = true;
+                    String viewText = observeView(plan.reason());
+                    session.appendReference(viewText);
+                    trace.trace("tool.observe_view", viewText);
+                    plan = PlanDecision.replyLatest("已获取当前视角摘要，结合观察结果回复。", viewText);
                 }
             }
             if (!"reply".equals(plan.action())) {
@@ -345,6 +342,25 @@ public final class ReasoningEngine {
             return "[记忆检索] 记忆运行时未接入。";
         }
         return memoryRuntime.queryMemory(normalizedQuery, config.memory().retrievalLimit());
+    }
+
+    private String observeView(String reason) {
+        if (!viewObservationTool.available()) {
+            return "[视角摘要] 视觉观察工具未接入。";
+        }
+        String normalizedReason = reason == null ? "" : reason.trim();
+        long timeoutMillis = Math.max(5000L, config.model().plannerTimeoutMillis());
+        try {
+            String summary = viewObservationTool.observe(normalizedReason, timeoutMillis);
+            String clean = summary == null ? "" : summary.trim();
+            if (clean.isBlank()) {
+                return "[视角摘要] 视觉观察没有返回有效内容。";
+            }
+            return clean.startsWith("[视角摘要]") ? clean : "[视角摘要] " + clean;
+        } catch (RuntimeException e) {
+            String message = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            return "[视角摘要] 视觉观察失败：" + message;
+        }
     }
 
     public enum ResultKind {

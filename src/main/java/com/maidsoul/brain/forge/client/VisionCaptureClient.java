@@ -57,6 +57,7 @@ public final class VisionCaptureClient {
             } else {
                 ModNetwork.CHANNEL.sendToServer(new VisionProxyImagePacket(
                         request.maidUuid(),
+                        request.requestId(),
                         request.reason(),
                         request.sceneHint(),
                         "jpeg",
@@ -75,6 +76,7 @@ public final class VisionCaptureClient {
             String summary = new VisionSummaryClient(config).summarize("jpeg", imageBase64, request.sceneHint());
             ModNetwork.CHANNEL.sendToServer(new VisionCaptureResultPacket(
                     request.maidUuid(),
+                    request.requestId(),
                     request.reason(),
                     request.sceneHint(),
                     summary
@@ -83,6 +85,7 @@ public final class VisionCaptureClient {
             MaidSoulCoreForgeMod.LOGGER.warn("MaidSoulCore client vision summary failed", e);
             ModNetwork.CHANNEL.sendToServer(new VisionCaptureResultPacket(
                     request.maidUuid(),
+                    request.requestId(),
                     request.reason(),
                     request.sceneHint(),
                     "[视觉摘要失败] " + clip(e.getMessage(), 160)

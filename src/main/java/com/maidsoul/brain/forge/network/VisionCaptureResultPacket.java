@@ -10,12 +10,14 @@ import java.util.function.Supplier;
 
 public record VisionCaptureResultPacket(
         UUID maidUuid,
+        UUID requestId,
         String reason,
         String sceneHint,
         String summary
 ) {
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeUUID(maidUuid);
+        buffer.writeUUID(requestId);
         buffer.writeUtf(reason);
         buffer.writeUtf(sceneHint == null ? "" : sceneHint, 4096);
         buffer.writeUtf(summary == null ? "" : summary, 8192);
@@ -23,6 +25,7 @@ public record VisionCaptureResultPacket(
 
     public static VisionCaptureResultPacket decode(FriendlyByteBuf buffer) {
         return new VisionCaptureResultPacket(
+                buffer.readUUID(),
                 buffer.readUUID(),
                 buffer.readUtf(),
                 buffer.readUtf(4096),
@@ -35,7 +38,7 @@ public record VisionCaptureResultPacket(
         ServerPlayer player = context.getSender();
         context.enqueueWork(() -> {
             if (player != null) {
-                MaidVisionService.receiveSummary(player, message.maidUuid(), message.reason(), message.summary(), message.sceneHint());
+                MaidVisionService.receiveSummary(player, message.maidUuid(), message.requestId(), message.reason(), message.summary(), message.sceneHint());
             }
         });
         context.setPacketHandled(true);

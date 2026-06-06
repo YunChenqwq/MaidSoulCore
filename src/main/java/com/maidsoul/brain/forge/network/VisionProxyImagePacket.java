@@ -16,6 +16,7 @@ import java.util.function.Supplier;
  */
 public record VisionProxyImagePacket(
         UUID maidUuid,
+        UUID requestId,
         String reason,
         String sceneHint,
         String imageFormat,
@@ -23,6 +24,7 @@ public record VisionProxyImagePacket(
 ) {
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeUUID(maidUuid);
+        buffer.writeUUID(requestId);
         buffer.writeUtf(reason);
         buffer.writeUtf(sceneHint == null ? "" : sceneHint, 4096);
         buffer.writeUtf(imageFormat);
@@ -31,6 +33,7 @@ public record VisionProxyImagePacket(
 
     public static VisionProxyImagePacket decode(FriendlyByteBuf buffer) {
         return new VisionProxyImagePacket(
+                buffer.readUUID(),
                 buffer.readUUID(),
                 buffer.readUtf(),
                 buffer.readUtf(4096),
@@ -44,7 +47,7 @@ public record VisionProxyImagePacket(
         ServerPlayer player = context.getSender();
         context.enqueueWork(() -> {
             if (player != null) {
-                MaidVisionService.receiveProxyImage(player, message.maidUuid(), message.reason(), message.imageFormat(), message.imageBase64(), message.sceneHint());
+                MaidVisionService.receiveProxyImage(player, message.maidUuid(), message.requestId(), message.reason(), message.imageFormat(), message.imageBase64(), message.sceneHint());
             }
         });
         context.setPacketHandled(true);

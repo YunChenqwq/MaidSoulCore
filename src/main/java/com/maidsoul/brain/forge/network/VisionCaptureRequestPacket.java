@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 
 public record VisionCaptureRequestPacket(
         UUID maidUuid,
+        UUID requestId,
         String reason,
         String sceneHint,
         int maxWidth,
@@ -19,6 +20,7 @@ public record VisionCaptureRequestPacket(
 ) {
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeUUID(maidUuid);
+        buffer.writeUUID(requestId);
         buffer.writeUtf(reason);
         buffer.writeUtf(sceneHint == null ? "" : sceneHint, 4096);
         buffer.writeVarInt(maxWidth);
@@ -28,6 +30,7 @@ public record VisionCaptureRequestPacket(
 
     public static VisionCaptureRequestPacket decode(FriendlyByteBuf buffer) {
         return new VisionCaptureRequestPacket(
+                buffer.readUUID(),
                 buffer.readUUID(),
                 buffer.readUtf(),
                 buffer.readUtf(4096),

@@ -13,7 +13,6 @@ import net.minecraftforge.common.ForgeConfigSpec;
 public final class MaidSoulForgeConfig {
     public static final ForgeConfigSpec SPEC;
 
-    public static final ForgeConfigSpec.BooleanValue DIRECT_REPLY_ON_USER_MESSAGE;
     public static final ForgeConfigSpec.LongValue MESSAGE_DEBOUNCE_MILLIS;
     public static final ForgeConfigSpec.BooleanValue ECHO_TRACE_TO_OWNER_CHAT;
     public static final ForgeConfigSpec.BooleanValue ECHO_AFFECT_TO_OWNER_CHAT;
@@ -30,9 +29,6 @@ public final class MaidSoulForgeConfig {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
         builder.push("conversation");
-        DIRECT_REPLY_ON_USER_MESSAGE = builder
-                .comment("玩家发言时跳过 planner，直接进入 replyer。推荐开启，能保留 Java 原型的流式体感。")
-                .define("directReplyOnUserMessage", true);
         MESSAGE_DEBOUNCE_MILLIS = builder
                 .comment("玩家连续输入的合批等待时间，单位毫秒。")
                 .defineInRange("messageDebounceMillis", 250L, 0L, 5000L);
@@ -53,10 +49,10 @@ public final class MaidSoulForgeConfig {
                 .define("enabled", false);
         VISION_BASE_URL = builder
                 .comment("OpenAI compatible vision chat completions endpoint.")
-                .define("baseUrl", "https://api.openai.com/v1/chat/completions");
+                .define("baseUrl", "https://api.siliconflow.cn/v1/chat/completions");
         VISION_MODEL = builder
-                .comment("支持图片输入的视觉模型，例如 gpt-4o-mini 或兼容服务提供的 VLM。")
-                .define("model", "gpt-4o-mini");
+                .comment("支持图片输入的视觉模型。MaiBot 默认不硬编码 VLM；这里留空，按你的硅基流动账号可用模型填写。")
+                .define("model", "");
         builder.pop();
 
         builder.push("debug");

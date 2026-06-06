@@ -30,7 +30,6 @@ public final class MaidSoulConfigScreen extends Screen {
     private EditBox plannerModelBox;
     private EditBox replyerModelBox;
     private EditBox debounceBox;
-    private CycleButton<Boolean> directReplyButton;
     private CycleButton<Boolean> traceButton;
     private CycleButton<Boolean> affectButton;
     private CycleButton<Boolean> replyEchoButton;
@@ -70,8 +69,6 @@ public final class MaidSoulConfigScreen extends Screen {
 
         if (tab == Tab.BASIC) {
             debounceBox = addTextRow(left, top, labelWidth, inputWidth, "输入合批毫秒", String.valueOf(MaidSoulForgeConfig.MESSAGE_DEBOUNCE_MILLIS.get()));
-            top += 28;
-            directReplyButton = addBoolRow(left, top, labelWidth, inputWidth, "玩家发言直回", MaidSoulForgeConfig.DIRECT_REPLY_ON_USER_MESSAGE.get());
         } else if (tab == Tab.MODEL) {
             baseUrlBox = addTextRow(left, top, labelWidth, inputWidth, "模型接口", MaidSoulForgeConfig.BASE_URL.get());
             top += 28;
@@ -141,9 +138,6 @@ public final class MaidSoulConfigScreen extends Screen {
         }
         if (debounceBox != null) {
             MaidSoulForgeConfig.MESSAGE_DEBOUNCE_MILLIS.set(parseLong(debounceBox.getValue(), 250L));
-        }
-        if (directReplyButton != null) {
-            MaidSoulForgeConfig.DIRECT_REPLY_ON_USER_MESSAGE.set(directReplyButton.getValue());
         }
         if (visionEnabledButton != null) {
             MaidSoulForgeConfig.VISION_ENABLED.set(visionEnabledButton.getValue());
@@ -220,7 +214,6 @@ public final class MaidSoulConfigScreen extends Screen {
         this.plannerModelBox = null;
         this.replyerModelBox = null;
         this.debounceBox = null;
-        this.directReplyButton = null;
         this.traceButton = null;
         this.affectButton = null;
         this.replyEchoButton = null;

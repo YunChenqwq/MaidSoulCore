@@ -15,10 +15,18 @@ public final class BuiltinToolSet {
     }
 
     public static List<ToolSpec> plannerTools(boolean includeTimingTools) {
+        return plannerTools(includeTimingTools, false);
+    }
+
+    public static List<ToolSpec> plannerTools(boolean includeTimingTools, boolean includeViewTool) {
         if (includeTimingTools) {
-            return List.of(reply(), waitTool(), noAction(), finish(), queryMemory());
+            return includeViewTool
+                    ? List.of(reply(), waitTool(), noAction(), finish(), queryMemory(), observeView())
+                    : List.of(reply(), waitTool(), noAction(), finish(), queryMemory());
         }
-        return List.of(reply(), finish(), queryMemory());
+        return includeViewTool
+                ? List.of(reply(), finish(), queryMemory(), observeView())
+                : List.of(reply(), finish(), queryMemory());
     }
 
     public static List<ToolSpec> timingTools() {
@@ -102,6 +110,17 @@ public final class BuiltinToolSet {
                         "query", stringSchema("要检索的记忆查询。"),
                         "reason", stringSchema("为什么需要查询记忆。")
                 ), List.of("query")),
+                Map.of("stage", "action")
+        );
+    }
+
+    public static ToolSpec observeView() {
+        return new ToolSpec(
+                "observe_view",
+                "当回复需要主人当前第一人称视角、附近危险、可见实体/方块或现场状态时调用。工具会返回一段文字视觉摘要。",
+                objectSchema(Map.of(
+                        "reason", stringSchema("为什么本轮需要观察当前视角，只写一句短理由。")
+                ), List.of("reason")),
                 Map.of("stage", "action")
         );
     }

@@ -10,6 +10,7 @@ import com.maidsoul.brain.prompt.PromptCatalog;
 import com.maidsoul.brain.reply.effect.ReplyEffectTracker;
 import com.maidsoul.brain.reasoning.ReasoningEngine;
 import com.maidsoul.brain.reasoning.ReplySanitizer;
+import com.maidsoul.brain.reasoning.ViewObservationTool;
 import com.maidsoul.brain.text.SentenceSplitter;
 
 import java.util.ArrayDeque;
@@ -82,6 +83,17 @@ public final class ConversationRuntime implements AutoCloseable {
             Consumer<String> output,
             RuntimeTraceSink trace
     ) {
+        this(config, prompts, llm, output, trace, ViewObservationTool.NONE);
+    }
+
+    public ConversationRuntime(
+            BrainConfig config,
+            PromptCatalog prompts,
+            LlmClient llm,
+            Consumer<String> output,
+            RuntimeTraceSink trace,
+            ViewObservationTool viewObservationTool
+    ) {
         this.config = config;
         this.output = output;
         this.trace = trace == null ? RuntimeTraceSink.noop() : trace;
@@ -97,7 +109,8 @@ public final class ConversationRuntime implements AutoCloseable {
                 memoryRuntime,
                 replyEffectTracker,
                 streamEmitter::acceptDelta,
-                streamEmitter::flush
+                streamEmitter::flush,
+                viewObservationTool
         );
     }
 

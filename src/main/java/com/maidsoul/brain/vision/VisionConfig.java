@@ -38,9 +38,9 @@ public record VisionConfig(
         return new VisionConfig(
                 ConfigFiles.bool(properties, "enabled", false),
                 ConfigFiles.text(properties, "mode", "client_direct"),
-                ConfigFiles.text(properties, "baseUrl", "https://api.openai.com/v1/chat/completions"),
+                ConfigFiles.text(properties, "baseUrl", "https://api.siliconflow.cn/v1/chat/completions"),
                 key,
-                ConfigFiles.text(properties, "model", "gpt-4o-mini"),
+                ConfigFiles.text(properties, "model", ""),
                 ConfigFiles.decimal(properties, "temperature", 0.2D),
                 ConfigFiles.integer(properties, "maxTokens", 220),
                 ConfigFiles.number(properties, "timeoutMillis", 60000L),
