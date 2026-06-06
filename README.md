@@ -1,35 +1,58 @@
-# Maid Soul Core Brain Prototype
+# MaidSoulCore
 
-这是一个独立的 Java 聊天大脑工程，不依赖 Forge、不依赖游戏环境。
+MaidSoulCore 是一个独立的 Minecraft 女仆灵魂核心项目。
 
-当前目标已经调整为：按参考项目的核心源码职责，用 Java 做源码级重写，而不是写一个“思路相似”的女仆模组原型。
+它的目标不是做普通聊天转发器，而是让女仆拥有可持续成长的角色状态：人格配置、长期记忆、关系进展、情绪变化、世界事件记录、视角摘要，以及围绕这些状态运行的规划与回复链路。
 
-- 先完整重写聊天大脑、配置、模型服务、提示词、工具式规划器、回复器和后处理。
-- prompt 使用 `prompts/zh-CN` 中同步过来的原始模板，不再另写一套。
-- Forge/TLM 只是后续适配层，当前不作为核心目标。
+当前仓库包含两部分：
 
-## 许可注意
+- Java 聊天大脑：负责模型调用、规划器、回复器、记忆检索、情绪事件、回复后处理和运行时节奏。
+- Forge 适配层：负责把聊天核心接入 Minecraft、女仆实体、灵魂核心道具、配置页、聊天界面和视觉摘要。
 
-参考项目使用 GPL-3.0。若本工程继续按其源码职责和 prompt 做 Java 重写，最终发布时也需要按 GPL-3.0 处理派生代码的许可边界。
+## 功能
 
-## 运行
+- 独立角色包：人设、关系、情绪、长期记忆和世界事实分层保存。
+- 记忆系统：支持用户画像、关系事件、角色自我记忆、世界事实、修复记录和维护循环。
+- 工具式规划：由 planner 决定回复、等待、查询记忆或观察当前视角。
+- 视觉摘要：客户端截图后直接请求视觉模型，只把文字摘要写回女仆核心。
+- Forge 配置页：基础、模型、视觉和调试分页配置。
+- 灵魂绑定：通过灵魂核心把一个可迁移的灵魂绑定到女仆实体。
 
-1. 编辑 `config/model/llm.properties`，填入 `baseUrl`、`apiKey`、`model`。
-2. 构建：
+## 运行与配置
 
-```powershell
-.\scripts\build.ps1
+桌面原型配置位于：
+
+```text
+config/
 ```
 
-3. 交互测试：
+Minecraft Forge 实例配置位于：
 
-```powershell
-.\scripts\run.ps1
+```text
+<minecraft-instance>/config/maidsoulcore/
 ```
 
-也可以不写入配置文件，临时使用环境变量：
+主要模型配置：
+
+```text
+config/maidsoulcore/model/llm.properties
+config/maidsoulcore/model/vision.properties
+```
+
+不要把 API Key 提交到仓库。测试时可以写入本地配置文件，或使用环境变量。
+
+## 构建
 
 ```powershell
-$env:MAIDSOUL_API_KEY="sk-..."
-.\scripts\run.ps1
+.\gradlew.bat build --console=plain
 ```
+
+构建产物在：
+
+```text
+build/libs/
+```
+
+## 状态
+
+项目仍在快速迭代中。当前重点是稳定 Forge 聊天链路、完善记忆图谱、强化视觉工具调用，以及把角色包配置做成更直观的外部编辑体验。
