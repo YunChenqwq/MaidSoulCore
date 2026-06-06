@@ -8,34 +8,43 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-public record VisionCaptureResultPacket(
+/**
+ * 服务端代理模式的图片回传包。
+ *
+ * <p>默认的 client_direct 模式不会使用这个包。它只在 vision.mode=server_proxy 时启用，
+ * 用于服务器统一持有视觉模型 API Key 的特殊场景。</p>
+ */
+public record VisionProxyImagePacket(
         UUID maidUuid,
         String reason,
         String sceneHint,
-        String summary
+        String imageFormat,
+        String imageBase64
 ) {
     public void encode(FriendlyByteBuf buffer) {
         buffer.writeUUID(maidUuid);
         buffer.writeUtf(reason);
         buffer.writeUtf(sceneHint == null ? "" : sceneHint, 4096);
-        buffer.writeUtf(summary == null ? "" : summary, 8192);
+        buffer.writeUtf(imageFormat);
+        buffer.writeUtf(imageBase64, 262144);
     }
 
-    public static VisionCaptureResultPacket decode(FriendlyByteBuf buffer) {
-        return new VisionCaptureResultPacket(
+    public static VisionProxyImagePacket decode(FriendlyByteBuf buffer) {
+        return new VisionProxyImagePacket(
                 buffer.readUUID(),
                 buffer.readUtf(),
                 buffer.readUtf(4096),
-                buffer.readUtf(8192)
+                buffer.readUtf(),
+                buffer.readUtf(262144)
         );
     }
 
-    public static void handle(VisionCaptureResultPacket message, Supplier<NetworkEvent.Context> contextSupplier) {
+    public static void handle(VisionProxyImagePacket message, Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
         ServerPlayer player = context.getSender();
         context.enqueueWork(() -> {
             if (player != null) {
-                MaidVisionService.receiveSummary(player, message.maidUuid(), message.reason(), message.summary(), message.sceneHint());
+                MaidVisionService.receiveProxyImage(player, message.maidUuid(), message.reason(), message.imageFormat(), message.imageBase64(), message.sceneHint());
             }
         });
         context.setPacketHandled(true);

@@ -59,5 +59,10 @@ public final class ModNetwork {
                 .decoder(VisionCaptureResultPacket::decode)
                 .consumerMainThread(VisionCaptureResultPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(VisionProxyImagePacket.class, id++)
+                .encoder(VisionProxyImagePacket::encode)
+                .decoder(VisionProxyImagePacket::decode)
+                .consumerMainThread(VisionProxyImagePacket::handle)
+                .add();
     }
 }

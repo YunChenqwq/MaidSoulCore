@@ -56,6 +56,7 @@ public final class ForgeBrainConfigInstaller {
                     """);
             installFile(root.resolve("model").resolve("vision.properties"), """
                     enabled=false
+                    mode=client_direct
                     baseUrl=https://api.openai.com/v1/chat/completions
                     apiKey=
                     model=gpt-4o-mini

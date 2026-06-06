@@ -1,9 +1,13 @@
 package com.maidsoul.brain.forge.client;
 
 import com.maidsoul.brain.forge.MaidSoulCoreForgeMod;
+import com.maidsoul.brain.forge.config.ForgeBrainConfigInstaller;
 import com.maidsoul.brain.forge.network.ModNetwork;
 import com.maidsoul.brain.forge.network.VisionCaptureRequestPacket;
 import com.maidsoul.brain.forge.network.VisionCaptureResultPacket;
+import com.maidsoul.brain.forge.network.VisionProxyImagePacket;
+import com.maidsoul.brain.vision.VisionConfig;
+import com.maidsoul.brain.vision.VisionSummaryClient;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 
@@ -18,12 +22,13 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * 客户端截图压缩器。
+ * 客户端截图与视觉摘要入口。
  *
- * <p>服务端不能读取玩家画面，所以这里只做一件事：从当前帧缓冲读取画面、缩放、压缩成 JPEG，
- * 再回传给服务端。图片不会在客户端本地落盘，避免把调试截图散落到游戏目录。</p>
+ * <p>默认 client_direct 模式会在客户端本地请求视觉模型，只把摘要文本发给服务端；
+ * 这样 MC 服务器不会承担截图图片的上行流量。server_proxy 模式仅作为备用。</p>
  */
 public final class VisionCaptureClient {
     private VisionCaptureClient() {
@@ -46,17 +51,42 @@ public final class VisionCaptureClient {
             BufferedImage scaled = scale(image, Math.max(64, request.maxWidth()), Math.max(64, request.maxHeight()));
             byte[] jpeg = encodeJpeg(scaled, clampQuality(request.jpegQuality()));
             String base64 = Base64.getEncoder().encodeToString(jpeg);
-            ModNetwork.CHANNEL.sendToServer(new VisionCaptureResultPacket(
-                    request.maidUuid(),
-                    request.reason(),
-                    request.sceneHint(),
-                    "jpeg",
-                    base64
-            ));
+            VisionConfig config = VisionConfig.load(ForgeBrainConfigInstaller.configRoot());
+            if (config.clientDirectMode()) {
+                CompletableFuture.runAsync(() -> sendClientDirectSummary(request, config, base64));
+            } else {
+                ModNetwork.CHANNEL.sendToServer(new VisionProxyImagePacket(
+                        request.maidUuid(),
+                        request.reason(),
+                        request.sceneHint(),
+                        "jpeg",
+                        base64
+                ));
+            }
         } catch (RuntimeException e) {
             MaidSoulCoreForgeMod.LOGGER.warn("MaidSoulCore client vision capture failed", e);
         } catch (Exception e) {
             MaidSoulCoreForgeMod.LOGGER.warn("MaidSoulCore client vision capture failed", e);
+        }
+    }
+
+    private static void sendClientDirectSummary(VisionCaptureRequestPacket request, VisionConfig config, String imageBase64) {
+        try {
+            String summary = new VisionSummaryClient(config).summarize("jpeg", imageBase64, request.sceneHint());
+            ModNetwork.CHANNEL.sendToServer(new VisionCaptureResultPacket(
+                    request.maidUuid(),
+                    request.reason(),
+                    request.sceneHint(),
+                    summary
+            ));
+        } catch (RuntimeException e) {
+            MaidSoulCoreForgeMod.LOGGER.warn("MaidSoulCore client vision summary failed", e);
+            ModNetwork.CHANNEL.sendToServer(new VisionCaptureResultPacket(
+                    request.maidUuid(),
+                    request.reason(),
+                    request.sceneHint(),
+                    "[视觉摘要失败] " + clip(e.getMessage(), 160)
+            ));
         }
     }
 
@@ -117,5 +147,10 @@ public final class VisionCaptureClient {
             return 0.72F;
         }
         return Math.max(0.05F, Math.min(1.0F, quality));
+    }
+
+    private static String clip(String text, int max) {
+        String clean = text == null ? "" : text.replace('\r', ' ').replace('\n', ' ').trim();
+        return clean.length() <= max ? clean : clean.substring(0, max) + "...";
     }
 }

@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
  * OpenAI 兼容视觉模型客户端。
  *
  * <p>这个类只负责「图片 + 提示词 -> 视角摘要」。它不直接操作女仆、不写记忆，
- * 这样视觉能力可以像一个独立感官一样被运行时调用，也方便以后替换成别的 VLM 提供商。</p>
+ * 因而既可以在客户端直连视觉模型时使用，也可以在服务端代理模式下使用。</p>
  */
 public final class VisionSummaryClient {
     private final VisionConfig config;

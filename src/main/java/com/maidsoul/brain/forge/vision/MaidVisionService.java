@@ -9,6 +9,7 @@ import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
 import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.vision.VisionConfig;
 import com.maidsoul.brain.vision.VisionSummaryClient;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.network.PacketDistributor;
@@ -21,9 +22,9 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * 服务端视觉入口。
  *
- * <p>MC 截图只能在客户端完成，但女仆记忆和会话运行时在服务端。因此流程是：
- * 服务端判断需要视觉摘要 -> 向主人客户端请求截图 -> 客户端压缩图片回传 ->
- * 服务端调用 VLM -> 把摘要写入世界事件。这个拆分能避免把图片处理和记忆写入混在一起。</p>
+ * <p>默认链路是 client_direct：服务端只请求客户端“看一下”，客户端本地调用视觉模型，
+ * 再把文字摘要发回服务端。这样多人服务器不会承受图片包带宽。server_proxy 仅作为备用模式，
+ * 用于服务器统一持有视觉 API Key 的场景。</p>
  */
 public final class MaidVisionService {
     private static final ConcurrentMap<UUID, Long> LAST_AUTO_REQUEST = new ConcurrentHashMap<>();
@@ -40,27 +41,48 @@ public final class MaidVisionService {
         return requestSummary(maid, sceneHint, true);
     }
 
-    public static void receiveImage(ServerPlayer player, UUID maidUuid, String reason, String imageFormat, String imageBase64, String sceneHint) {
+    public static void receiveSummary(ServerPlayer player, UUID maidUuid, String reason, String summary, String sceneHint) {
+        EntityMaid maid = findOwnedMaid(player, maidUuid);
+        if (maid == null) {
+            player.sendSystemMessage(Component.literal("没有找到可写入视觉摘要的女仆。"));
+            return;
+        }
+        String cleanSummary = summary == null ? "" : summary.trim();
+        if (cleanSummary.isBlank()) {
+            if ("manual".equals(reason)) {
+                MaidSpeechDispatcher.queueSpeechOnServer(maid, "唔，视觉摘要是空的。");
+            }
+            return;
+        }
+        String detail = "source=" + reason
+                + ", owner=" + player.getName().getString()
+                + ", scene_hint=" + clip(sceneHint, 300)
+                + ", summary=" + clip(cleanSummary, 1200);
+        MaidBrainRuntimeRegistry.receiveWorldEvent(maid, "owner.view.vision_summary", detail);
+        if ("manual".equals(reason)) {
+            MaidSpeechDispatcher.queueSpeechOnServer(maid, cleanSummary.startsWith("[视觉摘要失败]")
+                    ? cleanSummary
+                    : "我看到了：" + cleanSummary);
+        }
+    }
+
+    public static void receiveProxyImage(ServerPlayer player, UUID maidUuid, String reason, String imageFormat, String imageBase64, String sceneHint) {
         VisionConfig config = VisionConfig.load(ForgeBrainConfigInstaller.configRoot());
         if (!config.available()) {
-            player.sendSystemMessage(net.minecraft.network.chat.Component.literal("MaidSoulCore 视觉模型未启用或未配置。"));
+            player.sendSystemMessage(Component.literal("MaidSoulCore 视觉模型未启用或未配置。"));
             return;
         }
         EntityMaid maid = findOwnedMaid(player, maidUuid);
         if (maid == null) {
-            player.sendSystemMessage(net.minecraft.network.chat.Component.literal("没有找到可写入视觉摘要的女仆。"));
+            player.sendSystemMessage(Component.literal("没有找到可写入视觉摘要的女仆。"));
             return;
         }
         CompletableFuture.runAsync(() -> {
             try {
                 String summary = new VisionSummaryClient(config).summarize(imageFormat, imageBase64, sceneHint);
-                String detail = "source=" + reason + ", owner=" + player.getName().getString() + ", summary=" + summary;
-                MaidBrainRuntimeRegistry.receiveWorldEvent(maid, "owner.view.vision_summary", detail);
-                if ("manual".equals(reason)) {
-                    MaidSpeechDispatcher.queueSpeechOnServer(maid, "我看到了：" + summary);
-                }
+                receiveSummary(player, maidUuid, reason, summary, sceneHint);
             } catch (RuntimeException e) {
-                MaidSoulCoreForgeMod.LOGGER.warn("MaidSoulCore vision summary failed for maid {}", maidUuid, e);
+                MaidSoulCoreForgeMod.LOGGER.warn("MaidSoulCore server proxy vision summary failed for maid {}", maidUuid, e);
                 if ("manual".equals(reason)) {
                     MaidSpeechDispatcher.queueSpeechOnServer(maid, "唔，视觉摘要失败了：" + clip(e.getMessage(), 90));
                 }
@@ -88,7 +110,14 @@ public final class MaidVisionService {
         cooldownMap.put(maidUuid, now);
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
-                new VisionCaptureRequestPacket(maidUuid, manual ? "manual" : "auto", sceneHint, config.maxImageWidth(), config.maxImageHeight(), config.jpegQuality())
+                new VisionCaptureRequestPacket(
+                        maidUuid,
+                        manual ? "manual" : "auto",
+                        sceneHint,
+                        config.maxImageWidth(),
+                        config.maxImageHeight(),
+                        config.jpegQuality()
+                )
         );
         return true;
     }

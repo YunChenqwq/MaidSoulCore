@@ -8,12 +8,13 @@ import java.util.Properties;
 /**
  * 视觉模型配置。
  *
- * <p>这里采用独立的 VLM 配置，而不是复用普通回复模型配置。原因和上游参考系统一致：
- * 文本回复模型不一定具备视觉能力，盲目把图片传给普通模型会导致请求失败或者浪费 token。
- * 因此 MaidSoulCore 把「看图生成视角摘要」拆成单独任务，摘要完成后再作为世界事件进入记忆和会话链路。</p>
+ * <p>视觉能力是独立的 VLM 任务，不和普通聊天模型混在一起。默认模式是 client_direct：
+ * 玩家客户端截图后直接请求视觉模型，只把文字摘要发给服务端。这样不会把图片流量压到 MC 服务器上。
+ * server_proxy 仅作为备用模式，用于服务器统一持有 API Key 的场景。</p>
  */
 public record VisionConfig(
         boolean enabled,
+        String mode,
         String baseUrl,
         String apiKey,
         String model,
@@ -36,6 +37,7 @@ public record VisionConfig(
         }
         return new VisionConfig(
                 ConfigFiles.bool(properties, "enabled", false),
+                ConfigFiles.text(properties, "mode", "client_direct"),
                 ConfigFiles.text(properties, "baseUrl", "https://api.openai.com/v1/chat/completions"),
                 key,
                 ConfigFiles.text(properties, "model", "gpt-4o-mini"),
@@ -53,6 +55,10 @@ public record VisionConfig(
 
     public boolean available() {
         return enabled && baseUrl != null && !baseUrl.isBlank() && model != null && !model.isBlank();
+    }
+
+    public boolean clientDirectMode() {
+        return !"server_proxy".equalsIgnoreCase(mode);
     }
 
     private static String defaultPrompt() {
