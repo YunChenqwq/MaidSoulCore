@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * replyer 表达方式选择器。
  *
- * <p>复刻 maibotdev 的边界：表达方式只是 replyer 的参考信息，不改变身份、不强制口癖。
+ * <p>复刻 上游参考系统 的边界：表达方式只是 replyer 的参考信息，不改变身份、不强制口癖。
  * 原型机没有子代理选择时，使用轻量相关度排序；候选太少时不注入，避免模板味。</p>
  */
 public final class ExpressionSelector {

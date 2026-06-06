@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * replyer.after_response hook 执行器。
  *
- * <p>它复刻 maibotdev 的语义：hook 可以改写 response，也可以要求 retry；
+ * <p>它复刻 上游参考系统 的语义：hook 可以改写 response，也可以要求 retry；
  * retry 的具体约束会追加到下一次 replyer 的参考信息中。</p>
  */
 public final class ReplyerHookRunner {

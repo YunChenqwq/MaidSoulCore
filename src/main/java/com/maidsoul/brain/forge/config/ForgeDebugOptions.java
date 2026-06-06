@@ -14,10 +14,17 @@ public record ForgeDebugOptions(
     public static ForgeDebugOptions load(Path configRoot) {
         Properties p = ConfigFiles.load(configRoot.resolve("debug").resolve("trace.properties"));
         return new ForgeDebugOptions(
-                ConfigFiles.bool(p, "echoTraceToOwnerChat", false),
-                ConfigFiles.bool(p, "echoAffectToOwnerChat", false),
-                ConfigFiles.bool(p, "echoReplyToOwnerChat", false),
+                boolFromFileOrForge(p, "echoTraceToOwnerChat", MaidSoulForgeConfig.ECHO_TRACE_TO_OWNER_CHAT.get()),
+                boolFromFileOrForge(p, "echoAffectToOwnerChat", MaidSoulForgeConfig.ECHO_AFFECT_TO_OWNER_CHAT.get()),
+                boolFromFileOrForge(p, "echoReplyToOwnerChat", MaidSoulForgeConfig.ECHO_REPLY_TO_OWNER_CHAT.get()),
                 ConfigFiles.integer(p, "maxChatEchoChars", 220)
         );
+    }
+
+    private static boolean boolFromFileOrForge(Properties properties, String key, boolean forgeValue) {
+        if (!properties.containsKey(key)) {
+            return forgeValue;
+        }
+        return ConfigFiles.bool(properties, key, false) || forgeValue;
     }
 }

@@ -198,7 +198,8 @@ public final class ConversationRuntime implements AutoCloseable {
         String safeType = eventType == null || eventType.isBlank() ? "world.event" : eventType.trim();
         String safeDetail = detail == null ? "" : detail.trim();
         memoryRuntime.observeWorldEvent(safeType, safeDetail);
-        long newVersion = version.incrementAndGet();
+        boolean runningTurn = state == RuntimeState.RUNNING;
+        long newVersion = runningTurn ? version.get() : version.incrementAndGet();
         session.appendIncoming(ChatMessage.reference("[世界事件] " + safeType + (safeDetail.isBlank() ? "" : " | " + safeDetail)));
         trace.trace("input.world", "version=" + newVersion + " type=" + safeType + " detail=" + safeDetail);
         trace.trace("affect", memoryRuntime.affectSummary());

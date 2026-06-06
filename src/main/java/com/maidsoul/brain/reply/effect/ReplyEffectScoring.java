@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * maibotdev 回复效果评分规则的 Java 版本。
+ * 上游参考系统 回复效果评分规则的 Java 版本。
  *
  * <p>这层只看“用户后续行为”，不参与写台词，也不往 prompt 里追加人设补丁。
- * MaidSoul 自己的特殊口癖投诉等规则应放在上层风险策略里，避免污染 maibotdev 原始模式。</p>
+ * MaidSoul 自己的特殊口癖投诉等规则应放在上层风险策略里，避免污染 上游参考系统 原始模式。</p>
  */
 public final class ReplyEffectScoring {
     public static final List<String> NEGATIVE_PATTERNS = List.of(
@@ -30,7 +30,7 @@ public final class ReplyEffectScoring {
         BehaviorSignals behaviorSignals = buildBehaviorSignals(safeFollowups, targetUserId);
         FrictionSignals frictionSignals = buildFrictionSignals(safeFollowups, targetUserId);
         double behaviorScore = calculateBehaviorScore(behaviorSignals);
-        // 原型机还没有 maibotdev 的 judge_runner，关系质量先用中性值，避免假装已经有完整 judge。
+        // 原型机还没有 上游参考系统 的 judge_runner，关系质量先用中性值，避免假装已经有完整 judge。
         double relationalScore = 0.5;
         double frictionScore = calculateFrictionScore(frictionSignals);
         double asi = round(clamp(0.45 * behaviorScore + 0.35 * relationalScore + 0.20 * (1.0 - frictionScore)) * 100.0, 2);

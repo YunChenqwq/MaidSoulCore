@@ -3,26 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MaidSoulCore Memory Graph</title>
+  <title>MaidSoulCore 记忆图谱</title>
   <style>
     :root {
-      --bg: #f6f7f9;
+      --bg: #f4f6f9;
       --panel: #ffffff;
-      --ink: #17202a;
-      --muted: #657182;
-      --line: #d8dde6;
-      --accent: #2563eb;
-      --green: #059669;
-      --amber: #b45309;
-      --rose: #be123c;
-      --violet: #7c3aed;
-      --cyan: #0891b2;
-      --shadow: 0 12px 28px rgba(16, 24, 40, 0.10);
+      --ink: #172033;
+      --muted: #5f6b7c;
+      --line: #d9e0ea;
+      --accent: #2457eb;
+      --accent-soft: #e8efff;
+      --green: #0f8a5f;
+      --amber: #b26d14;
+      --rose: #b3263a;
+      --violet: #6e46c7;
+      --cyan: #178ca6;
+      --shadow: 0 16px 30px rgba(18, 28, 46, 0.08);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -34,8 +33,8 @@
 
     .app {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 360px;
-      grid-template-rows: 58px minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) 380px;
+      grid-template-rows: 60px minmax(0, 1fr);
       height: 100vh;
     }
 
@@ -47,26 +46,23 @@
       padding: 10px 14px;
       background: var(--panel);
       border-bottom: 1px solid var(--line);
-      box-shadow: 0 2px 12px rgba(16, 24, 40, 0.04);
+      box-shadow: 0 2px 12px rgba(18, 28, 46, 0.05);
       z-index: 2;
     }
 
     .brand {
+      min-width: 180px;
+    }
+
+    .brand strong { display: block; font-size: 15px; }
+    .brand span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+
+    .toolbar {
       display: flex;
-      flex-direction: column;
-      min-width: 190px;
-      margin-right: 4px;
-    }
-
-    .brand strong {
-      font-size: 15px;
-      letter-spacing: 0;
-    }
-
-    .brand span {
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 2px;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      min-width: 0;
     }
 
     button,
@@ -99,23 +95,15 @@
       color: #fff;
     }
 
-    button:disabled {
-      cursor: default;
-      opacity: 0.55;
-    }
-
-    input[type="file"] {
-      display: none;
-    }
-
+    button:disabled { opacity: 0.55; cursor: default; }
+    input[type="file"] { display: none; }
     input[type="search"] {
-      width: min(28vw, 280px);
+      width: min(26vw, 300px);
       min-width: 160px;
       padding: 0 10px;
     }
-
     select {
-      width: 132px;
+      width: 142px;
       padding: 0 8px;
     }
 
@@ -124,8 +112,8 @@
       min-width: 0;
       min-height: 0;
       background:
-        linear-gradient(rgba(24, 32, 42, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(24, 32, 42, 0.04) 1px, transparent 1px);
+        linear-gradient(rgba(36, 46, 68, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(36, 46, 68, 0.04) 1px, transparent 1px);
       background-size: 28px 28px;
     }
 
@@ -136,18 +124,16 @@
       cursor: grab;
     }
 
-    canvas.dragging {
-      cursor: grabbing;
-    }
+    canvas.dragging { cursor: grabbing; }
 
     .drop-hint {
       position: absolute;
       inset: 18px;
       display: grid;
       place-items: center;
-      border: 2px dashed #b8c2d5;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.78);
+      border: 2px dashed #b8c3d8;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.84);
       color: var(--muted);
       pointer-events: none;
       text-align: center;
@@ -156,8 +142,8 @@
 
     .drop-hint strong {
       display: block;
-      color: var(--ink);
       margin-bottom: 8px;
+      color: var(--ink);
       font-size: 18px;
     }
 
@@ -181,11 +167,20 @@
       margin-bottom: 0;
     }
 
-    h2,
-    h3 {
+    h2, h3 {
       margin: 0 0 10px;
       font-size: 14px;
-      letter-spacing: 0;
+    }
+
+    .help {
+      padding: 10px 12px;
+      border: 1px solid #dce5f4;
+      border-radius: 10px;
+      background: #f8fbff;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
     }
 
     .stats {
@@ -207,10 +202,7 @@
       line-height: 22px;
     }
 
-    .stat span {
-      color: var(--muted);
-      font-size: 12px;
-    }
+    .stat span { color: var(--muted); font-size: 12px; }
 
     .legend {
       display: grid;
@@ -238,16 +230,12 @@
     .details {
       white-space: pre-wrap;
       overflow-wrap: anywhere;
-      line-height: 1.5;
+      line-height: 1.55;
       font-size: 13px;
       color: #243041;
     }
 
-    .empty {
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
+    .empty { color: var(--muted); font-size: 13px; line-height: 1.5; }
 
     textarea {
       width: 100%;
@@ -267,14 +255,10 @@
       flex-wrap: wrap;
     }
 
-    .spacer {
-      flex: 1 1 auto;
-    }
-
     .status {
       color: var(--muted);
       font-size: 12px;
-      max-width: 320px;
+      max-width: 330px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -283,27 +267,13 @@
     @media (max-width: 900px) {
       .app {
         grid-template-columns: 1fr;
-        grid-template-rows: auto minmax(360px, 1fr) minmax(300px, 42vh);
+        grid-template-rows: auto minmax(360px, 1fr) minmax(320px, 44vh);
       }
 
-      header,
-      aside {
-        grid-column: 1;
-      }
-
-      header {
-        flex-wrap: wrap;
-        height: auto;
-      }
-
-      input[type="search"] {
-        width: 100%;
-      }
-
-      aside {
-        border-left: 0;
-        border-top: 1px solid var(--line);
-      }
+      header, aside { grid-column: 1; }
+      header { flex-wrap: wrap; height: auto; }
+      input[type="search"] { width: 100%; }
+      aside { border-left: 0; border-top: 1px solid var(--line); }
     }
   </style>
 </head>
@@ -311,22 +281,24 @@
   <div class="app">
     <header>
       <div class="brand">
-        <strong>Memory Graph</strong>
-        <span>A-Memorix JSON Viewer</span>
+        <strong>记忆图谱</strong>
+        <span>MaidSoulCore / A-Memorix JSON 说明器</span>
       </div>
-      <label class="file-button" title="加载 MemoryGraphExportTool 导出的 JSON">
-        打开 JSON
-        <input id="fileInput" type="file" accept="application/json,.json">
-      </label>
-      <button id="sampleBtn" type="button">示例</button>
-      <button id="reflowBtn" type="button">重排</button>
-      <button id="fitBtn" type="button">适配</button>
-      <input id="searchInput" type="search" placeholder="搜索节点、标签、证据">
-      <select id="kindFilter" title="按节点类型过滤">
-        <option value="all">全部节点</option>
-      </select>
+      <div class="toolbar">
+        <label class="file-button" title="加载由图谱导出工具生成的 JSON">
+          打开 JSON
+          <input id="fileInput" type="file" accept="application/json,.json">
+        </label>
+        <button id="sampleBtn" type="button">示例</button>
+        <button id="reflowBtn" type="button">重排</button>
+        <button id="fitBtn" type="button">适配视图</button>
+        <input id="searchInput" type="search" placeholder="搜索节点、证据、标签、人物">
+        <select id="kindFilter" title="按节点类型筛选">
+          <option value="all">全部节点</option>
+        </select>
+      </div>
       <div class="spacer"></div>
-      <span id="status" class="status">等待图谱 JSON</span>
+      <span id="status" class="status">等待导入记忆图谱 JSON</span>
     </header>
 
     <main class="stage" id="stage">
@@ -334,19 +306,34 @@
       <div id="dropHint" class="drop-hint">
         <div>
           <strong>拖入 graph_snapshot.json</strong>
-          <div>也可以用右侧粘贴 JSON，或点击“示例”。</div>
+          <div>也可以粘贴 JSON，或先点“示例”看图谱怎么读。</div>
         </div>
       </div>
     </main>
 
     <aside>
       <section class="section">
+        <h2>这个图有什么用</h2>
+        <div class="help">
+节点 = 记忆里的对象。
+边 = 对象之间的关系。
+人物节点 = 谁的事实、谁的偏好、谁的关系。
+paragraph 节点 = 一条证据内容，通常来自聊天、摘要、导入材料。
+tag 节点 = 给证据贴的标签，方便检索与维护。
+episode 节点 = 一段事件片段，适合看“关系怎么一步步变化”。
+
+看图时先找人物，再顺着边看证据来源。
+“人物事实写回证据与人物绑定”就是：人物画像里的某条结论，必须能回溯到属于这个人的证据，不和别人的记忆混在一起。
+        </div>
+      </section>
+
+      <section class="section">
         <h2>概览</h2>
         <div class="stats">
-          <div class="stat"><b id="nodeCount">0</b><span>nodes</span></div>
-          <div class="stat"><b id="edgeCount">0</b><span>edges</span></div>
-          <div class="stat"><b id="paragraphCount">0</b><span>paragraphs</span></div>
-          <div class="stat"><b id="relationCount">0</b><span>relations</span></div>
+          <div class="stat"><b id="nodeCount">0</b><span>节点</span></div>
+          <div class="stat"><b id="edgeCount">0</b><span>边</span></div>
+          <div class="stat"><b id="paragraphCount">0</b><span>证据段落</span></div>
+          <div class="stat"><b id="relationCount">0</b><span>关系</span></div>
         </div>
       </section>
 
@@ -356,12 +343,12 @@
       </section>
 
       <section class="section">
-        <h3>选中</h3>
-        <div id="details" class="empty">点击节点或边查看详情。</div>
+        <h3>选中内容</h3>
+        <div id="details" class="empty">点击一个节点或一条边。</div>
       </section>
 
       <section class="section">
-        <h3>JSON</h3>
+        <h3>导入 JSON</h3>
         <textarea id="jsonInput" spellcheck="false" placeholder="粘贴 graph_snapshot.json 内容"></textarea>
         <div class="row" style="margin-top: 8px;">
           <button id="loadTextBtn" class="primary" type="button">加载文本</button>
@@ -390,39 +377,64 @@
     const legendEl = document.getElementById("legend");
 
     const palette = {
-      paragraph: "#2563eb",
-      person: "#059669",
-      tag: "#b45309",
-      source: "#6b7280",
-      concept: "#7c3aed",
-      entity: "#0891b2",
-      episode: "#be123c",
-      edge: "#9aa4b2"
+      paragraph: "#2457eb",
+      person: "#0f8a5f",
+      tag: "#b26d14",
+      source: "#64748b",
+      concept: "#6e46c7",
+      entity: "#178ca6",
+      episode: "#b3263a",
+      edge: "#9aa7b8"
+    };
+
+    const kindLabels = {
+      paragraph: "证据段落",
+      person: "人物",
+      tag: "标签",
+      source: "来源",
+      concept: "概念",
+      entity: "实体",
+      episode: "事件片段"
+    };
+
+    const relationLabels = {
+      participates_in: "人物参与证据",
+      tagged_as: "证据被打上标签",
+      contains_evidence: "事件包含证据",
+      linked_to: "关联",
+      mentions: "提及",
+      supports: "支持",
+      derived_from: "由此推导",
+      bound_to: "绑定到人物"
     };
 
     const sampleGraph = {
-      query: "boundary",
+      query: "person:prototype-owner",
       generatedAt: new Date().toISOString(),
-      paragraphCount: 2,
-      relationCount: 2,
+      paragraphCount: 3,
+      relationCount: 4,
       entityCount: 4,
-      episodeCount: 1,
+      episodeCount: 2,
       nodes: [
-        { id: "person:owner", kind: "person", label: "prototype-owner", detail: "participant", weight: 3 },
-        { id: "person:maid", kind: "person", label: "prototype-jiuhu", detail: "participant", weight: 3 },
-        { id: "paragraph:pref", kind: "paragraph", label: "User prefers direct but gentle tone.", detail: "role=user salience=8 tags=user_profile,preference,boundary", weight: 8 },
-        { id: "paragraph:repair", kind: "paragraph", label: "User and maid repaired a trust moment.", detail: "role=user salience=8 tags=relationship_event,repair_debt", weight: 8 },
-        { id: "tag:boundary", kind: "tag", label: "boundary", detail: "memory tag", weight: 2 },
-        { id: "tag:repair", kind: "tag", label: "repair_debt", detail: "memory tag", weight: 2 },
-        { id: "episode:1", kind: "episode", label: "关系修复片段", detail: "trust repaired", weight: 3 }
+        { id: "person:owner", kind: "person", label: "prototype-owner", detail: "人物绑定的核心对象", weight: 4 },
+        { id: "person:maid", kind: "person", label: "prototype-jiuhu", detail: "女仆角色本体", weight: 4 },
+        { id: "paragraph:fact-1", kind: "paragraph", label: "用户偏好直接、但不要太硬", detail: "type=person_fact source=chat_summary person_id=prototype-owner", weight: 8 },
+        { id: "paragraph:fact-2", kind: "paragraph", label: "用户和女仆完成过一次关系修复", detail: "type=person_fact source=relationship_event person_id=prototype-owner", weight: 8 },
+        { id: "paragraph:fact-3", kind: "paragraph", label: "最近一次对话里出现了安抚倾向", detail: "type=chat_summary source=chat_summary:2026-05-24 person_id=prototype-owner", weight: 6 },
+        { id: "tag:boundary", kind: "tag", label: "boundary", detail: "边界标签", weight: 2 },
+        { id: "tag:repair", kind: "tag", label: "repair_debt", detail: "修复债务标签", weight: 2 },
+        { id: "episode:1", kind: "episode", label: "关系修复片段", detail: "一段重要互动过程", weight: 3 },
+        { id: "source:chat", kind: "source", label: "chat_summary:2026-05-24", detail: "来源：对话摘要", weight: 2 }
       ],
       edges: [
-        { from: "person:owner", to: "paragraph:pref", label: "participates_in", evidenceId: "paragraph:pref", weight: 0.55 },
-        { from: "paragraph:pref", to: "tag:boundary", label: "tagged_as", evidenceId: "paragraph:pref", weight: 0.8 },
-        { from: "person:owner", to: "paragraph:repair", label: "participates_in", evidenceId: "paragraph:repair", weight: 0.55 },
-        { from: "person:maid", to: "paragraph:repair", label: "participates_in", evidenceId: "paragraph:repair", weight: 0.55 },
-        { from: "paragraph:repair", to: "tag:repair", label: "tagged_as", evidenceId: "paragraph:repair", weight: 0.8 },
-        { from: "episode:1", to: "paragraph:repair", label: "contains_evidence", evidenceId: "paragraph:repair", weight: 0.6 }
+        { from: "person:owner", to: "paragraph:fact-1", label: "participates_in", evidenceId: "paragraph:fact-1", weight: 0.7 },
+        { from: "person:owner", to: "paragraph:fact-2", label: "participates_in", evidenceId: "paragraph:fact-2", weight: 0.7 },
+        { from: "person:owner", to: "paragraph:fact-3", label: "participates_in", evidenceId: "paragraph:fact-3", weight: 0.7 },
+        { from: "paragraph:fact-1", to: "tag:boundary", label: "tagged_as", evidenceId: "paragraph:fact-1", weight: 0.8 },
+        { from: "paragraph:fact-2", to: "tag:repair", label: "tagged_as", evidenceId: "paragraph:fact-2", weight: 0.8 },
+        { from: "episode:1", to: "paragraph:fact-2", label: "contains_evidence", evidenceId: "paragraph:fact-2", weight: 0.65 },
+        { from: "source:chat", to: "paragraph:fact-3", label: "derived_from", evidenceId: "paragraph:fact-3", weight: 0.55 },
+        { from: "person:maid", to: "episode:1", label: "participates_in", evidenceId: "paragraph:fact-2", weight: 0.65 }
       ]
     };
 
@@ -452,12 +464,13 @@
 
     function loadGraph(data, sourceLabel) {
       if (!data || !Array.isArray(data.nodes) || !Array.isArray(data.edges)) {
-        throw new Error("JSON 缺少 nodes 或 edges");
+        throw new Error("JSON 需要包含 nodes 和 edges");
       }
+
       graph = {
         ...data,
         nodes: data.nodes.map((node, index) => ({
-          id: String(node.id || "node:" + index),
+          id: String(node.id || `node:${index}`),
           kind: String(node.kind || "concept"),
           label: String(node.label || node.id || "node"),
           detail: String(node.detail || ""),
@@ -476,6 +489,7 @@
           weight: Number(edge.weight || 0.4)
         }))
       };
+
       nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
       graph.edges = graph.edges.filter((edge) => nodeMap.has(edge.from) && nodeMap.has(edge.to));
       seedLayout();
@@ -483,19 +497,19 @@
       updateStats();
       applyFilters();
       fitToView();
-      setStatus(sourceLabel + " / " + graph.nodes.length + " nodes, " + graph.edges.length + " edges");
+      setStatus(`${sourceLabel} / ${graph.nodes.length} 个节点，${graph.edges.length} 条边`);
       dropHint.style.display = graph.nodes.length ? "none" : "grid";
-      startSimulation(1.4);
+      startSimulation(1.35);
     }
 
     function seedLayout() {
       const rect = stage.getBoundingClientRect();
-      const radius = Math.max(120, Math.min(rect.width, rect.height) * 0.26);
+      const radius = Math.max(130, Math.min(rect.width, rect.height) * 0.26);
       graph.nodes.forEach((node, index) => {
         const angle = (index / Math.max(1, graph.nodes.length)) * Math.PI * 2;
-        const ring = radius * (0.55 + (index % 4) * 0.18);
-        node.x = Math.cos(angle) * ring + (Math.random() - 0.5) * 80;
-        node.y = Math.sin(angle) * ring + (Math.random() - 0.5) * 80;
+        const ring = radius * (0.58 + (index % 4) * 0.18);
+        node.x = Math.cos(angle) * ring + (Math.random() - 0.5) * 90;
+        node.y = Math.sin(angle) * ring + (Math.random() - 0.5) * 90;
         node.vx = (Math.random() - 0.5) * 8;
         node.vy = (Math.random() - 0.5) * 8;
         node.r = Math.max(7, Math.min(22, 6 + Math.sqrt(node.weight) * 4));
@@ -506,11 +520,12 @@
       const kinds = [...new Set(graph.nodes.map((node) => node.kind))].sort();
       const current = kindFilter.value;
       kindFilter.innerHTML = '<option value="all">全部节点</option>' + kinds.map((kind) => (
-        '<option value="' + escapeHtml(kind) + '">' + escapeHtml(kind) + '</option>'
+        `<option value="${escapeHtml(kind)}">${escapeHtml(kindLabels[kind] || kind)}</option>`
       )).join("");
       kindFilter.value = kinds.includes(current) ? current : "all";
+
       legendEl.innerHTML = kinds.map((kind) => (
-        '<label><span class="dot" style="background:' + colorFor(kind) + '"></span>' + escapeHtml(kind) + '</label>'
+        `<label><span class="dot" style="background:${colorFor(kind)}"></span>${escapeHtml(kindLabels[kind] || kind)}</label>`
       )).join("");
     }
 
@@ -526,13 +541,13 @@
       const kind = kindFilter.value;
       visibleNodes = graph.nodes.filter((node) => {
         const kindOk = kind === "all" || node.kind === kind;
-        const text = (node.label + " " + node.detail + " " + node.id).toLowerCase();
+        const text = `${node.label} ${node.detail} ${node.id}`.toLowerCase();
         return kindOk && (!q || text.includes(q));
       });
       const visibleIds = new Set(visibleNodes.map((node) => node.id));
       visibleEdges = graph.edges.filter((edge) => visibleIds.has(edge.from) && visibleIds.has(edge.to));
       draw();
-      startSimulation(0.9);
+      startSimulation(0.85);
     }
 
     function startSimulation(heat = 1) {
@@ -544,7 +559,7 @@
         draw();
         ticks += 1;
         simulationHeat *= 0.992;
-        if (ticks === 120 || ticks === 300) {
+        if (ticks === 120 || ticks === 260) {
           fitToView();
         }
         if (ticks < 1200 && simulationHeat > 0.035) {
@@ -572,9 +587,10 @@
           const dx = b.x - a.x || 0.01;
           const dy = b.y - a.y || 0.01;
           const dist2 = dx * dx + dy * dy;
+          const dist = Math.max(1, Math.sqrt(dist2));
           const force = Math.min((5200 * heat) / dist2, 2.4);
-          const fx = dx * force;
-          const fy = dy * force;
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
           a.vx -= fx;
           a.vy -= fy;
           b.vx += fx;
@@ -601,8 +617,8 @@
 
       nodes.forEach((node) => {
         const degree = degrees.get(node.id) || 1;
-        node.vx += ((-node.x * 0.0028) + (degree > 2 ? -node.x * 0.0008 : 0)) * heat;
-        node.vy += ((-node.y * 0.0028) + (degree > 2 ? -node.y * 0.0008 : 0)) * heat;
+        node.vx += (-node.x * 0.0028 + (degree > 2 ? -node.x * 0.0008 : 0)) * heat;
+        node.vy += (-node.y * 0.0028 + (degree > 2 ? -node.y * 0.0008 : 0)) * heat;
         const distanceFromCenter = Math.hypot(node.x, node.y);
         if (distanceFromCenter > 520) {
           node.vx += (-node.x / distanceFromCenter) * 1.8 * heat;
@@ -636,7 +652,7 @@
       const b = nodeMap.get(edge.to);
       if (!a || !b) return;
       const active = !selected || selected.id === edge.from || selected.id === edge.to || related.has(edge.from) || related.has(edge.to);
-      ctx.globalAlpha = active ? 0.74 : 0.12;
+      ctx.globalAlpha = active ? 0.75 : 0.12;
       ctx.strokeStyle = palette.edge;
       ctx.lineWidth = Math.max(1, edge.weight * 2.5);
       ctx.beginPath();
@@ -650,7 +666,7 @@
         ctx.globalAlpha = 0.72;
         ctx.fillStyle = "#4b5563";
         ctx.font = "10px Segoe UI, sans-serif";
-        ctx.fillText(edge.label, mx + 4, my - 4);
+        ctx.fillText(relationLabels[edge.label] || edge.label, mx + 4, my - 4);
       }
       ctx.globalAlpha = 1;
     }
@@ -671,7 +687,7 @@
       ctx.stroke();
 
       if (zoom > 0.46 || isSelected || isHovered) {
-        const label = node.label.length > 28 ? node.label.slice(0, 28) + "..." : node.label;
+        const label = node.label.length > 30 ? node.label.slice(0, 30) + "..." : node.label;
         ctx.font = isSelected ? "600 12px Segoe UI, sans-serif" : "11px Segoe UI, sans-serif";
         ctx.fillStyle = "#111827";
         ctx.globalAlpha = active ? 0.95 : 0.25;
@@ -730,19 +746,29 @@
       selected = item;
       if (!item) {
         detailsEl.className = "empty";
-        detailsEl.textContent = "点击节点或边查看详情。";
+        detailsEl.textContent = "点击节点或边，查看它为什么出现在图里。";
         draw();
         return;
       }
+
       detailsEl.className = "details";
-      detailsEl.textContent = [
-        "id: " + item.id,
-        "kind: " + item.kind,
-        "label: " + item.label,
-        "weight: " + item.weight,
-        "",
-        item.detail || "(no detail)"
-      ].join("\n");
+      const base = [
+        `id: ${item.id}`,
+        `类型: ${kindLabels[item.kind] || item.kind}`,
+        `标签/名称: ${item.label}`,
+        `权重: ${item.weight}`,
+        ""
+      ];
+
+      if (item.from && item.to) {
+        base.push(`边: ${item.from} -> ${item.to}`);
+        base.push(`关系: ${relationLabels[item.label] || item.label}`);
+        base.push(`证据ID: ${item.evidenceId || "(无)"}`);
+        base.push("");
+      }
+
+      base.push(item.detail || "(没有附加说明)");
+      detailsEl.textContent = base.join("\n");
       draw();
     }
 
@@ -761,7 +787,7 @@
         ">": "&gt;",
         '"': "&quot;",
         "'": "&#39;"
-      }[char]));
+      })[char]);
     }
 
     async function readFile(file) {
@@ -780,9 +806,7 @@
       }
     });
 
-    stage.addEventListener("dragover", (event) => {
-      event.preventDefault();
-    });
+    stage.addEventListener("dragover", (event) => event.preventDefault());
 
     stage.addEventListener("drop", async (event) => {
       event.preventDefault();
@@ -805,7 +829,7 @@
 
     sampleBtn.addEventListener("click", () => {
       jsonInput.value = JSON.stringify(sampleGraph, null, 2);
-      loadGraph(sampleGraph, "sample");
+      loadGraph(sampleGraph, "示例");
     });
 
     reflowBtn.addEventListener("click", () => {
@@ -816,7 +840,7 @@
 
     clearBtn.addEventListener("click", () => {
       jsonInput.value = "";
-      loadGraph({ nodes: [], edges: [] }, "cleared");
+      loadGraph({ nodes: [], edges: [] }, "已清空");
     });
 
     fitBtn.addEventListener("click", fitToView);

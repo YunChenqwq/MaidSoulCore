@@ -34,5 +34,30 @@ public final class ModNetwork {
                 .decoder(SoulBindingActionPacket::decode)
                 .consumerMainThread(SoulBindingActionPacket::handle)
                 .add();
+        CHANNEL.messageBuilder(OpenMaidSoulChatPacket.class, id++)
+                .encoder(OpenMaidSoulChatPacket::encode)
+                .decoder(OpenMaidSoulChatPacket::decode)
+                .consumerMainThread(OpenMaidSoulChatPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(MaidSoulChatScreenPacket.class, id++)
+                .encoder(MaidSoulChatScreenPacket::encode)
+                .decoder(MaidSoulChatScreenPacket::decode)
+                .consumerMainThread(MaidSoulChatScreenPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(MaidSoulOwnerChatPacket.class, id++)
+                .encoder(MaidSoulOwnerChatPacket::encode)
+                .decoder(MaidSoulOwnerChatPacket::decode)
+                .consumerMainThread(MaidSoulOwnerChatPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(VisionCaptureRequestPacket.class, id++)
+                .encoder(VisionCaptureRequestPacket::encode)
+                .decoder(VisionCaptureRequestPacket::decode)
+                .consumerMainThread(VisionCaptureRequestPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(VisionCaptureResultPacket.class, id++)
+                .encoder(VisionCaptureResultPacket::encode)
+                .decoder(VisionCaptureResultPacket::decode)
+                .consumerMainThread(VisionCaptureResultPacket::handle)
+                .add();
     }
 }

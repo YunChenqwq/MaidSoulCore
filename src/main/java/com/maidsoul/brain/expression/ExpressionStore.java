@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * 表达方式本地存储。
  *
- * <p>maibotdev 使用数据库保存表达方式；原型机先用 JSONL 保持可迁移结构。
+ * <p>上游参考系统 使用数据库保存表达方式；原型机先用 JSONL 保持可迁移结构。
  * 每行字段：id/session_id/situation/style/count/checked。</p>
  */
 public final class ExpressionStore {

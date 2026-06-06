@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 
 public final class MaidSoulRuntimeSite implements LLMSite, SupportModelSelect {
     public static final String API_TYPE = "maidsoul_runtime";
+    public static final String DEFAULT_MODEL = "maidsoul-runtime";
 
     private final String id;
     private final ResourceLocation icon;
@@ -112,7 +113,7 @@ public final class MaidSoulRuntimeSite implements LLMSite, SupportModelSelect {
                     "maidsoul://runtime",
                     true,
                     Map.of(),
-                    List.of("maidsoul-runtime")
+                    List.of(DEFAULT_MODEL)
             );
         }
     }

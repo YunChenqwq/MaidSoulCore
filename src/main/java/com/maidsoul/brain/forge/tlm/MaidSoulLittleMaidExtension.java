@@ -4,6 +4,7 @@ import com.github.tartaricacid.touhoulittlemaid.api.ILittleMaid;
 import com.github.tartaricacid.touhoulittlemaid.api.LittleMaidExtension;
 import com.github.tartaricacid.touhoulittlemaid.ai.service.SerializerRegister;
 import com.github.tartaricacid.touhoulittlemaid.ai.service.ServiceType;
+import com.maidsoul.brain.forge.MaidSoulCoreForgeMod;
 import com.maidsoul.brain.forge.tlm.llm.MaidSoulRuntimeSite;
 
 /**
@@ -17,5 +18,6 @@ public final class MaidSoulLittleMaidExtension implements ILittleMaid {
     @Override
     public void registerAIChatSerializer(SerializerRegister register) {
         register.register(ServiceType.LLM, MaidSoulRuntimeSite.API_TYPE, new MaidSoulRuntimeSite.Serializer());
+        MaidSoulCoreForgeMod.LOGGER.info("Registered MaidSoulCore TLM LLM site: {}", MaidSoulRuntimeSite.API_TYPE);
     }
 }

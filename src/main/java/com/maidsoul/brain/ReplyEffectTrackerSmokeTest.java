@@ -27,7 +27,7 @@ public final class ReplyEffectTrackerSmokeTest {
         tracker.observeUserMessage(ChatMessage.user("用户A", "不是这个意思，你没懂"));
         ReplyEffectTracker.ReplyEffectSummary summary = tracker.latestSummary();
         if (!"explicit_negative".equals(summary.finalizeReason()) || !summary.explicitNegative()) {
-            throw new IllegalStateException("负反馈 pattern 没有按 maibotdev 规则结算: " + summary);
+            throw new IllegalStateException("负反馈 pattern 没有按 上游参考系统 规则结算: " + summary);
         }
         long jsonCount;
         try (var stream = Files.walk(tempDir)) {

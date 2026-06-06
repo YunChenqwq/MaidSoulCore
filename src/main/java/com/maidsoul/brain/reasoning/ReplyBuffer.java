@@ -3,7 +3,7 @@ package com.maidsoul.brain.reasoning;
 /**
  * 回复内部流式缓冲区。
  *
- * <p>对齐 maibotdev 的关键点：底层模型可以流式返回，但 delta 只进入内存缓冲；
+ * <p>对齐 上游参考系统 的关键点：底层模型可以流式返回，但 delta 只进入内存缓冲；
  * 运行时不会把半句话直接发给用户。若本轮被新消息中断，整个缓冲会随异常丢弃。</p>
  */
 final class ReplyBuffer {

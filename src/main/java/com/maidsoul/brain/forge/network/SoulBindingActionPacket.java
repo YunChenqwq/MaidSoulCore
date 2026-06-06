@@ -1,11 +1,11 @@
 package com.maidsoul.brain.forge.network;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
+import com.maidsoul.brain.forge.soul.LegacyMaidMemoryMigrator;
+import com.maidsoul.brain.forge.soul.SoulBindingService;
 import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
-import com.maidsoul.brain.forge.soul.SoulBindResult;
-import com.maidsoul.brain.forge.soul.SoulBindingData;
-import com.maidsoul.brain.forge.soul.SoulStore;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.network.NetworkEvent;
@@ -24,6 +24,10 @@ public record SoulBindingActionPacket(UUID maidUuid, String action, String soulI
 
     public static SoulBindingActionPacket unbind(UUID maidUuid) {
         return new SoulBindingActionPacket(maidUuid, "unbind", "", "");
+    }
+
+    public static SoulBindingActionPacket migrateLegacy(UUID maidUuid, String soulId) {
+        return new SoulBindingActionPacket(maidUuid, "migrate_legacy", soulId, "");
     }
 
     public void encode(FriendlyByteBuf buffer) {
@@ -47,20 +51,22 @@ public record SoulBindingActionPacket(UUID maidUuid, String action, String soulI
         if (!(entity instanceof EntityMaid maid)) {
             return;
         }
-        if (maid.getOwner() != null && !maid.getOwner().getUUID().equals(player.getUUID())) {
+        if (!SoulBindingService.canOperate(player, maid)) {
+            SoulBindingService.sendNotOwnerMessage(player);
             return;
         }
         if ("unbind".equals(action)) {
-            SoulBindingData.clear(maid.getPersistentData());
-            MaidBrainRuntimeRegistry.invalidate(maid);
-            MaidBrainRuntimeRegistry.receiveWorldEvent(maid, "soul.unbound", "maidUuid=" + maid.getUUID() + ", ownerUuid=" + player.getUUID());
+            SoulBindingService.unbind(player, maid);
+        } else if ("migrate_legacy".equals(action)) {
+            LegacyMaidMemoryMigrator.Result result = LegacyMaidMemoryMigrator.migrateCurrentMaid(maid, soulId);
+            if (result.success()) {
+                MaidBrainRuntimeRegistry.receiveWorldEvent(maid, "soul.migrated_legacy_maid", result.eventDetail());
+                player.sendSystemMessage(Component.literal(result.message()));
+            } else {
+                player.sendSystemMessage(Component.literal(result.message()));
+            }
         } else {
-            SoulBindingData previous = SoulBindingData.fromTag(maid.getPersistentData());
-            SoulBindingData next = SoulBindingData.create(soulId, player.getUUID(), maid.getUUID(), MaidBrainRuntimeRegistry.worldIdFor(maid));
-            next.writeTo(maid.getPersistentData());
-            SoulBindResult result = SoulStore.global().bind(soulId, displayName, previous, next);
-            MaidBrainRuntimeRegistry.invalidate(maid);
-            MaidBrainRuntimeRegistry.receiveWorldEvent(maid, result.eventType(), result.eventDetail());
+            SoulBindingService.bind(player, maid, soulId, displayName);
         }
         ModNetwork.CHANNEL.sendTo(
                 new SoulBindingListResponsePacket(maid.getUUID(), SoulBindingListResponsePacket.capture(maid)),

@@ -16,7 +16,7 @@ public final class SoulBindingMenuProvider implements MenuProvider {
 
     @Override
     public Component getDisplayName() {
-        return Component.literal("女仆灵魂绑定");
+        return Component.translatable("menu.maidsoulcore.soul_binding");
     }
 
     @Override

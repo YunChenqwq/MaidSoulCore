@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 会话级回复效果追踪器。
  *
- * <p>对齐 maibotdev 的 ReplyEffectTracker：每条已发回复进入 pending，后续用户消息作为行为反馈；
+ * <p>对齐 上游参考系统 的 ReplyEffectTracker：每条已发回复进入 pending，后续用户消息作为行为反馈；
  * 出现明确负反馈、修复循环、目标用户后续轮数足够或观察窗口超时后 finalize 并写回 JSON。</p>
  */
 public final class ReplyEffectTracker {

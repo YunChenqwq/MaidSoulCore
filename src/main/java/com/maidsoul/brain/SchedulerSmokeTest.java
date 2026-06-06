@@ -7,7 +7,7 @@ import com.maidsoul.brain.runtime.ProactiveScheduler;
 /**
  * 节奏调度器离线测试。
  *
- * <p>不调用模型，只验证 maibotdev 风格消息流控频和主动候选调度的职责边界。</p>
+ * <p>不调用模型，只验证 上游参考系统 风格消息流控频和主动候选调度的职责边界。</p>
  */
 public final class SchedulerSmokeTest {
     private SchedulerSmokeTest() {

@@ -1,6 +1,7 @@
 package com.maidsoul.brain.forge.runtime;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
+import com.github.tartaricacid.touhoulittlemaid.ai.manager.entity.LLMCallback;
 import com.maidsoul.brain.config.BrainConfig;
 import com.maidsoul.brain.forge.MaidSoulCoreForgeMod;
 import com.maidsoul.brain.forge.config.ForgeBrainConfigInstaller;
@@ -16,12 +17,16 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public final class MaidBrainRuntimeRegistry {
     private static final ConcurrentMap<UUID, ConversationRuntime> RUNTIMES = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<UUID, CopyOnWriteArrayList<LLMCallback>> TLM_CALLBACKS = new ConcurrentHashMap<>();
+    private static final Set<UUID> ERROR_NOTIFIED = ConcurrentHashMap.newKeySet();
 
     private MaidBrainRuntimeRegistry() {
     }
@@ -34,6 +39,13 @@ public final class MaidBrainRuntimeRegistry {
         ForgeDebugOptions debug = debugOptions();
         OwnerChatDebugEcho.echoImportant(maid, debug, "owner.input", content);
         getOrCreate(maid).receiveUserMessage(ownerName(maid), content);
+    }
+
+    public static void receiveOwnerChat(EntityMaid maid, String content, LLMCallback callback) {
+        if (callback != null) {
+            TLM_CALLBACKS.computeIfAbsent(maid.getUUID(), ignored -> new CopyOnWriteArrayList<>()).add(callback);
+        }
+        receiveOwnerChat(maid, content);
     }
 
     public static void receiveWorldEvent(EntityMaid maid, String eventType, String detail) {
@@ -55,7 +67,13 @@ public final class MaidBrainRuntimeRegistry {
         ForgeDebugOptions debug = ForgeDebugOptions.load(root);
         final ConversationRuntime[] holder = new ConversationRuntime[1];
         RuntimeTraceSink trace = (stage, detail) -> {
-            MaidSoulCoreForgeMod.LOGGER.debug("[{}] {} {}", maid.getUUID(), stage, detail);
+            if ("runtime.error".equals(stage)) {
+                MaidSoulCoreForgeMod.LOGGER.error("[{}] {} {}", maid.getUUID(), stage, detail);
+                OwnerChatDebugEcho.echoImportant(maid, debug, stage, detail);
+                notifyRuntimeErrorOnce(maid, detail);
+            } else {
+                MaidSoulCoreForgeMod.LOGGER.debug("[{}] {} {}", maid.getUUID(), stage, detail);
+            }
             OwnerChatDebugEcho.echo(maid, debug, stage, detail);
             if (debug.echoAffectToOwnerChat() && "runtime.cycle".equals(stage) && holder[0] != null) {
                 OwnerChatDebugEcho.echo(maid, debug, "affect", holder[0].affectSummary());
@@ -66,16 +84,29 @@ public final class MaidBrainRuntimeRegistry {
                 prompts,
                 new OpenAiCompatibleClient(runtimeConfig.model()),
                 text -> {
-                    if (debug.echoReplyToOwnerChat()) {
-                        OwnerChatDebugEcho.echoImportant(maid, debug, "reply", text);
-                    }
-                    MaidSpeechDispatcher.queueSpeechOnServer(maid, text);
+                    deliverToTlmChatBoxOrFallback(maid, debug, text);
                 },
                 trace
         );
         holder[0] = runtime;
         runtime.start();
         return runtime;
+    }
+
+    private static void deliverToTlmChatBoxOrFallback(EntityMaid maid, ForgeDebugOptions debug, String text) {
+        CopyOnWriteArrayList<LLMCallback> callbacks = TLM_CALLBACKS.get(maid.getUUID());
+        if (callbacks != null && !callbacks.isEmpty()) {
+            LLMCallback callback = callbacks.remove(0);
+            if (callbacks.isEmpty()) {
+                TLM_CALLBACKS.remove(maid.getUUID(), callbacks);
+            }
+            callback.runOnServerThread(() -> maid.getChatBubbleManager().addLLMChatText(text, callback.getWaitingChatBubbleId()));
+            return;
+        }
+        if (debug.echoReplyToOwnerChat()) {
+            OwnerChatDebugEcho.echoImportant(maid, debug, "reply", text);
+        }
+        MaidSpeechDispatcher.queueSpeechOnServer(maid, text);
     }
 
     private static String ownerName(EntityMaid maid) {
@@ -87,6 +118,8 @@ public final class MaidBrainRuntimeRegistry {
         if (maid == null) {
             return;
         }
+        ERROR_NOTIFIED.remove(maid.getUUID());
+        TLM_CALLBACKS.remove(maid.getUUID());
         ConversationRuntime runtime = RUNTIMES.remove(runtimeKey(maid));
         if (runtime != null) {
             runtime.close();
@@ -116,5 +149,21 @@ public final class MaidBrainRuntimeRegistry {
 
     private static ForgeDebugOptions debugOptions() {
         return ForgeDebugOptions.load(ForgeBrainConfigInstaller.configRoot());
+    }
+
+    private static void notifyRuntimeErrorOnce(EntityMaid maid, String detail) {
+        if (maid == null || !ERROR_NOTIFIED.add(maid.getUUID())) {
+            return;
+        }
+        String message = "唔...我的思考核心刚刚卡住了。请看 latest.log 或检查 maidsoulcore/model/llm.properties。";
+        if (detail != null && !detail.isBlank()) {
+            message += " (" + clip(detail, 80) + ")";
+        }
+        MaidSpeechDispatcher.queueSpeechOnServer(maid, message);
+    }
+
+    private static String clip(String text, int max) {
+        String clean = text == null ? "" : text.replace('\r', ' ').replace('\n', ' ').trim();
+        return clean.length() <= max ? clean : clean.substring(0, max) + "...";
     }
 }

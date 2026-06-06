@@ -8,7 +8,7 @@ import java.nio.file.Path;
 /**
  * 回复效果记录落盘器。
  *
- * <p>maibotdev 会为每条 reply effect 写 JSON 文件，便于调试、复盘和离线评分。
+ * <p>上游参考系统 会为每条 reply effect 写 JSON 文件，便于调试、复盘和离线评分。
  * 原型机先使用本地 UTF-8 JSON 文件，不引入数据库依赖。</p>
  */
 public final class ReplyEffectStorage {

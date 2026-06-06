@@ -11,7 +11,7 @@ import java.util.UUID;
 /**
  * 一条 reply 工具回复的效果观察记录。
  *
- * <p>结构对齐 maibotdev 的 ReplyEffectRecord：记录会话、目标用户、回复内容、后续反馈、
+ * <p>结构对齐 上游参考系统 的 ReplyEffectRecord：记录会话、目标用户、回复内容、后续反馈、
  * 评分、完成原因和置信说明。这样后续调参可以看数据，而不是凭单轮观感堆补丁。</p>
  */
 public final class ReplyEffectRecord {

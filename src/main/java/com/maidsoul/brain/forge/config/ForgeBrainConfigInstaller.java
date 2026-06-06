@@ -1,5 +1,6 @@
 package com.maidsoul.brain.forge.config;
 
+import com.maidsoul.brain.config.ConfigFiles;
 import com.maidsoul.brain.forge.MaidSoulCoreForgeMod;
 import net.minecraftforge.fml.loading.FMLPaths;
 
@@ -10,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Properties;
 
 public final class ForgeBrainConfigInstaller {
     private ForgeBrainConfigInstaller() {
@@ -35,7 +37,7 @@ public final class ForgeBrainConfigInstaller {
         try {
             installFile(root.resolve("model").resolve("llm.properties"), """
                     baseUrl=https://api.deepseek.com/chat/completions
-                    apiKey=sk-da04efbfac05424b97c4ac7256386bfa
+                    apiKey=
                     model=deepseek-v4-flash
                     plannerModel=deepseek-v4-flash
                     replyerModel=deepseek-v4-pro
@@ -51,6 +53,21 @@ public final class ForgeBrainConfigInstaller {
                     timingSlowThresholdMillis=5000
                     maxRetries=0
                     retryBackoffMillis=800
+                    """);
+            installFile(root.resolve("model").resolve("vision.properties"), """
+                    enabled=false
+                    baseUrl=https://api.openai.com/v1/chat/completions
+                    apiKey=
+                    model=gpt-4o-mini
+                    temperature=0.2
+                    maxTokens=220
+                    timeoutMillis=60000
+                    maxImageWidth=512
+                    maxImageHeight=512
+                    jpegQuality=0.72
+                    autoCooldownMillis=120000
+                    manualCooldownMillis=5000
+                    prompt=你是 MaidSoulCore 的 Minecraft 视觉摘要器。请根据截图，用中文写一段短摘要。只描述画面中确定能看到的内容，不要编造看不到的事实。优先包含：玩家正在看向什么、附近危险、重要方块/实体、地点氛围、女仆可用于回应主人的信息。输出 1 到 3 句，不要写分析过程，不要自称视觉模型。
                     """);
             installFile(root.resolve("bot").resolve("identity.properties"), """
                     bot.name=酒狐
@@ -68,7 +85,7 @@ public final class ForgeBrainConfigInstaller {
                     talkFrequency=1.0
                     plannerInterruptMaxConsecutiveCount=2
                     timingGateNonContinueCooldownMillis=3000
-                    directReplyOnUserMessage=false
+                    directReplyOnUserMessage=true
                     enableProactiveRhythm=true
                     proactiveMaxVisibleReplies=4
                     proactiveInputProtectionSeconds=12
@@ -134,6 +151,7 @@ public final class ForgeBrainConfigInstaller {
                     "affect_state.json",
                     "memories/core_memories.jsonl"
             ));
+            syncForgeConfigToCoreFiles(root);
         } catch (IOException e) {
             throw new UncheckedIOException("安装 MaidSoulCore Forge 配置失败", e);
         }
@@ -162,5 +180,61 @@ public final class ForgeBrainConfigInstaller {
         }
         Files.createDirectories(path.getParent());
         Files.writeString(path, content, StandardCharsets.UTF_8);
+    }
+
+    public static void syncForgeConfigToCoreFiles() {
+        try {
+            syncForgeConfigToCoreFiles(configRoot());
+        } catch (IOException e) {
+            throw new UncheckedIOException("同步 MaidSoulCore Forge 配置失败", e);
+        }
+    }
+
+    private static void syncForgeConfigToCoreFiles(Path root) throws IOException {
+        updateProperties(root.resolve("conversation").resolve("flow.properties"), properties -> {
+            properties.setProperty("directReplyOnUserMessage", String.valueOf(MaidSoulForgeConfig.DIRECT_REPLY_ON_USER_MESSAGE.get()));
+            properties.setProperty("messageDebounceMillis", String.valueOf(MaidSoulForgeConfig.MESSAGE_DEBOUNCE_MILLIS.get()));
+        });
+        updateProperties(root.resolve("model").resolve("llm.properties"), properties -> {
+            properties.setProperty("baseUrl", MaidSoulForgeConfig.BASE_URL.get());
+            properties.setProperty("model", MaidSoulForgeConfig.MODEL.get());
+            properties.setProperty("plannerModel", MaidSoulForgeConfig.PLANNER_MODEL.get());
+            properties.setProperty("replyerModel", MaidSoulForgeConfig.REPLYER_MODEL.get());
+        });
+        updateProperties(root.resolve("model").resolve("vision.properties"), properties -> {
+            properties.setProperty("enabled", String.valueOf(MaidSoulForgeConfig.VISION_ENABLED.get()));
+            properties.setProperty("baseUrl", MaidSoulForgeConfig.VISION_BASE_URL.get());
+            properties.setProperty("model", MaidSoulForgeConfig.VISION_MODEL.get());
+            if (properties.getProperty("apiKey", "").isBlank()) {
+                Properties llmProperties = ConfigFiles.load(root.resolve("model").resolve("llm.properties"));
+                String llmApiKey = llmProperties.getProperty("apiKey", "");
+                if (!llmApiKey.isBlank()) {
+                    properties.setProperty("apiKey", llmApiKey);
+                }
+            }
+        });
+        updateProperties(root.resolve("debug").resolve("trace.properties"), properties -> {
+            properties.setProperty("echoTraceToOwnerChat", String.valueOf(MaidSoulForgeConfig.ECHO_TRACE_TO_OWNER_CHAT.get()));
+            properties.setProperty("echoAffectToOwnerChat", String.valueOf(MaidSoulForgeConfig.ECHO_AFFECT_TO_OWNER_CHAT.get()));
+            properties.setProperty("echoReplyToOwnerChat", String.valueOf(MaidSoulForgeConfig.ECHO_REPLY_TO_OWNER_CHAT.get()));
+        });
+    }
+
+    private static void updateProperties(Path path, PropertyUpdater updater) throws IOException {
+        Properties properties = new Properties();
+        if (Files.exists(path)) {
+            try (var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+                properties.load(reader);
+            }
+        }
+        updater.update(properties);
+        Files.createDirectories(path.getParent());
+        try (var writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+            properties.store(writer, "MaidSoulCore synced Forge config");
+        }
+    }
+
+    private interface PropertyUpdater {
+        void update(Properties properties);
     }
 }

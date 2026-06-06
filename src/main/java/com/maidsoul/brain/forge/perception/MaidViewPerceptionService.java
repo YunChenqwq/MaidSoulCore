@@ -2,6 +2,7 @@ package com.maidsoul.brain.forge.perception;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
+import com.maidsoul.brain.forge.vision.MaidVisionService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -60,6 +61,7 @@ public final class MaidViewPerceptionService {
         }
         LAST_NOTABLE_EVENT.put(maid.getUUID(), now);
         MaidBrainRuntimeRegistry.receiveWorldEvent(maid, summary.eventType(), summary.text());
+        MaidVisionService.requestAutoSummary(maid, summary.text());
     }
 
     private static ViewSummary capture(EntityMaid maid) {

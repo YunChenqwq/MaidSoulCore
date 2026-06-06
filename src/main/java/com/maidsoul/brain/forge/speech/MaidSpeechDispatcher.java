@@ -21,9 +21,13 @@ public final class MaidSpeechDispatcher {
     public static void queueSpeechOnServer(EntityMaid maid, String text) {
         if (maid.getServer() == null) {
             queueSpeech(maid, text);
+            flush(maid);
             return;
         }
-        maid.getServer().execute(() -> queueSpeech(maid, text));
+        maid.getServer().execute(() -> {
+            queueSpeech(maid, text);
+            flush(maid);
+        });
     }
 
     public static void queueSpeech(EntityMaid maid, String text) {
