@@ -18,6 +18,7 @@ import com.maidsoul.brain.tool.ToolSpec;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * 主规划器。
@@ -31,16 +32,29 @@ final class PlannerAgent {
     private final LlmClient llm;
     private final PlannerHookRunner hookRunner = new PlannerHookRunner();
     private final boolean viewObservationAvailable;
+    private final Supplier<List<ToolSpec>> actionToolSupplier;
 
     PlannerAgent(BrainConfig config, PromptCatalog prompts, LlmClient llm) {
         this(config, prompts, llm, false);
     }
 
     PlannerAgent(BrainConfig config, PromptCatalog prompts, LlmClient llm, boolean viewObservationAvailable) {
+        this(config, prompts, llm, viewObservationAvailable,
+                () -> BuiltinToolSet.plannerTools(!config.flow().enableIndependentTimingGate(), viewObservationAvailable));
+    }
+
+    PlannerAgent(
+            BrainConfig config,
+            PromptCatalog prompts,
+            LlmClient llm,
+            boolean viewObservationAvailable,
+            Supplier<List<ToolSpec>> actionToolSupplier
+    ) {
         this.config = config;
         this.prompts = prompts;
         this.llm = llm;
         this.viewObservationAvailable = viewObservationAvailable;
+        this.actionToolSupplier = actionToolSupplier == null ? List::of : actionToolSupplier;
     }
 
     PlanDecision plan(String context) {
@@ -62,7 +76,7 @@ final class PlannerAgent {
                 "timing_gate_wait_rule", "- wait：固定再等待一段时间，时间到后再重新判断。\n"
                         + "- 长期记忆工具已经接入，但必须克制使用。只有用户明确说“之前、上次、还记得吗、我说过、我的偏好”等依赖过去的信息，或回复必须依赖承诺/关系历史/长期偏好时，才调用 query_memory。即时情绪、沉默后的追问、普通接话只看最近聊天记录和长期状态参考。"
         ));
-        List<ToolSpec> tools = BuiltinToolSet.plannerTools(mergedTiming, viewObservationAvailable).stream()
+        List<ToolSpec> tools = actionToolSupplier.get().stream()
                 .filter(tool -> config.memory().queryMemoryToolEnabled() || !"query_memory".equals(tool.name()))
                 .toList();
         PlannerHookRunner.BeforeOutcome beforeOutcome = hookRunner.beforeRequest(

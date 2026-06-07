@@ -11,8 +11,17 @@ import com.maidsoul.brain.reply.effect.ReplyEffectTracker;
 import com.maidsoul.brain.runtime.ChatSession;
 import com.maidsoul.brain.runtime.RuntimeTraceSink;
 import com.maidsoul.brain.message.MessageRole;
+import com.maidsoul.brain.tool.CoreActionToolProvider;
+import com.maidsoul.brain.tool.ToolAvailabilityContext;
+import com.maidsoul.brain.tool.ToolExecutionContext;
+import com.maidsoul.brain.tool.ToolExecutionResult;
+import com.maidsoul.brain.tool.ToolInvocation;
+import com.maidsoul.brain.tool.ToolRegistry;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
@@ -34,6 +43,7 @@ public final class ReasoningEngine {
     private final NoActionPolicy noActionPolicy = new NoActionPolicy();
     private final ViewObservationTool viewObservationTool;
     private final MemoryRuntime memoryRuntime;
+    private final ToolRegistry toolRegistry = new ToolRegistry();
     private final ReplyEffectTracker replyEffectTracker;
     private final Consumer<String> streamDeltaConsumer;
     private final Runnable streamFlush;
@@ -75,8 +85,36 @@ public final class ReasoningEngine {
         this.viewObservationTool = viewObservationTool == null ? ViewObservationTool.NONE : viewObservationTool;
         this.contextWindow = new ContextWindow(config, memoryRuntime == null ? null : memoryRuntime::renderPromptBlock);
         this.timingGate = new TimingGate(config, prompts, llm);
-        this.planner = new PlannerAgent(config, prompts, llm, this.viewObservationTool.available());
+        this.toolRegistry.registerProvider(new CoreActionToolProvider(
+                config,
+                memoryRuntime,
+                this.viewObservationTool,
+                this.toolRegistry,
+                !config.flow().enableIndependentTimingGate()
+        ));
+        this.planner = new PlannerAgent(
+                config,
+                prompts,
+                llm,
+                this.viewObservationTool.available(),
+                this::plannerVisibleTools
+        );
         this.replyComposer = new ReplyComposer(config, prompts, llm);
+    }
+
+    private List<com.maidsoul.brain.tool.ToolSpec> plannerVisibleTools() {
+        List<com.maidsoul.brain.tool.ToolSpec> visible = new java.util.ArrayList<>(toolRegistry.listTools(ToolAvailabilityContext.action()));
+        visible.addAll(toolRegistry.discoveredDeferredTools());
+        return visible.stream()
+                .collect(java.util.stream.Collectors.collectingAndThen(
+                        java.util.stream.Collectors.toMap(
+                                com.maidsoul.brain.tool.ToolSpec::name,
+                                java.util.function.Function.identity(),
+                                (left, ignored) -> left,
+                                java.util.LinkedHashMap::new
+                        ),
+                        map -> List.copyOf(map.values())
+                ));
     }
 
     public Result runOneCycle(long cycleVersion, LongSupplier currentVersion, InterruptFlag interruptFlag) {
@@ -97,8 +135,7 @@ public final class ReasoningEngine {
             return Result.noAction();
         }
 
-        boolean memoryQueried = false;
-        boolean viewObserved = false;
+        Set<String> oneShotToolsUsed = new HashSet<>();
         boolean toolExecuted = false;
         String lastToolResult = "";
 
@@ -154,11 +191,13 @@ public final class ReasoningEngine {
             applyPlannerAffectEvent(plan);
             applyPlannerMemoryEvent(plan);
             if ("finish".equals(plan.action())) {
-                trace.trace("tool.finish", "Planner 结束本轮内部思考。");
+                ToolExecutionResult result = invokePlannerTool(plan);
+                appendToolResult(result);
+                trace.trace("tool.finish", result.historyContent());
                 return Result.noAction();
             }
             if ("wait".equals(plan.action())) {
-                appendToolResult("wait", true, "Planner 选择等待 " + (plan.waitSeconds() > 0 ? plan.waitSeconds() : config.flow().defaultWaitSeconds()) + " 秒。");
+                appendToolResult(invokePlannerTool(plan));
                 return Result.waiting(plan.waitSeconds() > 0 ? plan.waitSeconds() : config.flow().defaultWaitSeconds());
             }
             if ("no_action".equals(plan.action())) {
@@ -166,38 +205,53 @@ public final class ReasoningEngine {
                     trace.trace("planner.override", "真实用户输入仍需回应，覆盖 planner no_action。");
                     plan = PlanDecision.replyLatest("玩家刚发来可回应内容，不能把真实输入当成主动沉默事件。");
                 } else {
-                    appendToolResult("no_action", true, "Planner 选择本轮不发言，等待新的外部消息。");
+                    appendToolResult(invokePlannerTool(plan));
                     return Result.noAction();
                 }
             }
             if ("query_memory".equals(plan.action())) {
-                if (memoryQueried) {
-                    lastToolResult = appendToolResult("query_memory", false, "本轮已经查询过记忆，避免重复检索。");
+                if (!oneShotToolsUsed.add(plan.action())) {
+                    lastToolResult = appendToolResult(new ToolExecutionResult(
+                            plan.action(),
+                            false,
+                            "",
+                            "本轮已经调用过 " + plan.action() + "，避免重复执行。",
+                            null,
+                            List.of(),
+                            Map.of()
+                    ));
                     trace.trace("tool.query_memory.skip", lastToolResult);
                 } else {
-                    memoryQueried = true;
-                    String memoryText = queryMemory(plan.targetMessageId(), plan.reason());
-                    lastToolResult = appendToolResult("query_memory", true, memoryText);
-                    trace.trace("tool.query_memory", memoryText);
+                    ToolExecutionResult result = invokePlannerTool(plan);
+                    lastToolResult = appendToolResult(result);
+                    trace.trace("tool.query_memory", result.historyContent());
                 }
                 toolExecuted = true;
                 continue;
             }
             if ("observe_view".equals(plan.action())) {
-                if (viewObserved) {
-                    lastToolResult = appendToolResult("observe_view", false, "本轮已经观察过当前视角，避免重复截图。");
+                if (!oneShotToolsUsed.add(plan.action())) {
+                    lastToolResult = appendToolResult(new ToolExecutionResult(
+                            plan.action(),
+                            false,
+                            "",
+                            "本轮已经调用过 " + plan.action() + "，避免重复执行。",
+                            null,
+                            List.of(),
+                            Map.of()
+                    ));
                     trace.trace("tool.observe_view.skip", lastToolResult);
                 } else {
-                    viewObserved = true;
-                    String viewText = observeView(plan.reason());
-                    lastToolResult = appendToolResult("observe_view", true, viewText);
-                    trace.trace("tool.observe_view", viewText);
+                    ToolExecutionResult result = invokePlannerTool(plan);
+                    lastToolResult = appendToolResult(result);
+                    trace.trace("tool.observe_view", result.historyContent());
                 }
                 toolExecuted = true;
                 continue;
             }
             if (!"reply".equals(plan.action())) {
-                lastToolResult = appendToolResult(plan.action(), false, "未知动作已忽略: " + plan.action());
+                ToolExecutionResult result = invokePlannerTool(plan);
+                lastToolResult = appendToolResult(result);
                 trace.trace("tool.unknown", lastToolResult);
                 toolExecuted = true;
                 continue;
@@ -264,11 +318,35 @@ public final class ReasoningEngine {
         return Result.noAction();
     }
 
-    private String appendToolResult(String toolName, boolean success, String content) {
-        String safeToolName = toolName == null || toolName.isBlank() ? "unknown" : toolName.trim();
-        String safeContent = content == null ? "" : content.trim();
+    private ToolExecutionResult invokePlannerTool(PlanDecision plan) {
+        ToolInvocation invocation = new ToolInvocation(
+                plan.action(),
+                plannerToolArguments(plan),
+                "",
+                plan.reason()
+        );
+        return toolRegistry.invoke(invocation, ToolExecutionContext.action(plan.reason(), Math.max(5000L, config.model().plannerTimeoutMillis())));
+    }
+
+    private Map<String, Object> plannerToolArguments(PlanDecision plan) {
+        return switch (plan.action()) {
+            case "query_memory" -> Map.of("query", plan.targetMessageId(), "reason", plan.reason());
+            case "observe_view" -> Map.of("reason", plan.reason());
+            case "wait" -> Map.of("seconds", plan.waitSeconds(), "reason", plan.reason());
+            case "reply" -> Map.of(
+                    "target_message_id", plan.targetMessageId(),
+                    "reason", plan.reason(),
+                    "reference_info", plan.referenceInfo()
+            );
+            default -> Map.of("reason", plan.reason());
+        };
+    }
+
+    private String appendToolResult(ToolExecutionResult toolResult) {
+        String safeToolName = toolResult.toolName().isBlank() ? "unknown" : toolResult.toolName();
+        String safeContent = toolResult.historyContent();
         String result = "[工具结果] " + safeToolName
-                + " success=" + success
+                + " success=" + toolResult.success()
                 + (safeContent.isBlank() ? "" : "\n" + safeContent);
         session.appendReference(result);
         return result;

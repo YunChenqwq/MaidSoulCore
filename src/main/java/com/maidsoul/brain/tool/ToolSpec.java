@@ -21,5 +21,15 @@ public record ToolSpec(
         parametersSchema = parametersSchema == null ? Map.of("type", "object", "properties", Map.of()) : Map.copyOf(parametersSchema);
         metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
     }
-}
 
+    public boolean enabled() {
+        Object value = metadata.get("enabled");
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof String text) {
+            return !"false".equalsIgnoreCase(text.trim());
+        }
+        return true;
+    }
+}

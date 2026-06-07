@@ -21,12 +21,12 @@ public final class BuiltinToolSet {
     public static List<ToolSpec> plannerTools(boolean includeTimingTools, boolean includeViewTool) {
         if (includeTimingTools) {
             return includeViewTool
-                    ? List.of(reply(), waitTool(), noAction(), finish(), queryMemory(), observeView())
-                    : List.of(reply(), waitTool(), noAction(), finish(), queryMemory());
+                    ? List.of(reply(), waitTool(), noAction(), finish(), queryMemory(), observeView(), toolSearch())
+                    : List.of(reply(), waitTool(), noAction(), finish(), queryMemory(), toolSearch());
         }
         return includeViewTool
-                ? List.of(reply(), finish(), queryMemory(), observeView())
-                : List.of(reply(), finish(), queryMemory());
+                ? List.of(reply(), finish(), queryMemory(), observeView(), toolSearch())
+                : List.of(reply(), finish(), queryMemory(), toolSearch());
     }
 
     public static List<ToolSpec> timingTools() {
@@ -121,6 +121,18 @@ public final class BuiltinToolSet {
                 objectSchema(Map.of(
                         "reason", stringSchema("为什么本轮需要观察当前视角，只写一句短理由。")
                 ), List.of("reason")),
+                Map.of("stage", "action")
+        );
+    }
+
+    public static ToolSpec toolSearch() {
+        return new ToolSpec(
+                "tool_search",
+                "在 deferred tools 列表中按名称或关键词搜索工具，并将命中的工具加入后续轮次的可用工具列表。",
+                objectSchema(properties(
+                        "query", stringSchema("要搜索的工具名、前缀或关键词。"),
+                        "limit", numberSchema("最多返回多少个匹配工具。")
+                ), List.of("query")),
                 Map.of("stage", "action")
         );
     }
