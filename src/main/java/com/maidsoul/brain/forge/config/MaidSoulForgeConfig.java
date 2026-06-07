@@ -1,6 +1,7 @@
 package com.maidsoul.brain.forge.config;
 
 import net.minecraftforge.common.ForgeConfigSpec;
+import com.maidsoul.brain.vision.VisionConfig;
 
 /**
  * Forge Mods 配置页入口。
@@ -46,13 +47,13 @@ public final class MaidSoulForgeConfig {
         builder.push("vision");
         VISION_ENABLED = builder
                 .comment("启用 Minecraft 截图视觉摘要。图片会先由视觉模型转成短摘要，再写入女仆世界事件。")
-                .define("enabled", false);
+                .define("enabled", true);
         VISION_BASE_URL = builder
                 .comment("OpenAI compatible vision chat completions endpoint.")
                 .define("baseUrl", "https://api.siliconflow.cn/v1/chat/completions");
         VISION_MODEL = builder
-                .comment("支持图片输入的视觉模型。MaiBot 默认不硬编码 VLM；这里留空，按你的硅基流动账号可用模型填写。")
-                .define("model", "");
+                .comment("支持图片输入的视觉模型。默认使用硅基流动可用的 Qwen3-VL 32B。")
+                .define("model", VisionConfig.DEFAULT_MODEL);
         builder.pop();
 
         builder.push("debug");

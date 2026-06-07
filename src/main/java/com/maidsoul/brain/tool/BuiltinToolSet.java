@@ -19,6 +19,29 @@ public final class BuiltinToolSet {
     }
 
     public static List<ToolSpec> plannerTools(boolean includeTimingTools, boolean includeViewTool) {
+        return plannerTools(includeTimingTools, includeViewTool, false);
+    }
+
+    public static List<ToolSpec> plannerTools(boolean includeTimingTools, boolean includeViewTool, boolean includeEnvironmentTool) {
+        java.util.ArrayList<ToolSpec> tools = new java.util.ArrayList<>();
+        tools.add(reply());
+        if (includeTimingTools) {
+            tools.add(waitTool());
+            tools.add(noAction());
+        }
+        tools.add(finish());
+        tools.add(queryMemory());
+        if (includeEnvironmentTool) {
+            tools.add(scanEnvironment());
+        }
+        if (includeViewTool) {
+            tools.add(observeView());
+        }
+        tools.add(toolSearch());
+        return List.copyOf(tools);
+    }
+
+    private static List<ToolSpec> legacyPlannerTools(boolean includeTimingTools, boolean includeViewTool) {
         if (includeTimingTools) {
             return includeViewTool
                     ? List.of(reply(), waitTool(), noAction(), finish(), queryMemory(), observeView(), toolSearch())
@@ -120,6 +143,17 @@ public final class BuiltinToolSet {
                 "当回复需要主人当前第一人称视角、附近危险、可见实体/方块或现场状态时调用。工具会返回一段文字视觉摘要。",
                 objectSchema(Map.of(
                         "reason", stringSchema("为什么本轮需要观察当前视角，只写一句短理由。")
+                ), List.of("reason")),
+                Map.of("stage", "action")
+        );
+    }
+
+    public static ToolSpec scanEnvironment() {
+        return new ToolSpec(
+                "scan_environment",
+                "读取 Minecraft 服务端结构化现场状态：主人视线焦点、是否正在看当前女仆、附近实体/怪物、时间天气、生命值、距离。它不截图、不调用视觉模型，适合先确认现场事实。",
+                objectSchema(Map.of(
+                        "reason", stringSchema("为什么本轮需要扫描结构化现场，只写一句短理由。")
                 ), List.of("reason")),
                 Map.of("stage", "action")
         );

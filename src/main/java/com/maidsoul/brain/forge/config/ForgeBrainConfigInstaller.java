@@ -2,6 +2,7 @@ package com.maidsoul.brain.forge.config;
 
 import com.maidsoul.brain.config.ConfigFiles;
 import com.maidsoul.brain.forge.MaidSoulCoreForgeMod;
+import com.maidsoul.brain.vision.VisionConfig;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
@@ -28,7 +29,7 @@ public final class ForgeBrainConfigInstaller {
     /**
      * 安装新模组自己的推荐配置。
      *
-     * <p>旧版曾经读取 MaiBot 风格配置；现在 Forge 运行时只读 config/maidsoulcore。
+     * <p>旧版曾经读取外部聊天配置；现在 Forge 运行时只读 config/maidsoulcore。
      * 为了让你可以直接开游戏测试，这里首次启动时会把桌面原型已经能用的模型配置
      * 和 prompt 复制成新模组配置。已有文件不会覆盖，避免改掉你手动调过的参数。</p>
      */
@@ -55,20 +56,20 @@ public final class ForgeBrainConfigInstaller {
                     retryBackoffMillis=800
                     """);
             installFile(root.resolve("model").resolve("vision.properties"), """
-                    enabled=false
+                    enabled=true
                     mode=client_direct
                     baseUrl=https://api.siliconflow.cn/v1/chat/completions
                     apiKey=
-                    model=
+                    model=Qwen/Qwen3-VL-32B-Instruct
                     temperature=0.2
                     maxTokens=220
                     timeoutMillis=60000
                     maxImageWidth=512
                     maxImageHeight=512
                     jpegQuality=0.72
-                    autoCooldownMillis=120000
+                    autoCooldownMillis=45000
                     manualCooldownMillis=5000
-                    prompt=你是 MaidSoulCore 的 Minecraft 视觉摘要器。请根据截图，用中文写一段短摘要。只描述画面中确定能看到的内容，不要编造看不到的事实。优先包含：玩家正在看向什么、附近危险、重要方块/实体、地点氛围、女仆可用于回应主人的信息。输出 1 到 3 句，不要写分析过程，不要自称视觉模型。
+                    prompt=你是 MaidSoulCore 的 Minecraft 视觉摘要器。请根据截图，用中文写一段短摘要。只描述画面中确定能看到的内容，不要编造看不到的事实。结构化游戏状态比截图猜测更可靠：如果状态说明 owner_looking_at_request_maid=true，画面里主人正看着的女仆就是当前说话的女仆/你自己的身体，不要说成陌生女仆或另一只女仆。不要把空气、天空、十字准星没有实际命中的位置描述成一个方块；如果结构化焦点是 none，就说没有明确焦点。优先包含：玩家正在看向什么、附近危险、重要方块/实体、地点氛围、女仆可用于回应主人的信息。输出 1 到 3 句，不要写分析过程，不要自称视觉模型。
                     """);
             installFile(root.resolve("bot").resolve("identity.properties"), """
                     bot.name=酒狐
@@ -203,8 +204,16 @@ public final class ForgeBrainConfigInstaller {
         });
         updateProperties(root.resolve("model").resolve("vision.properties"), properties -> {
             properties.setProperty("enabled", String.valueOf(MaidSoulForgeConfig.VISION_ENABLED.get()));
-            properties.setProperty("baseUrl", MaidSoulForgeConfig.VISION_BASE_URL.get());
-            properties.setProperty("model", MaidSoulForgeConfig.VISION_MODEL.get());
+            setIfNotBlank(properties, "baseUrl", MaidSoulForgeConfig.VISION_BASE_URL.get());
+            String forgeVisionModel = MaidSoulForgeConfig.VISION_MODEL.get();
+            if (forgeVisionModel == null || forgeVisionModel.isBlank()) {
+                properties.setProperty("model", properties.getProperty("model", VisionConfig.DEFAULT_MODEL));
+            } else {
+                properties.setProperty("model", forgeVisionModel);
+            }
+            if (properties.getProperty("model", "").isBlank()) {
+                properties.setProperty("model", VisionConfig.DEFAULT_MODEL);
+            }
             if (properties.getProperty("apiKey", "").isBlank()) {
                 Properties llmProperties = ConfigFiles.load(root.resolve("model").resolve("llm.properties"));
                 String llmApiKey = llmProperties.getProperty("apiKey", "");
@@ -231,6 +240,12 @@ public final class ForgeBrainConfigInstaller {
         Files.createDirectories(path.getParent());
         try (var writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
             properties.store(writer, "MaidSoulCore synced Forge config");
+        }
+    }
+
+    private static void setIfNotBlank(Properties properties, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            properties.setProperty(key, value);
         }
     }
 

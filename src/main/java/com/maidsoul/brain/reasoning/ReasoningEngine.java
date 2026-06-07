@@ -42,6 +42,7 @@ public final class ReasoningEngine {
     private final DialogueStateTracker dialogueStateTracker = new DialogueStateTracker();
     private final NoActionPolicy noActionPolicy = new NoActionPolicy();
     private final ViewObservationTool viewObservationTool;
+    private final EnvironmentObservationTool environmentObservationTool;
     private final MemoryRuntime memoryRuntime;
     private final ToolRegistry toolRegistry = new ToolRegistry();
     private final ReplyEffectTracker replyEffectTracker;
@@ -75,6 +76,23 @@ public final class ReasoningEngine {
             Runnable streamFlush,
             ViewObservationTool viewObservationTool
     ) {
+        this(config, prompts, llm, session, trace, memoryRuntime, replyEffectTracker,
+                streamDeltaConsumer, streamFlush, viewObservationTool, EnvironmentObservationTool.NONE);
+    }
+
+    public ReasoningEngine(
+            BrainConfig config,
+            PromptCatalog prompts,
+            LlmClient llm,
+            ChatSession session,
+            RuntimeTraceSink trace,
+            MemoryRuntime memoryRuntime,
+            ReplyEffectTracker replyEffectTracker,
+            Consumer<String> streamDeltaConsumer,
+            Runnable streamFlush,
+            ViewObservationTool viewObservationTool,
+            EnvironmentObservationTool environmentObservationTool
+    ) {
         this.config = config;
         this.session = session;
         this.trace = trace;
@@ -83,12 +101,14 @@ public final class ReasoningEngine {
         this.streamFlush = streamFlush;
         this.memoryRuntime = memoryRuntime;
         this.viewObservationTool = viewObservationTool == null ? ViewObservationTool.NONE : viewObservationTool;
+        this.environmentObservationTool = environmentObservationTool == null ? EnvironmentObservationTool.NONE : environmentObservationTool;
         this.contextWindow = new ContextWindow(config, memoryRuntime == null ? null : memoryRuntime::renderPromptBlock);
         this.timingGate = new TimingGate(config, prompts, llm);
         this.toolRegistry.registerProvider(new CoreActionToolProvider(
                 config,
                 memoryRuntime,
                 this.viewObservationTool,
+                this.environmentObservationTool,
                 this.toolRegistry,
                 !config.flow().enableIndependentTimingGate()
         ));
@@ -96,7 +116,7 @@ public final class ReasoningEngine {
                 config,
                 prompts,
                 llm,
-                this.viewObservationTool.available(),
+                this.viewObservationTool.available() || this.environmentObservationTool.available(),
                 this::plannerVisibleTools
         );
         this.replyComposer = new ReplyComposer(config, prompts, llm);
@@ -229,7 +249,7 @@ public final class ReasoningEngine {
                 toolExecuted = true;
                 continue;
             }
-            if ("observe_view".equals(plan.action())) {
+            if ("observe_view".equals(plan.action()) || "scan_environment".equals(plan.action())) {
                 if (!oneShotToolsUsed.add(plan.action())) {
                     lastToolResult = appendToolResult(new ToolExecutionResult(
                             plan.action(),
@@ -240,11 +260,11 @@ public final class ReasoningEngine {
                             List.of(),
                             Map.of()
                     ));
-                    trace.trace("tool.observe_view.skip", lastToolResult);
+                    trace.trace("tool." + plan.action() + ".skip", lastToolResult);
                 } else {
                     ToolExecutionResult result = invokePlannerTool(plan);
                     lastToolResult = appendToolResult(result);
-                    trace.trace("tool.observe_view", result.historyContent());
+                    trace.trace("tool." + plan.action(), result.historyContent());
                 }
                 toolExecuted = true;
                 continue;
@@ -332,6 +352,7 @@ public final class ReasoningEngine {
         return switch (plan.action()) {
             case "query_memory" -> Map.of("query", plan.targetMessageId(), "reason", plan.reason());
             case "observe_view" -> Map.of("reason", plan.reason());
+            case "scan_environment" -> Map.of("reason", plan.reason());
             case "wait" -> Map.of("seconds", plan.waitSeconds(), "reason", plan.reason());
             case "reply" -> Map.of(
                     "target_message_id", plan.targetMessageId(),

@@ -8,6 +8,7 @@ import com.maidsoul.brain.memory.v2.MemoryMaintenanceReport;
 import com.maidsoul.brain.message.ChatMessage;
 import com.maidsoul.brain.prompt.PromptCatalog;
 import com.maidsoul.brain.reply.effect.ReplyEffectTracker;
+import com.maidsoul.brain.reasoning.EnvironmentObservationTool;
 import com.maidsoul.brain.reasoning.ReasoningEngine;
 import com.maidsoul.brain.reasoning.ReplySanitizer;
 import com.maidsoul.brain.reasoning.ViewObservationTool;
@@ -94,6 +95,18 @@ public final class ConversationRuntime implements AutoCloseable {
             RuntimeTraceSink trace,
             ViewObservationTool viewObservationTool
     ) {
+        this(config, prompts, llm, output, trace, viewObservationTool, EnvironmentObservationTool.NONE);
+    }
+
+    public ConversationRuntime(
+            BrainConfig config,
+            PromptCatalog prompts,
+            LlmClient llm,
+            Consumer<String> output,
+            RuntimeTraceSink trace,
+            ViewObservationTool viewObservationTool,
+            EnvironmentObservationTool environmentObservationTool
+    ) {
         this.config = config;
         this.output = output;
         this.trace = trace == null ? RuntimeTraceSink.noop() : trace;
@@ -110,7 +123,8 @@ public final class ConversationRuntime implements AutoCloseable {
                 replyEffectTracker,
                 streamEmitter::acceptDelta,
                 streamEmitter::flush,
-                viewObservationTool
+                viewObservationTool,
+                environmentObservationTool
         );
     }
 

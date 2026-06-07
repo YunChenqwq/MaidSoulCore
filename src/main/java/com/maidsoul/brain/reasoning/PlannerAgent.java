@@ -108,14 +108,25 @@ final class PlannerAgent {
     }
 
     private String buildFileToolsSection() {
-        if (!viewObservationAvailable) {
+        List<String> toolNames = actionToolSupplier.get().stream().map(ToolSpec::name).toList();
+        boolean canScanEnvironment = toolNames.contains("scan_environment");
+        boolean canObserveView = toolNames.contains("observe_view");
+        if (!canScanEnvironment && !canObserveView) {
             return "";
         }
-        return """
-                - observe_view(reason)：当本轮回复依赖主人当前 Minecraft 第一人称画面、附近危险、可见实体/方块、地点氛围或现场状态时，可以调用这个工具获取文字视角摘要。
-                  如果上下文里已经有最近可靠的 [视角摘要] 或 owner.view.vision_summary，可以先直接使用；如果没有可靠证据，不要编造当前画面。
-                  这不是强制工具：普通情绪接话、寒暄、关系推进、仅依赖聊天文本的回应，直接使用 reply/wait/no_action。
-                """;
+        StringBuilder builder = new StringBuilder();
+        if (canScanEnvironment) {
+            builder.append("- scan_environment(reason)：当本轮只需要 Minecraft 结构化现场事实时优先调用，比如主人正在看谁、女仆是不是被主人看着、附近实体/怪物、时间天气、距离和生命值。这个工具不截图、不调用视觉模型，便宜且可靠。\n");
+        }
+        if (canObserveView) {
+            builder.append("- observe_view(reason)：当本轮回复依赖主人当前 Minecraft 第一人称画面、附近危险、可见实体/方块、地点氛围或现场状态时，可以调用这个工具获取文字视角摘要。\n");
+            if (canScanEnvironment) {
+                builder.append("  如果只是确认“画面里的女仆是不是你自己”、附近怪物、空气/方块/距离，优先 scan_environment；只有需要真实画面细节或结构化扫描不足时再 observe_view。\n");
+            }
+            builder.append("  如果上下文里已经有最近可靠的 [视角摘要] 或 owner.view.vision_summary，可以先直接使用；如果没有可靠证据，不要编造当前画面。\n");
+        }
+        builder.append("  这些不是强制工具：普通情绪接话、寒暄、关系推进、仅依赖聊天文本的回应，直接使用 reply/wait/no_action。");
+        return builder.toString();
     }
 
     private PlanDecision fromToolCall(ToolCall call, String reasoning) {
@@ -142,6 +153,7 @@ final class PlannerAgent {
             case "no_action" -> new PlanDecision("no_action", "", 0, compactReason, "", affectEvent, memoryEvent);
             case "finish" -> new PlanDecision("finish", "", 0, compactReason, "");
             case "query_memory" -> new PlanDecision("query_memory", stringArg(args, "query", ""), 0, compactReason, "");
+            case "scan_environment" -> new PlanDecision("scan_environment", "", 0, compactReason, "");
             case "observe_view" -> new PlanDecision("observe_view", "", 0, compactReason, "");
             default -> PlanDecision.replyLatest("规划器调用了未知工具，按最新消息回复。");
         };

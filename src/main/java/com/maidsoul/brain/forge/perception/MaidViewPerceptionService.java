@@ -5,15 +5,18 @@ import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
 import com.maidsoul.brain.forge.vision.MaidVisionService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,6 +25,8 @@ import java.util.concurrent.ConcurrentMap;
 public final class MaidViewPerceptionService {
     private static final long IDLE_SCAN_INTERVAL_MILLIS = 45_000L;
     private static final long NOTABLE_EVENT_COOLDOWN_MILLIS = 90_000L;
+    private static final double FOCUS_RANGE = 12.0D;
+    private static final double ENTITY_FOCUS_DOT = 0.965D;
     private static final ConcurrentMap<UUID, Long> LAST_SCAN = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, Integer> LAST_SIGNATURE = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, Long> LAST_NOTABLE_EVENT = new ConcurrentHashMap<>();
@@ -32,10 +37,9 @@ public final class MaidViewPerceptionService {
     /**
      * 轻量视角摘要。
      *
-     * <p>这里不是直接调用视觉大模型，而是每 45 秒把车万女仆和主人附近最关键的 MC
-     * 状态压成结构化世界事件：主人看向什么、附近是否有怪、时间/天气/生命值如何。
-     * 这条轻量事件会交给 planner 当作现场话题信息；planner 如果判断需要更真实的画面，
-     * 再主动调用 observe_view 工具触发截图/VLM。</p>
+     * <p>这里不直接强制调用视觉模型，而是每 45 秒把主人和当前女仆附近的
+     * Minecraft 结构化状态压成世界事件。planner 可以直接使用这些现场事实；
+     * 如果它判断需要真实画面，再主动调用 observe_view 触发截图/VLM。</p>
      */
     public static void onMaidTick(EntityMaid maid) {
         if (maid.tickCount % 40 != 0 || maid.getOwner() == null) {
@@ -64,56 +68,144 @@ public final class MaidViewPerceptionService {
         }
     }
 
+    /**
+     * 给 planner 的 scan_environment 工具使用。
+     *
+     * <p>这份结果来自服务端 MC 状态，不经过视觉模型。它能可靠回答“主人是不是看着
+     * 当前女仆”“附近有没有怪物”“当前焦点是否只是空气”等问题。</p>
+     */
+    public static String scanForPlanner(EntityMaid maid, String reason) {
+        ViewSummary summary = capture(maid);
+        String normalizedReason = reason == null || reason.isBlank() ? "planner requested environment scan" : reason.trim();
+        return "reason=" + normalizedReason + ", " + summary.text();
+    }
+
+    /**
+     * 给视觉模型的 sceneHint 使用。
+     *
+     * <p>VLM 只看截图时很容易把玩家视角里的女仆当成“陌生女仆”。这里把请求女仆
+     * 的身份、主人视线焦点和结构化现场事实一并塞进提示，要求模型优先服从 MC 状态。</p>
+     */
+    public static String sceneHintForVision(EntityMaid maid, String rawHint) {
+        ViewSummary summary = capture(maid);
+        String hint = rawHint == null || rawHint.isBlank() ? "" : rawHint.trim();
+        return "vision_request_context={request_maid_uuid=" + maid.getUUID()
+                + ", request_maid_name=" + maid.getName().getString()
+                + ", rule=如果结构化状态显示 owner_looking_at_request_maid=true，则截图里被主人看着的女仆就是当前说话的女仆/你自己的身体，不要称为陌生女仆。"
+                + "}; structured_scene={" + summary.text() + "}"
+                + (hint.isBlank() ? "" : "; planner_reason=" + hint);
+    }
+
     private static ViewSummary capture(EntityMaid maid) {
         LivingEntity owner = maid.getOwner();
         if (owner == null) {
-            return new ViewSummary("owner.view.none", "owner unavailable", false);
+            return new ViewSummary("owner.view.none", "maid_uuid=" + maid.getUUID() + ", owner=unavailable", false);
         }
-        String focus = describeFocus(owner);
+        FocusInfo focus = describeFocus(owner, maid);
         List<Monster> monsters = owner.level().getEntitiesOfClass(
                 Monster.class,
                 owner.getBoundingBox().inflate(10.0D),
                 entity -> entity.isAlive() && entity.distanceTo(owner) <= 10.0F
+        );
+        List<EntityMaid> nearbyMaids = owner.level().getEntitiesOfClass(
+                EntityMaid.class,
+                owner.getBoundingBox().inflate(16.0D),
+                entity -> entity.isAlive() && entity.distanceTo(owner) <= 16.0F
         );
         String time = timeLabel(owner.level().getDayTime() % 24000L);
         String weather = owner.level().isThundering() ? "thunder" : owner.level().isRaining() ? "rain" : "clear";
         String ownerState = owner instanceof Player player
                 ? "health=%.1f,hunger=%d".formatted(owner.getHealth(), player.getFoodData().getFoodLevel())
                 : "health=%.1f".formatted(owner.getHealth());
-        String text = "owner=" + owner.getName().getString()
-                + ", focus=" + focus
+        boolean ownerLookingAtRequestMaid = focus.ownerLookingAtRequestMaid();
+        String text = "maid_uuid=" + maid.getUUID()
+                + ", maid_name=" + maid.getName().getString()
+                + ", owner=" + owner.getName().getString()
+                + ", owner_looking_at_request_maid=" + ownerLookingAtRequestMaid
+                + ", focus=" + focus.description()
                 + ", time=" + time
                 + ", weather=" + weather
                 + ", owner_state=" + ownerState
                 + ", nearby_monsters=" + monsters.size()
+                + ", nearby_maids=" + nearbyMaids.size()
                 + ", maid_distance=%.1f".formatted(maid.distanceTo(owner));
         if (!monsters.isEmpty()) {
-            return new ViewSummary("owner.view.risk_mob", text, true);
+            String monstersText = monsters.stream()
+                    .sorted(Comparator.comparingDouble(entity -> entity.distanceTo(owner)))
+                    .limit(3)
+                    .map(entity -> entityTypeId(entity) + "@%.1f".formatted(entity.distanceTo(owner)))
+                    .toList()
+                    .toString();
+            return new ViewSummary("owner.view.risk_mob", text + ", nearest_monsters=" + monstersText, true);
         }
         return new ViewSummary("owner.view.changed", text, false);
     }
 
-    private static String describeFocus(LivingEntity owner) {
-        HitResult hit = owner.pick(12.0D, 1.0F, false);
-        if (hit instanceof EntityHitResult entityHit) {
-            ResourceLocation key = ForgeRegistries.ENTITY_TYPES.getKey(entityHit.getEntity().getType());
-            return "entity:" + (key == null ? "unknown" : key);
+    private static FocusInfo describeFocus(LivingEntity owner, EntityMaid requestMaid) {
+        Entity focusedEntity = focusedEntity(owner);
+        if (focusedEntity != null) {
+            boolean isRequestMaid = focusedEntity.getUUID().equals(requestMaid.getUUID());
+            String relation = isRequestMaid ? "current_maid_self" : focusedEntity instanceof EntityMaid ? "other_maid" : "entity";
+            return new FocusInfo(
+                    relation + ":" + entityTypeId(focusedEntity)
+                            + ",uuid=" + focusedEntity.getUUID()
+                            + ",distance=%.1f".formatted(focusedEntity.distanceTo(owner)),
+                    isRequestMaid
+            );
         }
-        BlockHitResult blockHit;
-        if (hit instanceof BlockHitResult directBlock) {
-            blockHit = directBlock;
-        } else {
-            blockHit = owner.level().clip(new ClipContext(
-                    owner.getEyePosition(),
-                    owner.getEyePosition().add(owner.getViewVector(1.0F).scale(12.0D)),
-                    ClipContext.Block.OUTLINE,
-                    ClipContext.Fluid.NONE,
-                    owner
-            ));
+
+        HitResult hit = owner.pick(FOCUS_RANGE, 1.0F, false);
+        BlockHitResult blockHit = hit instanceof BlockHitResult directBlock
+                ? directBlock
+                : owner.level().clip(new ClipContext(
+                owner.getEyePosition(),
+                owner.getEyePosition().add(owner.getViewVector(1.0F).scale(FOCUS_RANGE)),
+                ClipContext.Block.OUTLINE,
+                ClipContext.Fluid.NONE,
+                owner
+        ));
+        if (blockHit.getType() == HitResult.Type.MISS) {
+            return FocusInfo.NONE;
         }
         BlockPos pos = blockHit.getBlockPos();
-        ResourceLocation key = ForgeRegistries.BLOCKS.getKey(owner.level().getBlockState(pos).getBlock());
-        return "block:" + (key == null ? "unknown" : key) + "@" + pos.getX() + "," + pos.getY() + "," + pos.getZ();
+        BlockState state = owner.level().getBlockState(pos);
+        if (state.isAir()) {
+            return FocusInfo.NONE;
+        }
+        ResourceLocation key = ForgeRegistries.BLOCKS.getKey(state.getBlock());
+        return new FocusInfo("block:" + (key == null ? "unknown" : key)
+                + "@" + pos.getX() + "," + pos.getY() + "," + pos.getZ(), false);
+    }
+
+    private static Entity focusedEntity(LivingEntity owner) {
+        Vec3 eye = owner.getEyePosition();
+        Vec3 look = owner.getViewVector(1.0F).normalize();
+        return owner.level().getEntities(owner, owner.getBoundingBox().inflate(FOCUS_RANGE), entity -> entity.isAlive() && entity.isPickable())
+                .stream()
+                .map(entity -> new FocusCandidate(entity, focusScore(eye, look, entity)))
+                .filter(candidate -> candidate.score() > 0.0D)
+                .max(Comparator.comparingDouble(FocusCandidate::score))
+                .map(FocusCandidate::entity)
+                .orElse(null);
+    }
+
+    private static double focusScore(Vec3 eye, Vec3 look, Entity entity) {
+        Vec3 center = entity.getBoundingBox().getCenter();
+        Vec3 offset = center.subtract(eye);
+        double distance = offset.length();
+        if (distance <= 0.01D || distance > FOCUS_RANGE) {
+            return 0.0D;
+        }
+        double dot = offset.normalize().dot(look);
+        if (dot < ENTITY_FOCUS_DOT) {
+            return 0.0D;
+        }
+        return dot / Math.max(1.0D, distance);
+    }
+
+    private static String entityTypeId(Entity entity) {
+        ResourceLocation key = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        return key == null ? "unknown" : key.toString();
     }
 
     private static String timeLabel(long dayTime) {
@@ -129,5 +221,12 @@ public final class MaidViewPerceptionService {
         private int signature() {
             return java.util.Objects.hash(eventType, text);
         }
+    }
+
+    private record FocusInfo(String description, boolean ownerLookingAtRequestMaid) {
+        private static final FocusInfo NONE = new FocusInfo("none", false);
+    }
+
+    private record FocusCandidate(Entity entity, double score) {
     }
 }

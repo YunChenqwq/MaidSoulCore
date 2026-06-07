@@ -7,10 +7,12 @@ import com.maidsoul.brain.forge.MaidSoulCoreForgeMod;
 import com.maidsoul.brain.forge.config.ForgeBrainConfigInstaller;
 import com.maidsoul.brain.forge.config.ForgeDebugOptions;
 import com.maidsoul.brain.forge.debug.OwnerChatDebugEcho;
+import com.maidsoul.brain.forge.perception.MaidViewPerceptionService;
 import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.forge.soul.SoulBindingData;
 import com.maidsoul.brain.llm.OpenAiCompatibleClient;
 import com.maidsoul.brain.prompt.PromptCatalog;
+import com.maidsoul.brain.reasoning.EnvironmentObservationTool;
 import com.maidsoul.brain.reasoning.ViewObservationTool;
 import com.maidsoul.brain.runtime.ConversationRuntime;
 import com.maidsoul.brain.runtime.RuntimeTraceSink;
@@ -90,7 +92,8 @@ public final class MaidBrainRuntimeRegistry {
                     deliverToTlmChatBoxOrFallback(maid, debug, text);
                 },
                 trace,
-                plannerViewTool(maid)
+                plannerViewTool(maid),
+                plannerEnvironmentTool(maid)
         );
         holder[0] = runtime;
         runtime.start();
@@ -123,6 +126,20 @@ public final class MaidBrainRuntimeRegistry {
             @Override
             public String observe(String reason, long timeoutMillis) {
                 return MaidVisionService.requestPlannerSummary(maid, reason, timeoutMillis);
+            }
+        };
+    }
+
+    private static EnvironmentObservationTool plannerEnvironmentTool(EntityMaid maid) {
+        return new EnvironmentObservationTool() {
+            @Override
+            public boolean available() {
+                return maid != null && maid.isAlive() && maid.getOwner() != null;
+            }
+
+            @Override
+            public String scan(String reason) {
+                return MaidViewPerceptionService.scanForPlanner(maid, reason);
             }
         };
     }

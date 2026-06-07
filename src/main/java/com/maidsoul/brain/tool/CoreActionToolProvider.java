@@ -2,6 +2,7 @@ package com.maidsoul.brain.tool;
 
 import com.maidsoul.brain.config.BrainConfig;
 import com.maidsoul.brain.memory.MemoryRuntime;
+import com.maidsoul.brain.reasoning.EnvironmentObservationTool;
 import com.maidsoul.brain.reasoning.ViewObservationTool;
 
 import java.util.List;
@@ -17,6 +18,7 @@ public final class CoreActionToolProvider implements ToolProvider {
     private final BrainConfig config;
     private final MemoryRuntime memoryRuntime;
     private final ViewObservationTool viewObservationTool;
+    private final EnvironmentObservationTool environmentObservationTool;
     private final ToolRegistry registry;
     private final boolean includeTimingTools;
 
@@ -24,12 +26,14 @@ public final class CoreActionToolProvider implements ToolProvider {
             BrainConfig config,
             MemoryRuntime memoryRuntime,
             ViewObservationTool viewObservationTool,
+            EnvironmentObservationTool environmentObservationTool,
             ToolRegistry registry,
             boolean includeTimingTools
     ) {
         this.config = config;
         this.memoryRuntime = memoryRuntime;
         this.viewObservationTool = viewObservationTool == null ? ViewObservationTool.NONE : viewObservationTool;
+        this.environmentObservationTool = environmentObservationTool == null ? EnvironmentObservationTool.NONE : environmentObservationTool;
         this.registry = registry;
         this.includeTimingTools = includeTimingTools;
     }
@@ -41,7 +45,7 @@ public final class CoreActionToolProvider implements ToolProvider {
 
     @Override
     public List<ToolSpec> listTools(ToolAvailabilityContext context) {
-        return BuiltinToolSet.plannerTools(includeTimingTools, viewObservationTool.available()).stream()
+        return BuiltinToolSet.plannerTools(includeTimingTools, viewObservationTool.available(), environmentObservationTool.available()).stream()
                 .filter(tool -> config.memory().queryMemoryToolEnabled() || !"query_memory".equals(tool.name()))
                 .toList();
     }
@@ -50,6 +54,7 @@ public final class CoreActionToolProvider implements ToolProvider {
     public ToolExecutionResult invoke(ToolInvocation invocation, ToolExecutionContext context) {
         return switch (invocation.toolName()) {
             case "query_memory" -> queryMemory(invocation);
+            case "scan_environment" -> scanEnvironment(invocation);
             case "observe_view" -> observeView(invocation, context);
             case "tool_search" -> toolSearch(invocation);
             case "wait" -> pauseTool(invocation, "Planner 选择等待。", Map.of("pause_execution", true));
@@ -123,6 +128,32 @@ public final class CoreActionToolProvider implements ToolProvider {
                 List.of(),
                 Map.of()
         );
+    }
+
+    private ToolExecutionResult scanEnvironment(ToolInvocation invocation) {
+        if (!environmentObservationTool.available()) {
+            return new ToolExecutionResult(invocation.toolName(), false, "", "[现场扫描] Minecraft 结构化现场工具未接入。", null, List.of(), Map.of());
+        }
+        String reason = stringArg(invocation.arguments(), "reason", invocation.reasoning());
+        try {
+            String scan = environmentObservationTool.scan(reason);
+            String clean = scan == null ? "" : scan.trim();
+            String content = clean.isBlank()
+                    ? "[现场扫描] 没有返回有效现场状态。"
+                    : clean.startsWith("[现场扫描]") ? clean : "[现场扫描] " + clean;
+            return new ToolExecutionResult(
+                    invocation.toolName(),
+                    true,
+                    content,
+                    "",
+                    Map.of("reason", reason),
+                    List.of(),
+                    Map.of()
+            );
+        } catch (RuntimeException e) {
+            String message = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            return new ToolExecutionResult(invocation.toolName(), false, "", "[现场扫描] 结构化现场扫描失败：" + message, null, List.of(), Map.of());
+        }
     }
 
     private ToolExecutionResult observeView(ToolInvocation invocation, ToolExecutionContext context) {

@@ -5,6 +5,7 @@ import com.maidsoul.brain.forge.MaidSoulCoreForgeMod;
 import com.maidsoul.brain.forge.config.ForgeBrainConfigInstaller;
 import com.maidsoul.brain.forge.network.ModNetwork;
 import com.maidsoul.brain.forge.network.VisionCaptureRequestPacket;
+import com.maidsoul.brain.forge.perception.MaidViewPerceptionService;
 import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
 import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.vision.VisionConfig;
@@ -61,13 +62,14 @@ public final class MaidVisionService {
         CompletableFuture<String> future = new CompletableFuture<>();
         PENDING_SUMMARIES.put(requestId, future);
         rememberRequest(requestId, maid, player, "planner");
+        String enrichedSceneHint = MaidViewPerceptionService.sceneHintForVision(maid, sceneHint);
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
                 new VisionCaptureRequestPacket(
                         maid.getUUID(),
                         requestId,
                         "planner",
-                        sceneHint,
+                        enrichedSceneHint,
                         config.maxImageWidth(),
                         config.maxImageHeight(),
                         config.jpegQuality()
@@ -168,13 +170,14 @@ public final class MaidVisionService {
         cooldownMap.put(maidUuid, now);
         UUID requestId = UUID.randomUUID();
         rememberRequest(requestId, maid, player, manual ? "manual" : "auto");
+        String enrichedSceneHint = MaidViewPerceptionService.sceneHintForVision(maid, sceneHint);
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
                 new VisionCaptureRequestPacket(
                         maidUuid,
                         requestId,
                         manual ? "manual" : "auto",
-                        sceneHint,
+                        enrichedSceneHint,
                         config.maxImageWidth(),
                         config.maxImageHeight(),
                         config.jpegQuality()

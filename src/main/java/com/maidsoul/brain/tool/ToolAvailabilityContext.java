@@ -5,7 +5,7 @@ import java.util.Map;
 /**
  * 工具可见性判断上下文。
  *
- * <p>这对应 MaiBotDev 的 availability context：工具不是永远暴露给 planner，
+ * <p>这对应动态 availability context：工具不是永远暴露给 planner，
  * 而是根据当前阶段、会话、平台能力和配置动态决定。第一版先保留最小字段，
  * 后续接 Forge 行为工具、客户端工具和调试工具时继续扩展 metadata。</p>
  */
