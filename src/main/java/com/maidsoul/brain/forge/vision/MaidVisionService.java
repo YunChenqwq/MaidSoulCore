@@ -35,6 +35,7 @@ public final class MaidVisionService {
     private static final ConcurrentMap<UUID, Long> LAST_AUTO_REQUEST = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, Long> LAST_MANUAL_REQUEST = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, CompletableFuture<String>> PENDING_SUMMARIES = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<UUID, VisionRequestContext> PENDING_REQUESTS = new ConcurrentHashMap<>();
 
     private MaidVisionService() {
     }
@@ -59,6 +60,7 @@ public final class MaidVisionService {
         UUID requestId = UUID.randomUUID();
         CompletableFuture<String> future = new CompletableFuture<>();
         PENDING_SUMMARIES.put(requestId, future);
+        rememberRequest(requestId, maid, player, "planner");
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
                 new VisionCaptureRequestPacket(
@@ -75,21 +77,22 @@ public final class MaidVisionService {
             long waitMillis = Math.max(1000L, timeoutMillis);
             return future.get(waitMillis, TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
-            PENDING_SUMMARIES.remove(requestId);
+            forgetRequest(requestId);
             return "[视角摘要] 视觉观察超时，暂时没有拿到当前画面。";
         } catch (InterruptedException e) {
-            PENDING_SUMMARIES.remove(requestId);
+            forgetRequest(requestId);
             Thread.currentThread().interrupt();
             return "[视角摘要] 视觉观察被中断。";
         } catch (ExecutionException e) {
-            PENDING_SUMMARIES.remove(requestId);
+            forgetRequest(requestId);
             String message = e.getCause() == null ? e.getMessage() : e.getCause().getMessage();
             return "[视角摘要] 视觉观察失败：" + clip(message, 160);
         }
     }
 
     public static void receiveSummary(ServerPlayer player, UUID maidUuid, UUID requestId, String reason, String summary, String sceneHint) {
-        EntityMaid maid = findOwnedMaid(player, maidUuid);
+        VisionRequestContext requestContext = requestContext(requestId, maidUuid, player, reason);
+        EntityMaid maid = findRequestMaid(player, requestContext);
         if (maid == null) {
             notifyMissingMaid(player, reason);
             completePending(requestId, "[视角摘要] 没有找到可绑定的女仆。");
@@ -106,6 +109,7 @@ public final class MaidVisionService {
         completePending(requestId, cleanSummary);
         String detail = "source=" + reason
                 + ", owner=" + player.getName().getString()
+                + ", request_maid_uuid=" + requestContext.maidUuid()
                 + ", scene_hint=" + clip(sceneHint, 300)
                 + ", summary=" + clip(cleanSummary, 1200);
         MaidBrainRuntimeRegistry.receiveWorldEvent(maid, "owner.view.vision_summary", detail);
@@ -123,7 +127,8 @@ public final class MaidVisionService {
             completePending(requestId, "[视角摘要] 视觉模型未启用或未配置。");
             return;
         }
-        EntityMaid maid = findOwnedMaid(player, maidUuid);
+        VisionRequestContext requestContext = requestContext(requestId, maidUuid, player, reason);
+        EntityMaid maid = findRequestMaid(player, requestContext);
         if (maid == null) {
             notifyMissingMaid(player, reason);
             completePending(requestId, "[视角摘要] 没有找到可绑定的女仆。");
@@ -161,11 +166,13 @@ public final class MaidVisionService {
             return false;
         }
         cooldownMap.put(maidUuid, now);
+        UUID requestId = UUID.randomUUID();
+        rememberRequest(requestId, maid, player, manual ? "manual" : "auto");
         ModNetwork.CHANNEL.send(
                 PacketDistributor.PLAYER.with(() -> player),
                 new VisionCaptureRequestPacket(
                         maidUuid,
-                        UUID.randomUUID(),
+                        requestId,
                         manual ? "manual" : "auto",
                         sceneHint,
                         config.maxImageWidth(),
@@ -181,37 +188,69 @@ public final class MaidVisionService {
             return;
         }
         CompletableFuture<String> future = PENDING_SUMMARIES.remove(requestId);
+        PENDING_REQUESTS.remove(requestId);
         if (future != null) {
             future.complete(summary);
         }
     }
 
-    private static EntityMaid findOwnedMaid(ServerPlayer player, UUID maidUuid) {
-        if (player == null || maidUuid == null) {
+    private static void rememberRequest(UUID requestId, EntityMaid maid, ServerPlayer player, String reason) {
+        if (requestId == null || maid == null || player == null) {
+            return;
+        }
+        PENDING_REQUESTS.put(requestId, new VisionRequestContext(
+                maid.getUUID(),
+                player.getUUID(),
+                reason == null ? "" : reason
+        ));
+    }
+
+    private static void forgetRequest(UUID requestId) {
+        if (requestId == null) {
+            return;
+        }
+        PENDING_SUMMARIES.remove(requestId);
+        PENDING_REQUESTS.remove(requestId);
+    }
+
+    private static VisionRequestContext requestContext(UUID requestId, UUID packetMaidUuid, ServerPlayer player, String reason) {
+        VisionRequestContext pending = requestId == null ? null : PENDING_REQUESTS.get(requestId);
+        if (pending != null) {
+            return pending;
+        }
+        return new VisionRequestContext(
+                packetMaidUuid,
+                player == null ? null : player.getUUID(),
+                reason == null ? "" : reason
+        );
+    }
+
+    private static EntityMaid findRequestMaid(ServerPlayer player, VisionRequestContext requestContext) {
+        if (player == null || requestContext == null || requestContext.maidUuid() == null) {
             return null;
         }
-        // 默认视角摘要是异步链路：截图和 VLM 返回之间，玩家可能离开女仆附近。
-        // 因此不能只扫玩家附近 64 格，否则会出现“直接工具调用正常，自动摘要回写找不到女仆”。
+        // 世界事件归属按请求上下文走：哪只女仆发起了视觉请求，摘要就写回哪只女仆的 runtime。
+        // 玩家只是截图客户端/回包来源，不能用“玩家附近有什么女仆”来决定世界事件写给谁。
         for (ServerLevel level : player.server.getAllLevels()) {
-            Entity entity = level.getEntity(maidUuid);
-            if (entity instanceof EntityMaid maid && canWriteForOwner(player, maid)) {
+            Entity entity = level.getEntity(requestContext.maidUuid());
+            if (entity instanceof EntityMaid maid && canWriteForRequestOwner(requestContext, maid)) {
                 return maid;
             }
         }
         for (EntityMaid maid : player.level().getEntitiesOfClass(EntityMaid.class, player.getBoundingBox().inflate(64.0D))) {
-            if (!maid.getUUID().equals(maidUuid)) {
+            if (!maid.getUUID().equals(requestContext.maidUuid())) {
                 continue;
             }
-            if (canWriteForOwner(player, maid)) {
+            if (canWriteForRequestOwner(requestContext, maid)) {
                 return maid;
             }
         }
         return null;
     }
 
-    private static boolean canWriteForOwner(ServerPlayer player, EntityMaid maid) {
+    private static boolean canWriteForRequestOwner(VisionRequestContext requestContext, EntityMaid maid) {
         LivingEntity owner = maid.getOwner();
-        return owner == null || owner.getUUID().equals(player.getUUID());
+        return owner == null || requestContext.ownerUuid() == null || owner.getUUID().equals(requestContext.ownerUuid());
     }
 
     private static void notifyMissingMaid(ServerPlayer player, String reason) {
@@ -224,5 +263,8 @@ public final class MaidVisionService {
     private static String clip(String text, int max) {
         String clean = text == null ? "" : text.replace('\r', ' ').replace('\n', ' ').trim();
         return clean.length() <= max ? clean : clean.substring(0, max) + "...";
+    }
+
+    private record VisionRequestContext(UUID maidUuid, UUID ownerUuid, String reason) {
     }
 }
