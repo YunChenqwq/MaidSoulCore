@@ -10,8 +10,10 @@ import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.vision.VisionConfig;
 import com.maidsoul.brain.vision.VisionSummaryClient;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Entity;
 import net.minecraftforge.network.PacketDistributor;
 
 import java.util.UUID;
@@ -89,7 +91,7 @@ public final class MaidVisionService {
     public static void receiveSummary(ServerPlayer player, UUID maidUuid, UUID requestId, String reason, String summary, String sceneHint) {
         EntityMaid maid = findOwnedMaid(player, maidUuid);
         if (maid == null) {
-            player.sendSystemMessage(Component.literal("没有找到可写入视觉摘要的女仆。"));
+            notifyMissingMaid(player, reason);
             completePending(requestId, "[视角摘要] 没有找到可绑定的女仆。");
             return;
         }
@@ -123,7 +125,7 @@ public final class MaidVisionService {
         }
         EntityMaid maid = findOwnedMaid(player, maidUuid);
         if (maid == null) {
-            player.sendSystemMessage(Component.literal("没有找到可写入视觉摘要的女仆。"));
+            notifyMissingMaid(player, reason);
             completePending(requestId, "[视角摘要] 没有找到可绑定的女仆。");
             return;
         }
@@ -185,16 +187,38 @@ public final class MaidVisionService {
     }
 
     private static EntityMaid findOwnedMaid(ServerPlayer player, UUID maidUuid) {
+        if (player == null || maidUuid == null) {
+            return null;
+        }
+        // 默认视角摘要是异步链路：截图和 VLM 返回之间，玩家可能离开女仆附近。
+        // 因此不能只扫玩家附近 64 格，否则会出现“直接工具调用正常，自动摘要回写找不到女仆”。
+        for (ServerLevel level : player.server.getAllLevels()) {
+            Entity entity = level.getEntity(maidUuid);
+            if (entity instanceof EntityMaid maid && canWriteForOwner(player, maid)) {
+                return maid;
+            }
+        }
         for (EntityMaid maid : player.level().getEntitiesOfClass(EntityMaid.class, player.getBoundingBox().inflate(64.0D))) {
             if (!maid.getUUID().equals(maidUuid)) {
                 continue;
             }
-            LivingEntity owner = maid.getOwner();
-            if (owner == null || owner.getUUID().equals(player.getUUID())) {
+            if (canWriteForOwner(player, maid)) {
                 return maid;
             }
         }
         return null;
+    }
+
+    private static boolean canWriteForOwner(ServerPlayer player, EntityMaid maid) {
+        LivingEntity owner = maid.getOwner();
+        return owner == null || owner.getUUID().equals(player.getUUID());
+    }
+
+    private static void notifyMissingMaid(ServerPlayer player, String reason) {
+        // auto 是后台 45 秒摘要，不能因为一次异步回包定位失败就刷玩家聊天。
+        if (!"auto".equals(reason)) {
+            player.sendSystemMessage(Component.literal("没有找到可写入视觉摘要的女仆。"));
+        }
     }
 
     private static String clip(String text, int max) {
