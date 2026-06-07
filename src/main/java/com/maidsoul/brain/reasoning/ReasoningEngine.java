@@ -99,6 +99,8 @@ public final class ReasoningEngine {
 
         boolean memoryQueried = false;
         boolean viewObserved = false;
+        boolean toolExecuted = false;
+        String lastToolResult = "";
 
         for (int round = 0; round < Math.max(1, config.flow().maxInternalRounds()); round++) {
             if (cycleVersion != currentVersion.getAsLong()) {
@@ -151,7 +153,12 @@ public final class ReasoningEngine {
             trace.trace("planner", plan.action() + " target=" + plan.targetMessageId() + " / " + plan.reason());
             applyPlannerAffectEvent(plan);
             applyPlannerMemoryEvent(plan);
+            if ("finish".equals(plan.action())) {
+                trace.trace("tool.finish", "Planner 结束本轮内部思考。");
+                return Result.noAction();
+            }
             if ("wait".equals(plan.action())) {
+                appendToolResult("wait", true, "Planner 选择等待 " + (plan.waitSeconds() > 0 ? plan.waitSeconds() : config.flow().defaultWaitSeconds()) + " 秒。");
                 return Result.waiting(plan.waitSeconds() > 0 ? plan.waitSeconds() : config.flow().defaultWaitSeconds());
             }
             if ("no_action".equals(plan.action())) {
@@ -159,38 +166,41 @@ public final class ReasoningEngine {
                     trace.trace("planner.override", "真实用户输入仍需回应，覆盖 planner no_action。");
                     plan = PlanDecision.replyLatest("玩家刚发来可回应内容，不能把真实输入当成主动沉默事件。");
                 } else {
+                    appendToolResult("no_action", true, "Planner 选择本轮不发言，等待新的外部消息。");
                     return Result.noAction();
                 }
             }
             if ("query_memory".equals(plan.action())) {
                 if (memoryQueried) {
-                    trace.trace("tool.query_memory.skip", "本轮已经查询过记忆，避免重复检索。");
-                    plan = PlanDecision.replyLatest("本轮已经检索过记忆，直接依据现有上下文回复。");
+                    lastToolResult = appendToolResult("query_memory", false, "本轮已经查询过记忆，避免重复检索。");
+                    trace.trace("tool.query_memory.skip", lastToolResult);
                 } else {
                     memoryQueried = true;
                     String memoryText = queryMemory(plan.targetMessageId(), plan.reason());
-                    session.appendReference(memoryText);
+                    lastToolResult = appendToolResult("query_memory", true, memoryText);
                     trace.trace("tool.query_memory", memoryText);
-                    // 当前原型还没有真实长期记忆后端。继续回到规划器只会多打一轮模型请求，
-                    // 而且检索结果已经足够交给回复器参考，所以这里直接进入可见回复阶段。
-                    plan = PlanDecision.replyLatest("已完成一次记忆检索，直接结合检索结果和最近聊天回复。", memoryText);
                 }
+                toolExecuted = true;
+                continue;
             }
             if ("observe_view".equals(plan.action())) {
                 if (viewObserved) {
-                    trace.trace("tool.observe_view.skip", "本轮已经观察过当前视角，避免重复截图。");
-                    plan = PlanDecision.replyLatest("本轮已经获取过当前视角摘要，直接结合观察结果回复。");
+                    lastToolResult = appendToolResult("observe_view", false, "本轮已经观察过当前视角，避免重复截图。");
+                    trace.trace("tool.observe_view.skip", lastToolResult);
                 } else {
                     viewObserved = true;
                     String viewText = observeView(plan.reason());
-                    session.appendReference(viewText);
+                    lastToolResult = appendToolResult("observe_view", true, viewText);
                     trace.trace("tool.observe_view", viewText);
-                    plan = PlanDecision.replyLatest("已获取当前视角摘要，结合观察结果回复。", viewText);
                 }
+                toolExecuted = true;
+                continue;
             }
             if (!"reply".equals(plan.action())) {
-                session.appendInternal("未知动作已忽略: " + plan.action());
-                return Result.noAction();
+                lastToolResult = appendToolResult(plan.action(), false, "未知动作已忽略: " + plan.action());
+                trace.trace("tool.unknown", lastToolResult);
+                toolExecuted = true;
+                continue;
             }
 
             ChatMessage target = resolveReplyTarget(plan, anchor, proactiveEvent);
@@ -222,7 +232,46 @@ public final class ReasoningEngine {
             }
             return Result.streamed(reply, target, effectiveReason, plan.referenceInfo());
         }
+        if (toolExecuted) {
+            trace.trace("tool.loop.max_rounds", "已达到内部工具循环上限，使用现有工具结果进入回复阶段。");
+            ChatMessage target = resolveReplyTarget(PlanDecision.replyLatest("工具结果已获取，结合上下文回复。"), anchor, proactiveEvent);
+            String replyerContext = contextWindow.renderForReplyer(session.contextWindow(config.flow().historyWindow()), dialogueState);
+            String reply;
+            long replyStarted = System.currentTimeMillis();
+            try {
+                ReplyComposer.LlmReply composed = replyComposer.composeStreamingWithMeta(
+                        replyerContext,
+                        target,
+                        "已执行工具但达到内部轮次上限，结合工具结果回复。",
+                        lastToolResult,
+                        guardedDeltaConsumer(cycleVersion, currentVersion),
+                        interruptFlag
+                );
+                reply = composed.content();
+                flushStream(cycleVersion, currentVersion);
+                traceModelDone("replyer", replyStarted, config.model().replyerSlowThresholdMillis(),
+                        "model=" + composed.model() + " " + composed.metricsSummary());
+            } catch (LlmRequestException e) {
+                if ("aborted".equals(e.failureKind())) {
+                    trace.trace("llm.replyer.aborted", e.traceText());
+                    return Result.noAction();
+                }
+                trace.trace("llm.replyer.error", e.traceText());
+                reply = fallbackReply(target, e);
+            }
+            return Result.streamed(reply, target, "工具循环达到上限，结合工具结果回复。", lastToolResult);
+        }
         return Result.noAction();
+    }
+
+    private String appendToolResult(String toolName, boolean success, String content) {
+        String safeToolName = toolName == null || toolName.isBlank() ? "unknown" : toolName.trim();
+        String safeContent = content == null ? "" : content.trim();
+        String result = "[工具结果] " + safeToolName
+                + " success=" + success
+                + (safeContent.isBlank() ? "" : "\n" + safeContent);
+        session.appendReference(result);
+        return result;
     }
 
     private void applyPlannerAffectEvent(PlanDecision plan) {

@@ -126,7 +126,7 @@ final class PlannerAgent {
             );
             case "wait" -> new PlanDecision("wait", "", intArg(args, "seconds", config.flow().defaultWaitSeconds()), compactReason, "", affectEvent, memoryEvent);
             case "no_action" -> new PlanDecision("no_action", "", 0, compactReason, "", affectEvent, memoryEvent);
-            case "finish" -> new PlanDecision("no_action", "", 0, compactReason, "");
+            case "finish" -> new PlanDecision("finish", "", 0, compactReason, "");
             case "query_memory" -> new PlanDecision("query_memory", stringArg(args, "query", ""), 0, compactReason, "");
             case "observe_view" -> new PlanDecision("observe_view", "", 0, compactReason, "");
             default -> PlanDecision.replyLatest("规划器调用了未知工具，按最新消息回复。");
