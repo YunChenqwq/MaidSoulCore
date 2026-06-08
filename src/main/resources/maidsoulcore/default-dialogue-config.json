@@ -1,0 +1,26 @@
+{
+  "botName": "灵汐",
+  "ownerName": "主人",
+  "historyWindow": 28,
+  "messageDebounceMillis": 900,
+  "maxInternalRounds": 8,
+  "defaultWaitSeconds": 12,
+  "llmTimeoutMillis": 60000,
+  "enableIndependentTimingGate": true,
+  "timingGateCooldownMillis": 1200,
+  "replyRetryCount": 2,
+  "debug": {
+    "echoTraceToOwnerChat": true,
+    "echoPromptToOwnerChat": false,
+    "echoReplyToOwnerChat": true,
+    "echoRawTlmMessages": true,
+    "maxChatEchoChars": 260
+  },
+  "model": {
+    "baseUrl": "https://api.siliconflow.cn/v1/chat/completions",
+    "apiKey": "",
+    "model": "deepseek-ai/DeepSeek-V4-Flash",
+    "temperature": 0.65,
+    "maxTokens": 900
+  }
+}

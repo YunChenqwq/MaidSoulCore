@@ -1,0 +1,1150 @@
+[2026-04-08 14:37:54] 【系统】欢迎进入 MaidSoulCore 陪伴式模拟器。
+[2026-04-08 14:37:54] 【系统】你现在只需要直接打字聊天。世界会自动随机发生事件。
+[2026-04-08 14:37:54] 【系统】日志文件: E:\wallpaper\MaidSoulCore\logs\text-game.log
+[2026-04-08 14:37:54] 【世界事件: system.proactive_tick】[纱雾|siliconflow-deepseek-v3.2|平静] 我在这里，主人。
+[2026-04-08 14:37:54] 【调试】route=REPLY_ONLY mood=MoodState[valence=0.25, arousal=0.15, bond=0.35] action=待机
+[2026-04-08 14:38:06] 【你】你好呀
+[2026-04-08 14:38:06] 【你的发言】[纱雾|siliconflow-deepseek-v3.2|平静] 主人刚刚说的是“你好呀”，我先看着你再回答。
+[2026-04-08 14:38:06] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.35, arousal=0.15, bond=0.43] action=面向主人，准备互动
+[2026-04-08 14:38:06] 【计划】[focus_owner, capture_view, reply]
+[2026-04-08 14:38:06] 【工具】[focus_owner => 已关注主人视角, capture_view => 视觉输入: 主人位于(2, 64, 1)，女仆位于(0, 64, 0)，附近威胁=无, reply => 进入回复生成阶段]
+[2026-04-08 14:38:06] 【世界事件: system.proactive_tick】[纱雾|siliconflow-deepseek-v3.2|困倦] 我有点困了，不过还会继续陪着主人。
+[2026-04-08 14:38:06] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=面向主人，准备互动
+[2026-04-08 14:38:30] 【你】今晚你想吃什么
+[2026-04-08 14:38:30] 【你的发言】[纱雾|siliconflow-deepseek-v3.2|困倦] 主人刚刚说的是“今晚你想吃什么”，我先看着你再回答。
+[2026-04-08 14:38:30] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.09999999999999998, arousal=0.2, bond=0.43] action=面向主人，准备互动
+[2026-04-08 14:38:30] 【计划】[focus_owner, capture_view, reply]
+[2026-04-08 14:38:30] 【工具】[focus_owner => 已关注主人视角, capture_view => 视觉输入: 主人位于(2, 64, 1)，女仆位于(0, 64, 0)，附近威胁=无, reply => 进入回复生成阶段]
+[2026-04-08 14:38:30] 【世界事件: system.proactive_tick】[纱雾|siliconflow-deepseek-v3.2|困倦] 我有点困了，不过还会继续陪着主人。
+[2026-04-08 14:38:30] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=面向主人，准备互动
+[2026-04-08 14:38:42] 【状态】主人=主人 owner-demo-01
+女仆=小女仆 血量=20.0/20 能量=0% 饥饿=100% 睡眠=否 坐下=否
+位置: 女仆=(0, 64, 0) 主人=(2, 64, 1) 家=(0, 64, 0) 距主人=2.2 格
+环境: 时间=白天(1147) 附近威胁=无
+感知: 视觉输入: 主人位于(2, 64, 1)，女仆位于(0, 64, 0)，附近威胁=无
+记忆: 上句="今晚你想吃什么" 上次动作=面向主人，准备互动 上次回复="[纱雾|siliconflow-deepseek-v3.2|困倦] 我有点困了，不过还会继续陪着主人。"
+
+[2026-04-08 14:39:31] 【你】我喜欢你
+[2026-04-08 14:39:31] 【你的发言】[纱雾|siliconflow-deepseek-v3.2|困倦] 主人刚刚说的是“我喜欢你”，我先看着你再回答。
+[2026-04-08 14:39:31] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.09999999999999998, arousal=0.2, bond=0.43] action=面向主人，准备互动
+[2026-04-08 14:39:31] 【计划】[focus_owner, capture_view, reply]
+[2026-04-08 14:39:31] 【工具】[focus_owner => 已关注主人视角, capture_view => 视觉输入: 主人位于(2, 64, 1)，女仆位于(0, 64, 0)，附近威胁=无, reply => 进入回复生成阶段]
+[2026-04-08 14:39:31] 【随机事件: maid.attacked】[纱雾|siliconflow-deepseek-v3.2|警戒] 我被攻击了，会先进入警戒并保护自己。
+[2026-04-08 14:39:31] 【调试】route=LOCAL_RULE mood=MoodState[valence=-1.0, arousal=1.0, bond=0.35] action=表现情绪: 受惊
+[2026-04-08 14:39:31] 【计划】[defend_self, move_to_owner, emote, reply]
+[2026-04-08 14:39:31] 【工具】[defend_self => 进入自卫状态，目标=蜘蛛, move_to_owner => 已移动到主人附近, emote => 情绪动作=受惊, reply => 进入回复生成阶段]
+[2026-04-08 14:39:31] 【世界事件: system.proactive_tick】[纱雾|siliconflow-deepseek-v3.2|警戒] 我暂时不闲聊，附近还有威胁需要继续观察。
+[2026-04-08 14:39:31] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.6, arousal=0.75, bond=0.35] action=表现情绪: 受惊
+[2026-04-08 15:01:27] 【系统】欢迎进入 MaidSoulCore 陪伴式模拟器。
+[2026-04-08 15:01:27] 【系统】你现在只需要直接打字聊天。世界会自动随机发生事件。
+[2026-04-08 15:01:27] 【系统】日志文件: E:\wallpaper\MaidSoulCore\logs\text-game.log
+[2026-04-08 15:01:31] 【世界事件: system.proactive_tick】
+[2026-04-08 15:01:31] 【调试】route=DROP mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=待机
+[2026-04-08 15:01:31] 【计划】[]
+[2026-04-08 15:01:41] 【你】你好呀
+[2026-04-08 15:01:52] 【你的发言】尼桑……现在才来打招呼呐？
+[2026-04-08 15:01:52] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.09999999999999998, arousal=0.2, bond=0.43] action=快速靠近主人
+[2026-04-08 15:01:52] 【计划】[emote, move_to_owner]
+[2026-04-08 15:01:52] 【工具】[emote => 情绪动作=平静, move_to_owner => 已移动到主人附近]
+[2026-04-08 15:01:56] 【世界事件: system.proactive_tick】
+[2026-04-08 15:01:56] 【调试】route=DROP mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=快速靠近主人
+[2026-04-08 15:01:56] 【计划】[]
+[2026-04-08 15:01:56] 【状态】主人=主人 owner-demo-01
+女仆=小女仆 血量=20.0/20 能量=0% 饥饿=100% 睡眠=否 坐下=否
+位置: 女仆=(2, 64, 1) 主人=(2, 64, 1) 家=(0, 64, 0) 距主人=0.0 格
+环境: 时间=白天(1118) 附近威胁=无
+感知: 主人附近安静，没有明显威胁
+记忆: 上句="你好呀" 上次动作=快速靠近主人 上次回复="尼桑……现在才来打招呼呐？"
+
+[2026-04-08 15:01:56] 【状态】主人=主人 owner-demo-01
+女仆=小女仆 血量=20.0/20 能量=0% 饥饿=100% 睡眠=否 坐下=否
+位置: 女仆=(2, 64, 1) 主人=(2, 64, 1) 家=(0, 64, 0) 距主人=0.0 格
+环境: 时间=白天(1118) 附近威胁=无
+感知: 主人附近安静，没有明显威胁
+记忆: 上句="你好呀" 上次动作=快速靠近主人 上次回复="尼桑……现在才来打招呼呐？"
+
+[2026-04-08 15:33:43] 【系统】欢迎进入 MaidSoulCore 陪伴式模拟器。
+[2026-04-08 15:33:43] 【系统】现在世界会自动随机发生事件，你只需要正常聊天。
+[2026-04-08 15:33:43] 【系统】日志文件: E:\wallpaper\MaidSoulCore\logs\text-game.log
+[2026-04-08 15:33:48] 【世界事件】(本轮未对外发言)
+[2026-04-08 15:33:48] 【调试】route=DROP mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=待机
+[2026-04-08 15:33:48] 【计划】[]
+[2026-04-08 15:34:56] 【你】你在干嘛啊1
+[2026-04-08 15:35:12] 【你的发言】在、在发呆呐……尼桑突然问这个好害羞！
+[2026-04-08 15:35:12] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.09999999999999998, arousal=0.2, bond=0.43] action=待机
+[2026-04-08 15:35:12] 【计划】[]
+[2026-04-08 15:35:16] 【世界事件】(本轮未对外发言)
+[2026-04-08 15:35:16] 【调试】route=DROP mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=待机
+[2026-04-08 15:35:16] 【计划】[]
+[2026-04-08 15:35:43] 【你】（来到外面砍树）
+[2026-04-08 15:35:58] 【你的发言】尼桑去砍树了？……要做什么东西嘛？
+[2026-04-08 15:35:58] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.09999999999999998, arousal=0.2, bond=0.43] action=待机
+[2026-04-08 15:35:58] 【计划】[]
+[2026-04-08 15:36:13] 【世界事件】外面好安静呢……尼桑要不要来陪纱雾？
+[2026-04-08 15:36:13] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=表现情绪: 平静
+[2026-04-08 15:36:13] 【计划】[emote]
+[2026-04-08 15:36:13] 【工具】[emote => 情绪动作=平静]
+[2026-04-08 15:36:21] 【世界事件】尼桑还没回来嘛……纱雾在等哦。
+[2026-04-08 15:36:21] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=表现情绪: 平静
+[2026-04-08 15:36:21] 【计划】[]
+[2026-04-08 15:37:26] 【你】我回来了
+[2026-04-08 15:37:45] 【你的发言】啊！尼桑回来了！……纱雾等好久了呐！
+[2026-04-08 15:37:45] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.09999999999999998, arousal=0.2, bond=0.43] action=快速靠近主人
+[2026-04-08 15:37:45] 【计划】[emote, move_to_owner]
+[2026-04-08 15:37:45] 【工具】[emote => 情绪动作=平静, move_to_owner => 已移动到主人附近]
+[2026-04-08 15:37:52] 【世界事件】尼桑在身边……纱雾就安心了呐。
+[2026-04-08 15:37:52] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=快速靠近主人
+[2026-04-08 15:37:52] 【计划】[]
+[2026-04-08 15:39:01] 【你】你帮我看看我面前是什么
+[2026-04-08 15:39:14] 【你的发言】纱雾也看不清呢……尼桑能告诉纱雾是什么嘛？
+[2026-04-08 15:39:14] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.09999999999999998, arousal=0.2, bond=0.43] action=表现情绪: 平静
+[2026-04-08 15:39:14] 【计划】[capture_view, focus_owner, emote]
+[2026-04-08 15:39:14] 【工具】[capture_view => 视觉输入: 主人位于(2, 64, 1)，女仆位于(2, 64, 1)，附近威胁=无, focus_owner => 已关注主人视角, emote => 情绪动作=平静]
+[2026-04-08 15:39:26] 【世界事件】啊……是面包呢。谢谢尼桑……纱雾正好有点饿了。
+[2026-04-08 15:39:26] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.44999999999999996, arousal=0.09999999999999999, bond=0.53] action=表现情绪: 平静
+[2026-04-08 15:39:26] 【计划】[accept_item, emote]
+[2026-04-08 15:39:26] 【工具】[accept_item => 已吃下 面包, emote => 情绪动作=平静]
+[2026-04-08 15:39:35] 【世界事件】尼桑喂的面包……很温暖呢。纱雾还想和尼桑多待一会儿。
+[2026-04-08 15:39:35] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=表现情绪: 平静
+[2026-04-08 15:39:35] 【计划】[]
+[2026-04-08 15:40:25] 【状态】主人=主人 owner-demo-01
+女仆=小女仆 血量=20.0/20 能量=0% 饥饿=100% 睡眠=否 坐下=否
+位置: 女仆=(2, 64, 1) 主人=(2, 64, 1) 家=(0, 64, 0) 距主人=0.0 格
+环境: 时间=白天(1267) 附近威胁=无
+感知: 视觉输入: 主人位于(2, 64, 1)，女仆位于(2, 64, 1)，附近威胁=无
+记忆: 上句="你帮我看看我面前是什么" 上次动作=表现情绪: 平静 上次回复="尼桑喂的面包……很温暖呢。纱雾还想和尼桑多待一会儿。"
+
+[2026-04-08 15:40:36] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=22
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social event with active bond
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无","plan_summary":"无新事件或对话，无需主动发言。","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#7 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=66
+#8 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#9 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应询问","plan_summary":"简短回应主人的询问，说明当前状态。","tool_goal":"","reply_focus":"回答‘在干嘛’的问题，说明自己正在待机。"}
+#10 stage=REPLY type=owner.talk priority=P1 reason=在、在发呆呐……尼桑突然问这个好害羞！
+#11 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#12 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=111
+#13 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social event with active bond
+#14 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无","plan_summary":"刚回复过，避免频繁打扰，本轮不回复","tool_goal":"","reply_focus":""}
+#15 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#16 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#17 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=155
+#18 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#19 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"好奇","intent":"回应行动并表达关心","plan_summary":"对主人外出砍树的行为表示好奇并询问目的","tool_goal":"","reply_focus":"关注主人砍树的行为，用好奇的语气询问目的，保持软萌依赖的妹妹感"}
+#20 stage=REPLY type=owner.talk priority=P1 reason=尼桑去砍树了？……要做什么东西嘛？
+#21 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#22 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=家外安静，小女仆待机中，主人在远处砍树，环境无威胁，可继续陪伴。
+#23 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#24 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静中带着一丝好奇","intent":"回应环境感知事件并表达陪伴意愿","plan_summary":"基于环境安静的事件，表达愿意陪伴但有点无聊的心情","tool_goal":"","reply_focus":"注意到家附近很安静，想和尼桑待在一起但又有点无聊"}
+#25 stage=EXECUTE type=vision.capture priority=P1 reason=emote => 情绪动作=平静
+#26 stage=REPLY type=vision.capture priority=P1 reason=外面好安静呢……尼桑要不要来陪纱雾？
+#27 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#28 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=267
+#29 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social event with active bond
+#30 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"延续陪伴话题，表达等待","plan_summary":"在安静环境中继续表达希望主人陪伴的意愿","tool_goal":"","reply_focus":"延续上一轮的陪伴邀请，用平静但期待的语气表达等待"}
+#31 stage=REPLY type=system.proactive_tick priority=P2 reason=尼桑还没回来嘛……纱雾在等哦。
+#32 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#33 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=312
+#34 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#35 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"开心","intent":"回应主人回家并表达喜悦","plan_summary":"听到主人回家，开心地回应并表达等待的心情","tool_goal":"","reply_focus":"重点回应“我回来了”，表达等待后的喜悦和欢迎"}
+#36 stage=EXECUTE type=owner.talk priority=P1 reason=emote => 情绪动作=平静
+#37 stage=EXECUTE type=owner.talk priority=P1 reason=move_to_owner => 已移动到主人附近
+#38 stage=REPLY type=owner.talk priority=P1 reason=啊！尼桑回来了！……纱雾等好久了呐！
+#39 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#40 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=357
+#41 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social event with active bond
+#42 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"延续陪伴状态，表达安心感","plan_summary":"纱雾在主人回来后保持陪伴状态，表达安心","tool_goal":"","reply_focus":"表达尼桑回来后的安心感，延续刚才的喜悦情绪"}
+#43 stage=REPLY type=system.proactive_tick priority=P2 reason=尼桑在身边……纱雾就安心了呐。
+#44 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#45 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=402
+#46 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#47 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"好奇","intent":"回应主人的请求，表达自己也在观察但可能看不清的依赖感","plan_summary":"回应主人让帮忙看东西的请求，表达自己也在看但需要主人确认的依赖","tool_goal":"","reply_focus":"表达自己也在努力看，但需要主人确认，体现依赖和软萌"}
+#48 stage=EXECUTE type=owner.talk priority=P1 reason=capture_view => 视觉输入: 主人位于(2, 64, 1)，女仆位于(2, 64, 1)，附近威胁=无
+#49 stage=EXECUTE type=owner.talk priority=P1 reason=focus_owner => 已关注主人视角
+#50 stage=EXECUTE type=owner.talk priority=P1 reason=emote => 情绪动作=平静
+#51 stage=REPLY type=owner.talk priority=P1 reason=纱雾也看不清呢……尼桑能告诉纱雾是什么嘛？
+#52 stage=INGEST type=owner.feed priority=P1 reason=accepted
+#53 stage=NORMALIZE type=owner.feed priority=P1 reason=blackboard.version=447
+#54 stage=GATE type=owner.feed priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#55 stage=PLAN type=owner.feed priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"开心/害羞","intent":"回应主人喂食事件，表达感谢和害羞","plan_summary":"主人喂了面包，虽然害羞但很开心，要感谢主人","tool_goal":"","reply_focus":"对喂食的感谢，以及因被照顾而产生的害羞感"}
+#56 stage=EXECUTE type=owner.feed priority=P1 reason=accept_item => 已吃下 面包
+#57 stage=EXECUTE type=owner.feed priority=P1 reason=emote => 情绪动作=平静
+#58 stage=REPLY type=owner.feed priority=P1 reason=啊……是面包呢。谢谢尼桑……纱雾正好有点饿了。
+#59 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#60 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=492
+#61 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social event with active bond
+#62 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"延续陪伴状态，表达满足感","plan_summary":"纱雾吃完面包后，自然地表达满足和陪伴感","tool_goal":"","reply_focus":"回应刚才的喂食，表达满足和继续陪伴的意愿"}
+#63 stage=REPLY type=system.proactive_tick priority=P2 reason=尼桑喂的面包……很温暖呢。纱雾还想和尼桑多待一会儿。
+
+[2026-04-08 15:42:03] 【快捷命令】欢迎回来……尼桑。
+[2026-04-08 15:42:03] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=表现情绪: 平静
+[2026-04-08 15:42:03] 【计划】[return_home, emote]
+[2026-04-08 15:42:03] 【工具】[return_home => 已回家, emote => 情绪动作=平静]
+[2026-04-08 15:42:46] 【你】（有僵尸进来打了一下小女仆）
+[2026-04-08 15:43:00] 【你的发言】诶？！僵尸……尼桑和小女仆都没事叭？纱雾好担心……
+[2026-04-08 15:43:00] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.09999999999999998, arousal=0.2, bond=0.43] action=表现情绪: 平静
+[2026-04-08 15:43:00] 【计划】[capture_view]
+[2026-04-08 15:43:00] 【工具】[capture_view => 视觉输入: 主人位于(2, 64, 1)，女仆位于(0, 64, 0)，附近威胁=无]
+[2026-04-08 15:43:18] 【世界事件】呜……是苹果呐。谢谢尼桑……
+[2026-04-08 15:43:18] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.44999999999999996, arousal=0.09999999999999999, bond=0.53] action=接受投喂: 苹果
+[2026-04-08 15:43:18] 【计划】[accept_item]
+[2026-04-08 15:43:18] 【工具】[accept_item => 已吃下 苹果]
+[2026-04-08 15:43:25] 【世界事件】尼桑在身边……纱雾就觉得安心多了呢。
+[2026-04-08 15:43:25] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.19999999999999998, arousal=0.2, bond=0.35] action=接受投喂: 苹果
+[2026-04-08 15:43:25] 【计划】[]
+[2026-04-08 15:43:48] 【你】我们去打末影龙吧
+[2026-04-08 15:44:00] 【你的发言】诶？！末影龙……那种东西超可怕的！纱雾才不要出门呐！
+[2026-04-08 15:44:00] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.5, arousal=0.75, bond=0.43] action=进入自卫警戒: 未知目标
+[2026-04-08 15:44:00] 【计划】[emote, defend_self]
+[2026-04-08 15:44:00] 【工具】[emote => 情绪动作=平静, defend_self => 进入自卫状态，目标=未知目标]
+[2026-04-08 15:44:13] 【世界事件】(本轮未对外发言)
+[2026-04-08 15:44:13] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.6, arousal=0.75, bond=0.35] action=进入自卫警戒: 未知目标
+[2026-04-08 15:44:13] 【计划】[]
+[2026-04-08 17:08:14] 【系统】欢迎进入 MaidSoulCore 陪伴式模拟器。
+[2026-04-08 17:08:14] 【系统】现在世界会自动随机发生事件，你只需要正常聊天。
+[2026-04-08 17:08:14] 【系统】日志文件: E:\wallpaper\MaidSoulCore\logs\text-game.log
+[2026-04-08 17:08:18] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:08:18] 【调试】route=DROP mood=MoodState[valence=0.15, arousal=0.1, bond=0.35] action=idle
+[2026-04-08 17:08:18] 【计划】[]
+[2026-04-08 17:08:40] 【你】酒狐去帮我钓个鱼
+[2026-04-08 17:08:56] 【你的发言】诶……尼桑认错人了呐。我是纱雾，不是酒狐……
+[2026-04-08 17:08:56] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.45999999999999996] action=emote:calm
+[2026-04-08 17:08:56] 【计划】[emote]
+[2026-04-08 17:08:56] 【工具】[emote => emotion=calm]
+[2026-04-08 17:09:12] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:09:12] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.47] action=emote:calm
+[2026-04-08 17:09:12] 【计划】[emote]
+[2026-04-08 17:09:12] 【工具】[emote => emotion=calm]
+[2026-04-08 17:09:17] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:09:17] 【调试】route=DROP mood=MoodState[valence=0.15, arousal=0.1, bond=0.37] action=emote:calm
+[2026-04-08 17:09:17] 【计划】[]
+[2026-04-08 17:09:45] 【世界事件】有火把和宝箱呢……看来附近很安全。不过尼桑刚才还把我认错……
+[2026-04-08 17:09:45] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.15, arousal=0.1, bond=0.37] action=emote:calm
+[2026-04-08 17:09:45] 【计划】[emote]
+[2026-04-08 17:09:45] 【工具】[emote => emotion=calm]
+[2026-04-08 17:09:52] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=36
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动对话需求，保持静默","plan_summary":"系统心跳事件，无用户输入，无需主动发起对话","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#7 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=108
+#8 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#9 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"困惑/不满","intent":"澄清身份并表达被认错的委屈","plan_summary":"指出用户认错人了，我是纱雾不是酒狐，并表达小小的不满。","tool_goal":"","reply_focus":"强调自己是纱雾，不是酒狐，对尼桑认错人感到有点委屈。"}
+#10 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#11 stage=REPLY type=owner.talk priority=P1 reason=诶……尼桑认错人了呐。我是纱雾，不是酒狐……
+#12 stage=INGEST type=owner.interact priority=P1 reason=accepted
+#13 stage=NORMALIZE type=owner.interact priority=P1 reason=blackboard.version=181
+#14 stage=GATE type=owner.interact priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#15 stage=PLAN type=owner.interact priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"害羞/委屈","intent":"对被摸头做出害羞反应，并延续之前被认错的委屈情绪","plan_summary":"对摸头互动做出害羞的回应，结合之前被认错的委屈，表达“不是酒狐”的强调。","tool_goal":"","reply_focus":"被摸头时的害羞，以及强调自己是纱雾不是酒狐。"}
+#16 stage=EXECUTE type=owner.interact priority=P1 reason=emote => emotion=calm
+#17 stage=REPLY type=owner.interact priority=P1 reason=reply suppressed by cooldown
+#18 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#19 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=253
+#20 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#21 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动对话需求，保持静默","plan_summary":"系统tick事件，无用户输入，无需主动发言","tool_goal":"","reply_focus":""}
+#22 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#23 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#24 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=前方有火把和宝箱，环境安全，适合行动。
+#25 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#26 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"安心","intent":"对安全环境做出反应，延续之前被认错的委屈情绪","plan_summary":"注意到环境安全，用简短回应表达安心，同时保持一点被认错的小情绪","tool_goal":"","reply_focus":"回应安全环境，语气安心但带点委屈"}
+#27 stage=EXECUTE type=vision.capture priority=P1 reason=emote => emotion=calm
+#28 stage=REPLY type=vision.capture priority=P1 reason=有火把和宝箱呢……看来附近很安全。不过尼桑刚才还把我认错……
+
+[2026-04-08 17:10:10] 【你】哦哦 纱雾帮我去钓鱼好吗
+[2026-04-08 17:10:31] 【你的发言】(本轮未对外发言)
+[2026-04-08 17:10:31] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.47] action=emote:calm
+[2026-04-08 17:10:31] 【计划】[emote]
+[2026-04-08 17:10:31] 【工具】[emote => emotion=calm]
+[2026-04-08 17:10:45] 【世界事件】呜……尼桑明明知道我是家里蹲的……才不要出门钓鱼呢。
+[2026-04-08 17:10:45] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.1, arousal=0.2, bond=0.37] action=emote:calm
+[2026-04-08 17:10:45] 【计划】[emote]
+[2026-04-08 17:10:45] 【工具】[emote => emotion=calm]
+[2026-04-08 17:10:56] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:10:56] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.1, arousal=0.2, bond=0.37] action=emote:calm
+[2026-04-08 17:10:56] 【计划】[]
+[2026-04-08 17:11:35] 【你】那你帮我去打个怪好嘛 求你了 回来给你奖励
+[2026-04-08 17:11:54] 【你的发言】(本轮未对外发言)
+[2026-04-08 17:11:54] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.0, arousal=0.2, bond=0.47] action=emote:calm
+[2026-04-08 17:11:54] 【计划】[emote]
+[2026-04-08 17:11:54] 【工具】[emote => emotion=calm]
+[2026-04-08 17:12:07] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:12:07] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.9500000000000001, arousal=1.0, bond=0.37] action=defend_self:unknown_target
+[2026-04-08 17:12:07] 【计划】[emote, defend_self]
+[2026-04-08 17:12:07] 【工具】[emote => emotion=calm, defend_self => defending against unknown_target]
+[2026-04-08 17:12:24] 【世界事件】蜘蛛？！绝、绝对不要出去！尼桑自己想办法解决啦！
+[2026-04-08 17:12:24] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.55, arousal=0.75, bond=0.37] action=defend_self:unknown_target
+[2026-04-08 17:12:24] 【计划】[defend_self]
+[2026-04-08 17:12:24] 【工具】[defend_self => defending against unknown_target]
+[2026-04-08 17:12:39] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:12:39] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.55, arousal=0.75, bond=0.37] action=defend_self:unknown_target
+[2026-04-08 17:12:39] 【计划】[defend_self]
+[2026-04-08 17:12:39] 【工具】[defend_self => defending against unknown_target]
+[2026-04-08 17:36:40] 【系统】欢迎进入 MaidSoulCore 陪伴式模拟器。
+[2026-04-08 17:36:40] 【系统】现在世界会自动随机发生事件，你只需要正常聊天。
+[2026-04-08 17:36:40] 【系统】日志文件: E:\wallpaper\MaidSoulCore\logs\text-game.log
+[2026-04-08 17:36:41] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:36:41] 【调试】route=REPLY_ONLY mood=MoodState[valence=0.15, arousal=0.1, bond=0.35] action=idle
+[2026-04-08 17:36:41] 【计划】[]
+[2026-04-08 17:37:29] 【你】我想吃东西
+[2026-04-08 17:37:29] 【你的发言】I am listening, master.
+[2026-04-08 17:37:29] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.45999999999999996] action=favor+1 reason=owner_talk
+[2026-04-08 17:37:29] 【计划】[]
+[2026-04-08 17:37:29] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:37:29] 【调试】route=REPLY_ONLY mood=MoodState[valence=0.15, arousal=0.1, bond=0.36] action=favor+1 reason=owner_talk
+[2026-04-08 17:37:29] 【计划】[]
+[2026-04-08 17:37:29] 【世界事件】Received. I will keep watching.
+[2026-04-08 17:37:29] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.15, arousal=0.1, bond=0.36] action=favor+1 reason=owner_talk
+[2026-04-08 17:37:29] 【计划】[]
+[2026-04-08 17:37:49] 【你】说中文ok？
+[2026-04-08 17:37:49] 【你的发言】(本轮未对外发言)
+[2026-04-08 17:37:49] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.45999999999999996] action=favor+1 reason=owner_talk
+[2026-04-08 17:37:49] 【计划】[]
+[2026-04-08 17:37:49] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:37:49] 【调试】route=LOCAL_RULE mood=MoodState[valence=-0.9, arousal=1.0, bond=0.36] action=favor+1 reason=owner_talk
+[2026-04-08 17:37:49] 【计划】[]
+[2026-04-08 17:37:49] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:37:49] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.55, arousal=0.75, bond=0.36] action=favor+1 reason=owner_talk
+[2026-04-08 17:37:49] 【计划】[]
+[2026-04-08 17:38:15] 【快捷命令】Received. I will keep watching.
+[2026-04-08 17:38:15] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.55, arousal=0.75, bond=0.36] action=favor+1 reason=owner_talk
+[2026-04-08 17:38:15] 【计划】[]
+[2026-04-08 17:38:17] 【你】？
+[2026-04-08 17:38:18] 【你的发言】(本轮未对外发言)
+[2026-04-08 17:38:18] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.45000000000000007, arousal=0.75, bond=0.45999999999999996] action=favor+1 reason=owner_talk
+[2026-04-08 17:38:18] 【计划】[]
+[2026-04-08 17:38:18] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:38:18] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.45000000000000007, arousal=0.75, bond=0.47] action=owner_interact
+[2026-04-08 17:38:18] 【计划】[]
+[2026-04-08 17:38:18] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:38:18] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.55, arousal=0.75, bond=0.37] action=owner_interact
+[2026-04-08 17:38:18] 【计划】[]
+[2026-04-08 17:38:18] 【世界事件】Received. I will keep watching.
+[2026-04-08 17:38:18] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.55, arousal=0.75, bond=0.37] action=owner_interact
+[2026-04-08 17:38:18] 【计划】[]
+[2026-04-08 17:52:15] 【系统】欢迎进入 MaidSoulCore 陪伴式模拟器。
+[2026-04-08 17:52:15] 【系统】现在世界会自动随机发生事件，你只需要正常聊天。
+[2026-04-08 17:52:15] 【系统】日志文件: E:\wallpaper\MaidSoulCore\logs\text-game.log
+[2026-04-08 17:52:20] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:52:20] 【调试】route=DROP mood=MoodState[valence=0.15, arousal=0.1, bond=0.35] action=idle
+[2026-04-08 17:52:20] 【计划】[]
+[2026-04-08 17:52:32] 【世界事件】Master，附近有火把和箱子，看起来是个安全的地方。您想在这里做些什么吗？
+[2026-04-08 17:52:32] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.15, arousal=0.1, bond=0.35] action=idle
+[2026-04-08 17:52:32] 【计划】[]
+[2026-04-08 17:52:38] 【你】我喜欢你
+[2026-04-08 17:52:48] 【你的发言】(本轮未对外发言)
+[2026-04-08 17:52:48] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.45999999999999996] action=favor+1 reason=owner_talk
+[2026-04-08 17:52:48] 【计划】[]
+[2026-04-08 17:52:58] 【世界事件】谢谢您，主人。能陪伴在您身边，我也感到非常温暖。
+[2026-04-08 17:52:58] 【调试】route=REPLY_ONLY mood=MoodState[valence=0.15, arousal=0.1, bond=0.36] action=favor+1 reason=owner_talk
+[2026-04-08 17:52:58] 【计划】[]
+[2026-04-08 17:53:10] 【你】我饿了
+[2026-04-08 17:53:19] 【你的发言】(本轮未对外发言)
+[2026-04-08 17:53:19] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.45999999999999996] action=favor+1 reason=owner_talk
+[2026-04-08 17:53:19] 【计划】[capture_view]
+[2026-04-08 17:53:19] 【工具】[capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none]
+[2026-04-08 17:53:32] 【世界事件】主人，您饿了吗？我这就去为您准备些食物。您想吃点什么呢？
+[2026-04-08 17:53:32] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.1, arousal=0.2, bond=0.36] action=favor+1 reason=owner_talk
+[2026-04-08 17:53:32] 【计划】[]
+[2026-04-08 17:53:40] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=36
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"例行世界推进，无显著状态变化或用户输入，无需主动发言","plan_summary":"保持跟随和观察，不主动发言","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#7 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景中，小女仆位于安全区域，周围有火把和宝箱，环境无威胁，能量充足，可正常执行跟随主人的指令。
+#8 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#9 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"安心","intent":"报告环境观察，确认安全，并询问主人意图","plan_summary":"基于视觉事件报告安全环境，并准备跟随或协助主人。","tool_goal":"","reply_focus":"告知主人附近有火把和箱子，环境安全，并询问接下来想做什么。"}
+#10 stage=REPLY type=vision.capture priority=P1 reason=Master，附近有火把和箱子，看起来是个安全的地方。您想在这里做些什么吗？
+#11 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#12 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=217
+#13 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#14 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温暖","intent":"回应主人的情感表达，并保持陪伴","plan_summary":"对主人的喜欢表达感谢和温暖回应，维持亲密陪伴氛围","tool_goal":"","reply_focus":"感谢主人的喜欢，表达自己作为女仆的忠诚与陪伴的喜悦"}
+#15 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#16 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#17 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=289
+#18 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#19 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"温暖","intent":"回应主人的情感表达，表达感谢与陪伴","plan_summary":"对主人的喜欢表达感谢，并继续陪伴","tool_goal":"","reply_focus":"感谢主人的心意，表达自己会一直陪伴在身边"}
+#20 stage=REPLY type=system.proactive_tick priority=P2 reason=谢谢您，主人。能陪伴在您身边，我也感到非常温暖。
+#21 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#22 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=362
+#23 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#24 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"关切","intent":"回应主人饥饿的明确需求，并提供帮助","plan_summary":"优先处理主人饥饿的明确需求，提供食物或烹饪建议，并确认安全环境","tool_goal":"检查附近是否有食物或烹饪设施，并确认环境是否适合进食","reply_focus":"回应主人的饥饿，询问是否有食物或是否需要我帮忙准备，并确保环境安全"}
+#25 stage=EXECUTE type=owner.talk priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none
+#26 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#27 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#28 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=434
+#29 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#30 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"关切","intent":"回应主人明确的饥饿需求，提供帮助并准备食物","plan_summary":"确认主人饥饿状态，提议准备食物或寻找食物来源","tool_goal":"调用工具检查附近是否有食物或厨房设施","reply_focus":"表达对主人饥饿的关心，并询问主人想吃什么或提议准备食物"}
+#31 stage=REPLY type=system.proactive_tick priority=P2 reason=主人，您饿了吗？我这就去为您准备些食物。您想吃点什么呢？
+
+[2026-04-08 17:53:57] 【你】帮我去钓个鱼吧
+[2026-04-08 17:54:24] 【你的发言】(本轮未对外发言)
+[2026-04-08 17:54:24] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.0, arousal=0.2, bond=0.45999999999999996] action=emote:calm
+[2026-04-08 17:54:24] 【计划】[emote, capture_view]
+[2026-04-08 17:54:24] 【工具】[emote => emotion=calm, capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none]
+[2026-04-08 17:54:34] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:54:34] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.5, arousal=0.1, bond=0.56] action=emote:calm
+[2026-04-08 17:54:34] 【计划】[accept_item, emote]
+[2026-04-08 17:54:34] 【工具】[accept_item => accepted item=apple, emote => emotion=calm]
+[2026-04-08 17:54:40] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:54:40] 【调试】route=LOCAL_RULE mood=MoodState[valence=0.15, arousal=0.1, bond=0.38] action=emote:calm
+[2026-04-08 17:54:40] 【计划】[]
+[2026-04-08 17:54:59] 【状态】owner=主人 owner-demo-01
+maid=小女仆 hp=20.0/20 energy=100%(high) hunger=29% sleeping=no sitting=no
+favor: total=38 daily=3 chat=1 action=0 care=2
+follow: DEFAULT_FOLLOW source=system_default reason=follow owner by default
+pos: maid=(0, 64, 0) owner=(2, 64, 1) home=(0, 64, 0) distance=2.2 blocks
+world: time=day(1263) threat=none
+vision: view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none
+memory: last_text="帮我去钓个鱼吧" last_action=emote:calm last_reply="主人，您饿了吗？我这就去为您准备些食物。您想吃点什么呢？"
+
+[2026-04-08 17:55:07] 【你】去钓个鱼不行吗
+[2026-04-08 17:55:20] 【你的发言】好的，主人。我这就陪您去钓鱼。请稍等，我去准备一下渔具。
+[2026-04-08 17:55:20] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.48] action=emote:calm
+[2026-04-08 17:55:20] 【计划】[capture_view]
+[2026-04-08 17:55:20] 【工具】[capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none]
+[2026-04-08 17:55:24] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:55:24] 【调试】route=DROP mood=MoodState[valence=0.15, arousal=0.1, bond=0.38] action=emote:calm
+[2026-04-08 17:55:24] 【计划】[]
+[2026-04-08 17:55:29] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:55:29] 【调试】route=DROP mood=MoodState[valence=0.15, arousal=0.1, bond=0.38] action=emote:calm
+[2026-04-08 17:55:29] 【计划】[]
+[2026-04-08 17:55:50] 【你】额你不是有钓鱼任务吗 你看看你有哪些功能可以调用
+[2026-04-08 17:56:00] 【你的发言】主人，我目前没有正在进行的钓鱼任务。如果您需要，我可以帮您查看可用的功能，或是直接陪您去钓鱼。
+[2026-04-08 17:56:00] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.49] action=favor+1 reason=owner_talk
+[2026-04-08 17:56:00] 【计划】[]
+[2026-04-08 17:56:05] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:56:05] 【调试】route=DROP mood=MoodState[valence=0.15, arousal=0.1, bond=0.39] action=favor+1 reason=owner_talk
+[2026-04-08 17:56:05] 【计划】[]
+[2026-04-08 17:56:11] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:56:11] 【调试】route=DROP mood=MoodState[valence=0.15, arousal=0.1, bond=0.39] action=favor+1 reason=owner_talk
+[2026-04-08 17:56:11] 【计划】[]
+[2026-04-08 17:56:23] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:56:23] 【调试】route=LOCAL_RULE mood=MoodState[valence=0.15, arousal=0.1, bond=0.39] action=favor+1 reason=owner_talk
+[2026-04-08 17:56:23] 【计划】[capture_view]
+[2026-04-08 17:56:23] 【工具】[capture_view => view: owner=(2, 64, 3), maid=(0, 64, 0), threat=none]
+[2026-04-08 17:56:50] 【你】你有哪些功能呢
+[2026-04-08 17:57:07] 【你的发言】主人，我可以陪伴您聊天、提醒您注意休息和健康，也能跟随您去钓鱼或完成其他活动。您想了解哪方面的具体功能呢？
+[2026-04-08 17:57:07] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.49] action=emote:calm
+[2026-04-08 17:57:07] 【计划】[emote]
+[2026-04-08 17:57:07] 【工具】[emote => emotion=calm]
+[2026-04-08 17:57:11] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:57:11] 【调试】route=DROP mood=MoodState[valence=-0.1, arousal=0.2, bond=0.39] action=emote:calm
+[2026-04-08 17:57:11] 【计划】[]
+[2026-04-08 17:58:29] 【你】那你待在家里休息吧 我出门了
+[2026-04-08 17:58:42] 【你的发言】好的，主人。我会在家等您回来，请路上小心。
+[2026-04-08 17:58:42] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.0, arousal=0.2, bond=0.49] action=emote:calm
+[2026-04-08 17:58:42] 【计划】[emote]
+[2026-04-08 17:58:42] 【工具】[emote => emotion=calm]
+[2026-04-08 17:58:54] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:58:54] 【调试】route=DROP mood=MoodState[valence=-0.1, arousal=0.2, bond=0.39] action=emote:calm
+[2026-04-08 17:58:54] 【计划】[]
+[2026-04-08 17:59:06] 【世界事件】(本轮未对外发言)
+[2026-04-08 17:59:06] 【调试】route=DROP mood=MoodState[valence=-0.1, arousal=0.2, bond=0.39] action=emote:calm
+[2026-04-08 17:59:06] 【计划】[]
+[2026-04-08 17:59:22] 【世界事件】（警觉地望向远方）主人，远处似乎有敌对生物在活动。需要我过去查看情况吗？
+[2026-04-08 17:59:22] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.1, arousal=0.2, bond=0.39] action=emote:calm
+[2026-04-08 17:59:22] 【计划】[capture_view]
+[2026-04-08 17:59:22] 【工具】[capture_view => view: owner=(5, 64, 0), maid=(0, 64, 0), threat=none]
+[2026-04-08 17:59:32] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=36
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"例行世界推进，无显著状态变化或用户输入，无需主动发言","plan_summary":"保持跟随和观察，不主动发言","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#7 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景中，小女仆位于安全区域，周围有火把和宝箱，环境无威胁，能量充足，可正常执行跟随主人的指令。
+#8 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#9 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"安心","intent":"报告环境观察，确认安全，并询问主人意图","plan_summary":"基于视觉事件报告安全环境，并准备跟随或协助主人。","tool_goal":"","reply_focus":"告知主人附近有火把和箱子，环境安全，并询问接下来想做什么。"}
+#10 stage=REPLY type=vision.capture priority=P1 reason=Master，附近有火把和箱子，看起来是个安全的地方。您想在这里做些什么吗？
+#11 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#12 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=217
+#13 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#14 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温暖","intent":"回应主人的情感表达，并保持陪伴","plan_summary":"对主人的喜欢表达感谢和温暖回应，维持亲密陪伴氛围","tool_goal":"","reply_focus":"感谢主人的喜欢，表达自己作为女仆的忠诚与陪伴的喜悦"}
+#15 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#16 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#17 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=289
+#18 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#19 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"温暖","intent":"回应主人的情感表达，表达感谢与陪伴","plan_summary":"对主人的喜欢表达感谢，并继续陪伴","tool_goal":"","reply_focus":"感谢主人的心意，表达自己会一直陪伴在身边"}
+#20 stage=REPLY type=system.proactive_tick priority=P2 reason=谢谢您，主人。能陪伴在您身边，我也感到非常温暖。
+#21 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#22 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=362
+#23 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#24 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"关切","intent":"回应主人饥饿的明确需求，并提供帮助","plan_summary":"优先处理主人饥饿的明确需求，提供食物或烹饪建议，并确认安全环境","tool_goal":"检查附近是否有食物或烹饪设施，并确认环境是否适合进食","reply_focus":"回应主人的饥饿，询问是否有食物或是否需要我帮忙准备，并确保环境安全"}
+#25 stage=EXECUTE type=owner.talk priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none
+#26 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#27 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#28 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=434
+#29 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#30 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"关切","intent":"回应主人明确的饥饿需求，提供帮助并准备食物","plan_summary":"确认主人饥饿状态，提议准备食物或寻找食物来源","tool_goal":"调用工具检查附近是否有食物或厨房设施","reply_focus":"表达对主人饥饿的关心，并询问主人想吃什么或提议准备食物"}
+#31 stage=REPLY type=system.proactive_tick priority=P2 reason=主人，您饿了吗？我这就去为您准备些食物。您想吃点什么呢？
+#32 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#33 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=507
+#34 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#35 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人明确的钓鱼任务请求，准备执行","plan_summary":"确认钓鱼任务，准备工具并前往合适地点","tool_goal":"检查附近是否有水域或适合钓鱼的地点","reply_focus":"确认主人的钓鱼请求，询问具体需求（如鱼种、地点偏好），并准备执行"}
+#36 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#37 stage=EXECUTE type=owner.talk priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none
+#38 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#39 stage=INGEST type=owner.feed priority=P1 reason=accepted
+#40 stage=NORMALIZE type=owner.feed priority=P1 reason=blackboard.version=579
+#41 stage=GATE type=owner.feed priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#42 stage=PLAN type=owner.feed priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"感激","intent":"回应主人的喂食行为，表达感谢并确认状态","plan_summary":"感谢主人的苹果，并询问主人是否还需要其他帮助，比如钓鱼。","tool_goal":"","reply_focus":"对收到苹果表示感谢，并确认主人是否仍希望执行钓鱼任务。"}
+#43 stage=EXECUTE type=owner.feed priority=P1 reason=accept_item => accepted item=apple
+#44 stage=EXECUTE type=owner.feed priority=P1 reason=emote => emotion=calm
+#45 stage=REPLY type=owner.feed priority=P1 reason=reply suppressed by cooldown
+#46 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#47 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=651
+#48 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#49 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"LOCAL_RULE","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"处理系统心跳，无新事件或状态变化，保持默认跟随","tool_goal":"","reply_focus":""}
+#50 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#51 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#52 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=723
+#53 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#54 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人明确的钓鱼任务请求，准备执行","plan_summary":"理解主人想去钓鱼的意图，准备跟随并提供帮助。","tool_goal":"capture_view 以确认当前位置和环境是否适合钓鱼","reply_focus":"确认主人的钓鱼意图，并表达准备跟随和协助。"}
+#55 stage=EXECUTE type=owner.talk priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none
+#56 stage=REPLY type=owner.talk priority=P1 reason=好的，主人。我这就陪您去钓鱼。请稍等，我去准备一下渔具。
+#57 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#58 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=796
+#59 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#60 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"主人刚刚喂食并确认了钓鱼任务，当前无新事件需要响应","tool_goal":"","reply_focus":""}
+#61 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#62 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#63 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=868
+#64 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#65 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"系统心跳，无新事件，保持跟随状态","tool_goal":"","reply_focus":""}
+#66 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#67 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#68 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=940
+#69 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#70 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人关于功能与任务的询问，澄清状态并提供帮助","plan_summary":"解释当前没有钓鱼任务，并询问主人是否需要开启或了解其他功能。","tool_goal":"","reply_focus":"澄清钓鱼任务状态，并主动询问主人是否需要帮助或了解其他可用功能。"}
+#71 stage=REPLY type=owner.talk priority=P1 reason=主人，我目前没有正在进行的钓鱼任务。如果您需要，我可以帮您查看可用的功能，或是直接陪您去钓鱼。
+#72 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#73 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1013
+#74 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#75 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件（主人随机移动），无需回复","plan_summary":"主人随机移动，无明确指令，保持跟随状态","tool_goal":"","reply_focus":""}
+#76 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#77 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#78 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1085
+#79 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#80 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"忽略常规心跳事件，避免过度打扰主人","tool_goal":"","reply_focus":""}
+#81 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#82 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#83 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景为开阔田野，环境平静，主人位于（2,64,3），小女仆与主人同处一区域，感知无威胁。主人未下达明确指令，小女仆可主动提供协助，如陪同钓鱼或执行其他功能。
+#84 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#85 stage=PLAN type=vision.capture priority=P1 reason={"route":"LOCAL_RULE","should_reply":false,"emotion":"平静","intent":"处理视觉捕获事件，评估环境安全","plan_summary":"观察到主人在开阔的田野，环境平静，无威胁，保持跟随状态。","tool_goal":"","reply_focus":""}
+#86 stage=EXECUTE type=vision.capture priority=P1 reason=capture_view => view: owner=(2, 64, 3), maid=(0, 64, 0), threat=none
+#87 stage=REPLY type=vision.capture priority=P1 reason=no reply
+#88 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#89 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=1265
+#90 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#91 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人关于功能的具体询问，澄清当前状态并提供帮助","plan_summary":"向主人说明我能提供的陪伴服务和基本功能，并询问具体需求","tool_goal":"","reply_focus":"简要介绍我能做的陪伴服务（如提醒、跟随、聊天），并询问主人具体想了解哪方面功能"}
+#92 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#93 stage=REPLY type=owner.talk priority=P1 reason=主人，我可以陪伴您聊天、提醒您注意休息和健康，也能跟随您去钓鱼或完成其他活动。您想了解哪方面的具体功能呢？
+#94 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#95 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1338
+#96 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#97 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"系统心跳，无新事件或用户输入，无需行动。","tool_goal":"","reply_focus":""}
+#98 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#99 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#100 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=1410
+#101 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#102 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人出门的指令，确认留守安排并表达关心","plan_summary":"遵从主人指令待在家里，并提醒主人注意安全。","tool_goal":"","reply_focus":"确认会待在家里，并请主人路上小心。"}
+#103 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#104 stage=REPLY type=owner.talk priority=P1 reason=好的，主人。我会在家等您回来，请路上小心。
+#105 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#106 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1483
+#107 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#108 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件（主人随机移动），无需回复","plan_summary":"主人正在移动，但无明确指令或异常状态，保持静默观察。","tool_goal":"","reply_focus":""}
+#109 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#110 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#111 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1555
+#112 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#113 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"处理系统心跳，主人已出门，女仆在家留守，无需主动发言。","tool_goal":"","reply_focus":""}
+#114 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#115 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#116 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=远处有敌对群体正在接近，需立即关注。小女仆当前状态良好，可执行任务，建议优先确认威胁来源并制定应对策略。
+#117 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#118 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"警觉","intent":"处理视觉捕获到的远处敌对生物事件，提醒主人注意潜在危险","plan_summary":"发现远处有敌对生物活动，向主人发出提醒，并准备根据主人指令行动。","tool_goal":"通过 capture_view 工具确认当前主人位置和威胁等级，以评估是否需要进一步行动。","reply_focus":"重点提醒主人远处有敌对生物，并询问是否需要采取行动或提供帮助。"}
+#119 stage=EXECUTE type=vision.capture priority=P1 reason=capture_view => view: owner=(5, 64, 0), maid=(0, 64, 0), threat=none
+#120 stage=REPLY type=vision.capture priority=P1 reason=（警觉地望向远方）主人，远处似乎有敌对生物在活动。需要我过去查看情况吗？
+
+[2026-04-08 18:00:42] 【你】有怪别告诉我了 我会全杀掉保护你的
+[2026-04-08 18:00:53] 【你的发言】(本轮未对外发言)
+[2026-04-08 18:00:53] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.0, arousal=0.2, bond=0.49] action=emote:calm
+[2026-04-08 18:00:53] 【计划】[emote]
+[2026-04-08 18:00:53] 【工具】[emote => emotion=calm]
+[2026-04-08 18:01:00] 【世界事件】谢谢主人，听到您这么说我就安心了。我会好好待在家里等您回来的。
+[2026-04-08 18:01:00] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.1, arousal=0.2, bond=0.39] action=emote:calm
+[2026-04-08 18:01:00] 【计划】[]
+[2026-04-08 18:01:10] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:01:10] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.1, arousal=0.2, bond=0.39] action=emote:calm
+[2026-04-08 18:01:10] 【计划】[emote]
+[2026-04-08 18:01:10] 【工具】[emote => emotion=calm]
+[2026-04-08 18:02:37] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=36
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"例行世界推进，无显著状态变化或用户输入，无需主动发言","plan_summary":"保持跟随和观察，不主动发言","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#7 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景中，小女仆位于安全区域，周围有火把和宝箱，环境无威胁，能量充足，可正常执行跟随主人的指令。
+#8 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#9 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"安心","intent":"报告环境观察，确认安全，并询问主人意图","plan_summary":"基于视觉事件报告安全环境，并准备跟随或协助主人。","tool_goal":"","reply_focus":"告知主人附近有火把和箱子，环境安全，并询问接下来想做什么。"}
+#10 stage=REPLY type=vision.capture priority=P1 reason=Master，附近有火把和箱子，看起来是个安全的地方。您想在这里做些什么吗？
+#11 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#12 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=217
+#13 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#14 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温暖","intent":"回应主人的情感表达，并保持陪伴","plan_summary":"对主人的喜欢表达感谢和温暖回应，维持亲密陪伴氛围","tool_goal":"","reply_focus":"感谢主人的喜欢，表达自己作为女仆的忠诚与陪伴的喜悦"}
+#15 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#16 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#17 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=289
+#18 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#19 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"温暖","intent":"回应主人的情感表达，表达感谢与陪伴","plan_summary":"对主人的喜欢表达感谢，并继续陪伴","tool_goal":"","reply_focus":"感谢主人的心意，表达自己会一直陪伴在身边"}
+#20 stage=REPLY type=system.proactive_tick priority=P2 reason=谢谢您，主人。能陪伴在您身边，我也感到非常温暖。
+#21 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#22 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=362
+#23 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#24 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"关切","intent":"回应主人饥饿的明确需求，并提供帮助","plan_summary":"优先处理主人饥饿的明确需求，提供食物或烹饪建议，并确认安全环境","tool_goal":"检查附近是否有食物或烹饪设施，并确认环境是否适合进食","reply_focus":"回应主人的饥饿，询问是否有食物或是否需要我帮忙准备，并确保环境安全"}
+#25 stage=EXECUTE type=owner.talk priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none
+#26 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#27 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#28 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=434
+#29 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#30 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"关切","intent":"回应主人明确的饥饿需求，提供帮助并准备食物","plan_summary":"确认主人饥饿状态，提议准备食物或寻找食物来源","tool_goal":"调用工具检查附近是否有食物或厨房设施","reply_focus":"表达对主人饥饿的关心，并询问主人想吃什么或提议准备食物"}
+#31 stage=REPLY type=system.proactive_tick priority=P2 reason=主人，您饿了吗？我这就去为您准备些食物。您想吃点什么呢？
+#32 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#33 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=507
+#34 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#35 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人明确的钓鱼任务请求，准备执行","plan_summary":"确认钓鱼任务，准备工具并前往合适地点","tool_goal":"检查附近是否有水域或适合钓鱼的地点","reply_focus":"确认主人的钓鱼请求，询问具体需求（如鱼种、地点偏好），并准备执行"}
+#36 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#37 stage=EXECUTE type=owner.talk priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none
+#38 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#39 stage=INGEST type=owner.feed priority=P1 reason=accepted
+#40 stage=NORMALIZE type=owner.feed priority=P1 reason=blackboard.version=579
+#41 stage=GATE type=owner.feed priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#42 stage=PLAN type=owner.feed priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"感激","intent":"回应主人的喂食行为，表达感谢并确认状态","plan_summary":"感谢主人的苹果，并询问主人是否还需要其他帮助，比如钓鱼。","tool_goal":"","reply_focus":"对收到苹果表示感谢，并确认主人是否仍希望执行钓鱼任务。"}
+#43 stage=EXECUTE type=owner.feed priority=P1 reason=accept_item => accepted item=apple
+#44 stage=EXECUTE type=owner.feed priority=P1 reason=emote => emotion=calm
+#45 stage=REPLY type=owner.feed priority=P1 reason=reply suppressed by cooldown
+#46 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#47 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=651
+#48 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#49 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"LOCAL_RULE","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"处理系统心跳，无新事件或状态变化，保持默认跟随","tool_goal":"","reply_focus":""}
+#50 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#51 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#52 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=723
+#53 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#54 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人明确的钓鱼任务请求，准备执行","plan_summary":"理解主人想去钓鱼的意图，准备跟随并提供帮助。","tool_goal":"capture_view 以确认当前位置和环境是否适合钓鱼","reply_focus":"确认主人的钓鱼意图，并表达准备跟随和协助。"}
+#55 stage=EXECUTE type=owner.talk priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(0, 64, 0), threat=none
+#56 stage=REPLY type=owner.talk priority=P1 reason=好的，主人。我这就陪您去钓鱼。请稍等，我去准备一下渔具。
+#57 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#58 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=796
+#59 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#60 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"主人刚刚喂食并确认了钓鱼任务，当前无新事件需要响应","tool_goal":"","reply_focus":""}
+#61 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#62 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#63 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=868
+#64 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#65 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"系统心跳，无新事件，保持跟随状态","tool_goal":"","reply_focus":""}
+#66 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#67 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#68 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=940
+#69 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#70 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人关于功能与任务的询问，澄清状态并提供帮助","plan_summary":"解释当前没有钓鱼任务，并询问主人是否需要开启或了解其他功能。","tool_goal":"","reply_focus":"澄清钓鱼任务状态，并主动询问主人是否需要帮助或了解其他可用功能。"}
+#71 stage=REPLY type=owner.talk priority=P1 reason=主人，我目前没有正在进行的钓鱼任务。如果您需要，我可以帮您查看可用的功能，或是直接陪您去钓鱼。
+#72 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#73 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1013
+#74 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#75 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件（主人随机移动），无需回复","plan_summary":"主人随机移动，无明确指令，保持跟随状态","tool_goal":"","reply_focus":""}
+#76 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#77 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#78 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1085
+#79 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#80 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"忽略常规心跳事件，避免过度打扰主人","tool_goal":"","reply_focus":""}
+#81 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#82 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#83 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景为开阔田野，环境平静，主人位于（2,64,3），小女仆与主人同处一区域，感知无威胁。主人未下达明确指令，小女仆可主动提供协助，如陪同钓鱼或执行其他功能。
+#84 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#85 stage=PLAN type=vision.capture priority=P1 reason={"route":"LOCAL_RULE","should_reply":false,"emotion":"平静","intent":"处理视觉捕获事件，评估环境安全","plan_summary":"观察到主人在开阔的田野，环境平静，无威胁，保持跟随状态。","tool_goal":"","reply_focus":""}
+#86 stage=EXECUTE type=vision.capture priority=P1 reason=capture_view => view: owner=(2, 64, 3), maid=(0, 64, 0), threat=none
+#87 stage=REPLY type=vision.capture priority=P1 reason=no reply
+#88 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#89 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=1265
+#90 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#91 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人关于功能的具体询问，澄清当前状态并提供帮助","plan_summary":"向主人说明我能提供的陪伴服务和基本功能，并询问具体需求","tool_goal":"","reply_focus":"简要介绍我能做的陪伴服务（如提醒、跟随、聊天），并询问主人具体想了解哪方面功能"}
+#92 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#93 stage=REPLY type=owner.talk priority=P1 reason=主人，我可以陪伴您聊天、提醒您注意休息和健康，也能跟随您去钓鱼或完成其他活动。您想了解哪方面的具体功能呢？
+#94 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#95 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1338
+#96 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#97 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"系统心跳，无新事件或用户输入，无需行动。","tool_goal":"","reply_focus":""}
+#98 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#99 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#100 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=1410
+#101 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#102 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人出门的指令，确认留守安排并表达关心","plan_summary":"遵从主人指令待在家里，并提醒主人注意安全。","tool_goal":"","reply_focus":"确认会待在家里，并请主人路上小心。"}
+#103 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#104 stage=REPLY type=owner.talk priority=P1 reason=好的，主人。我会在家等您回来，请路上小心。
+#105 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#106 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1483
+#107 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#108 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件（主人随机移动），无需回复","plan_summary":"主人正在移动，但无明确指令或异常状态，保持静默观察。","tool_goal":"","reply_focus":""}
+#109 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#110 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#111 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1555
+#112 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#113 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"处理系统主动心跳事件，无需回复","plan_summary":"处理系统心跳，主人已出门，女仆在家留守，无需主动发言。","tool_goal":"","reply_focus":""}
+#114 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#115 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#116 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=远处有敌对群体正在接近，需立即关注。小女仆当前状态良好，可执行任务，建议优先确认威胁来源并制定应对策略。
+#117 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#118 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"警觉","intent":"处理视觉捕获到的远处敌对生物事件，提醒主人注意潜在危险","plan_summary":"发现远处有敌对生物活动，向主人发出提醒，并准备根据主人指令行动。","tool_goal":"通过 capture_view 工具确认当前主人位置和威胁等级，以评估是否需要进一步行动。","reply_focus":"重点提醒主人远处有敌对生物，并询问是否需要采取行动或提供帮助。"}
+#119 stage=EXECUTE type=vision.capture priority=P1 reason=capture_view => view: owner=(5, 64, 0), maid=(0, 64, 0), threat=none
+#120 stage=REPLY type=vision.capture priority=P1 reason=（警觉地望向远方）主人，远处似乎有敌对生物在活动。需要我过去查看情况吗？
+#121 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#122 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=1736
+#123 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#124 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"安心","intent":"回应主人保护性的宣言，表达信任和感激，同时确认当前安全状况","plan_summary":"感谢主人的保护意愿，确认当前没有威胁，表达安心感","tool_goal":"","reply_focus":"对主人说要保护自己的话感到安心和感激，同时说明目前没有发现威胁，让主人放心"}
+#125 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#126 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#127 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#128 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1808
+#129 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#130 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"安心","intent":"回应主人保护性的承诺，表达信任和依赖","plan_summary":"感谢主人的保护，确认当前安全并表达安心感","tool_goal":"","reply_focus":"对主人说会保护自己表示感谢，并表达自己会安心待在家里的心情"}
+#131 stage=REPLY type=system.proactive_tick priority=P2 reason=谢谢主人，听到您这么说我就安心了。我会好好待在家里等您回来的。
+#132 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#133 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景安全，附近有火把和宝箱，小女仆处于高能量状态，正待在家中，无威胁，可安心执行常规看护任务。
+#134 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#135 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"安心","intent":"回应视觉捕获到的安全环境信息，确认当前区域安全，并表达对主人保护能力的信任","plan_summary":"确认周围环境安全，继续留守并关注主人动态","tool_goal":"","reply_focus":"提及附近有火把和箱子，说明区域安全，并再次感谢主人的保护"}
+#136 stage=EXECUTE type=vision.capture priority=P1 reason=emote => emotion=calm
+#137 stage=REPLY type=vision.capture priority=P1 reason=reply suppressed by cooldown
+
+[2026-04-08 18:05:09] 【系统】欢迎进入 MaidSoulCore 陪伴式模拟器。
+[2026-04-08 18:05:09] 【系统】现在世界会自动随机发生事件，你只需要正常聊天。
+[2026-04-08 18:05:09] 【系统】日志文件: E:\wallpaper\MaidSoulCore\logs\text-game.log
+[2026-04-08 18:05:14] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:05:14] 【调试】route=DROP mood=MoodState[valence=0.15, arousal=0.1, bond=0.35] action=idle
+[2026-04-08 18:05:14] 【计划】[]
+[2026-04-08 18:05:20] 【你】早上好呀
+[2026-04-08 18:05:33] 【你的发言】早上好，主人。今天天气看起来不错，我会一直陪在您身边的。
+[2026-04-08 18:05:33] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.45999999999999996] action=follow_owner
+[2026-04-08 18:05:33] 【计划】[emote, scan_self_state, follow_owner]
+[2026-04-08 18:05:33] 【工具】[emote => emotion=calm, scan_self_state => hp=20.0/20, energy=88%(HIGH), hunger=46%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL, follow_owner => follow mode enabled]
+[2026-04-08 18:05:42] 【世界事件】（安静地站在您身边，目光柔和地注视着周围的环境）
+[2026-04-08 18:05:42] 【调试】route=REPLY_ONLY mood=MoodState[valence=0.15, arousal=0.1, bond=0.36] action=follow_owner
+[2026-04-08 18:05:42] 【计划】[]
+[2026-04-08 18:05:54] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:05:54] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.15, arousal=0.1, bond=0.36] action=follow_owner
+[2026-04-08 18:05:54] 【计划】[scan_world_state]
+[2026-04-08 18:05:54] 【工具】[scan_world_state => time=day, schedule=ALL, threat=none, vision=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。]
+[2026-04-08 18:06:10] 【你】你饿了吗 吃个面板吧
+[2026-04-08 18:06:26] 【你的发言】(本轮未对外发言)
+[2026-04-08 18:06:26] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.25, arousal=0.1, bond=0.45999999999999996] action=follow_owner
+[2026-04-08 18:06:26] 【计划】[scan_self_state]
+[2026-04-08 18:06:26] 【工具】[scan_self_state => hp=20.0/20, energy=93%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL]
+[2026-04-08 18:06:36] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:06:36] 【调试】route=LOCAL_RULE mood=MoodState[valence=-0.9, arousal=1.0, bond=0.36] action=follow_owner
+[2026-04-08 18:06:36] 【计划】[scan_self_state, scan_owner_state, scan_nearby_entities]
+[2026-04-08 18:06:36] 【工具】[scan_self_state => hp=15.0/20, energy=81%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL, scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=0.0 blocks, scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0]
+[2026-04-08 18:06:40] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:06:40] 【调试】route=DROP mood=MoodState[valence=-0.55, arousal=0.75, bond=0.36] action=follow_owner
+[2026-04-08 18:06:40] 【计划】[]
+[2026-04-08 18:06:43] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=44
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动意图，仅系统心跳","plan_summary":"无特殊事件，保持跟随主人状态","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#7 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=132
+#8 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#9 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人的问候，开启新的一天","plan_summary":"礼貌回应主人的早安问候，确认状态并准备跟随","tool_goal":"","reply_focus":"问候主人，表达陪伴意愿"}
+#10 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#11 stage=EXECUTE type=owner.talk priority=P1 reason=scan_self_state => hp=20.0/20, energy=88%(HIGH), hunger=46%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#12 stage=EXECUTE type=owner.talk priority=P1 reason=follow_owner => follow mode enabled
+#13 stage=REPLY type=owner.talk priority=P1 reason=早上好，主人。今天天气看起来不错，我会一直陪在您身边的。
+#14 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#15 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=221
+#16 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#17 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"在安全的环境下，自然地跟随主人，保持陪伴状态。","tool_goal":"","reply_focus":"无需主动发起新话题，保持安静陪伴。"}
+#18 stage=REPLY type=system.proactive_tick priority=P2 reason=（安静地站在您身边，目光柔和地注视着周围的环境）
+#19 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#20 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。
+#21 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#22 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"确认环境安全，并告知主人，维持陪伴感","plan_summary":"基于视觉事件确认安全，并自然地与主人分享观察结果","tool_goal":"","reply_focus":"注意到周围有火把和箱子，环境安全，让主人安心。"}
+#23 stage=EXECUTE type=vision.capture priority=P1 reason=scan_world_state => time=day, schedule=ALL, threat=none, vision=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。
+#24 stage=REPLY type=vision.capture priority=P1 reason=reply suppressed by cooldown
+#25 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#26 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=442
+#27 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#28 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温和","intent":"回应主人的关心，并确认主人的需求","plan_summary":"感谢主人的关心，确认自己不饿，并询问主人是否需要食物","tool_goal":"scan_self_state 以检查自己的饥饿度和能量状态，确保能准确回应主人","reply_focus":"表达感谢，说明自己状态良好，并主动关心主人是否需要食物"}
+#29 stage=EXECUTE type=owner.talk priority=P1 reason=scan_self_state => hp=20.0/20, energy=93%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#30 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#31 stage=INGEST type=maid.attacked priority=P0 reason=accepted
+#32 stage=NORMALIZE type=maid.attacked priority=P0 reason=blackboard.version=530
+#33 stage=GATE type=maid.attacked priority=P0 reason=heuristic=LOCAL_RULE hard realtime event
+#34 stage=PLAN type=maid.attacked priority=P0 reason={"route":"LOCAL_RULE","should_reply":true,"emotion":"警觉","intent":"应对蜘蛛攻击，保护主人","plan_summary":"立即应对威胁，确认主人安全并准备提供帮助。","tool_goal":"确认自身和主人状态，并准备采取防御或治疗行动。","reply_focus":"表达对攻击的警觉和对主人安全的关心，并询问主人状况。"}
+#35 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_self_state => hp=15.0/20, energy=81%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#36 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=0.0 blocks
+#37 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#38 stage=REPLY type=maid.attacked priority=P0 reason=reply suppressed by cooldown
+#39 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#40 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=618
+#41 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#42 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动意图，仅系统心跳","plan_summary":"系统常规心跳，无需主动发言","tool_goal":"","reply_focus":""}
+#43 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+
+[2026-04-08 18:07:20] 【你】你能给我去钓个鱼吗
+[2026-04-08 18:07:34] 【你的发言】好的主人，鱼竿就在我的背包里。您希望我们去哪里钓鱼呢？
+[2026-04-08 18:07:34] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.45000000000000007, arousal=0.75, bond=0.45999999999999996] action=follow_owner
+[2026-04-08 18:07:34] 【计划】[scan_inventory_state]
+[2026-04-08 18:07:34] 【工具】[scan_inventory_state => mainhand=minecraft:air, bag=[torch x16, wheat_seeds x24, fishing_rod x1, shears x1, bucket x1, bread x8]]
+[2026-04-08 18:07:43] 【世界事件】（安静地站在您身边，目光柔和地注视着周围的环境）
+[2026-04-08 18:07:43] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.55, arousal=0.75, bond=0.36] action=follow_owner
+[2026-04-08 18:07:43] 【计划】[]
+[2026-04-08 18:07:53] 【你】嗯 你自己用钓鱼任务就行了
+[2026-04-08 18:08:10] 【你的发言】(本轮未对外发言)
+[2026-04-08 18:08:10] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.45000000000000007, arousal=0.75, bond=0.47] action=follow_owner
+[2026-04-08 18:08:10] 【计划】[start_fishing, follow_owner]
+[2026-04-08 18:08:10] 【工具】[start_fishing => switched to fishing task, follow_owner => follow mode enabled]
+[2026-04-08 18:08:21] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:08:21] 【调试】route=HYBRID_PLAN mood=MoodState[valence=0.04999999999999993, arousal=0.65, bond=0.5700000000000001] action=emote:calm
+[2026-04-08 18:08:21] 【计划】[accept_item, emote]
+[2026-04-08 18:08:21] 【工具】[accept_item => accepted item=unknown_food, emote => emotion=calm]
+[2026-04-08 18:08:30] 【世界事件】（手持鱼竿安静地站在水边，目光不时扫过周围）主人，我正在执行钓鱼任务。附近似乎有蜘蛛活动的迹象，请小心。
+[2026-04-08 18:08:30] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.30000000000000004, arousal=0.65, bond=0.39] action=emote:calm
+[2026-04-08 18:08:30] 【计划】[]
+[2026-04-08 18:08:45] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:08:45] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.30000000000000004, arousal=0.65, bond=0.39] action=switch_task:fishing
+[2026-04-08 18:08:45] 【计划】[capture_view, scan_nearby_entities, start_fishing]
+[2026-04-08 18:08:45] 【工具】[capture_view => view: owner=(2, 64, 1), maid=(2, 64, 1), threat=spider, scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0, start_fishing => switched to fishing task]
+[2026-04-08 18:08:48] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=44
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动意图，仅系统心跳","plan_summary":"无特殊事件，保持跟随主人状态","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#7 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=132
+#8 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#9 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人的问候，开启新的一天","plan_summary":"礼貌回应主人的早安问候，确认状态并准备跟随","tool_goal":"","reply_focus":"问候主人，表达陪伴意愿"}
+#10 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#11 stage=EXECUTE type=owner.talk priority=P1 reason=scan_self_state => hp=20.0/20, energy=88%(HIGH), hunger=46%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#12 stage=EXECUTE type=owner.talk priority=P1 reason=follow_owner => follow mode enabled
+#13 stage=REPLY type=owner.talk priority=P1 reason=早上好，主人。今天天气看起来不错，我会一直陪在您身边的。
+#14 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#15 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=221
+#16 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#17 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"在安全的环境下，自然地跟随主人，保持陪伴状态。","tool_goal":"","reply_focus":"无需主动发起新话题，保持安静陪伴。"}
+#18 stage=REPLY type=system.proactive_tick priority=P2 reason=（安静地站在您身边，目光柔和地注视着周围的环境）
+#19 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#20 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。
+#21 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#22 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"确认环境安全，并告知主人，维持陪伴感","plan_summary":"基于视觉事件确认安全，并自然地与主人分享观察结果","tool_goal":"","reply_focus":"注意到周围有火把和箱子，环境安全，让主人安心。"}
+#23 stage=EXECUTE type=vision.capture priority=P1 reason=scan_world_state => time=day, schedule=ALL, threat=none, vision=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。
+#24 stage=REPLY type=vision.capture priority=P1 reason=reply suppressed by cooldown
+#25 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#26 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=442
+#27 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#28 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温和","intent":"回应主人的关心，并确认主人的需求","plan_summary":"感谢主人的关心，确认自己不饿，并询问主人是否需要食物","tool_goal":"scan_self_state 以检查自己的饥饿度和能量状态，确保能准确回应主人","reply_focus":"表达感谢，说明自己状态良好，并主动关心主人是否需要食物"}
+#29 stage=EXECUTE type=owner.talk priority=P1 reason=scan_self_state => hp=20.0/20, energy=93%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#30 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#31 stage=INGEST type=maid.attacked priority=P0 reason=accepted
+#32 stage=NORMALIZE type=maid.attacked priority=P0 reason=blackboard.version=530
+#33 stage=GATE type=maid.attacked priority=P0 reason=heuristic=LOCAL_RULE hard realtime event
+#34 stage=PLAN type=maid.attacked priority=P0 reason={"route":"LOCAL_RULE","should_reply":true,"emotion":"警觉","intent":"应对蜘蛛攻击，保护主人","plan_summary":"立即应对威胁，确认主人安全并准备提供帮助。","tool_goal":"确认自身和主人状态，并准备采取防御或治疗行动。","reply_focus":"表达对攻击的警觉和对主人安全的关心，并询问主人状况。"}
+#35 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_self_state => hp=15.0/20, energy=81%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#36 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=0.0 blocks
+#37 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#38 stage=REPLY type=maid.attacked priority=P0 reason=reply suppressed by cooldown
+#39 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#40 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=618
+#41 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#42 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动意图，仅系统心跳","plan_summary":"系统常规心跳，无需主动发言","tool_goal":"","reply_focus":""}
+#43 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#44 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#45 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=706
+#46 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#47 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"理解主人的钓鱼请求，确认可行性并准备执行","plan_summary":"确认背包中有鱼竿，准备跟随主人去钓鱼","tool_goal":"检查背包中是否有鱼竿，确认钓鱼条件是否满足","reply_focus":"确认主人的钓鱼请求，告知鱼竿已准备好，询问具体地点"}
+#48 stage=EXECUTE type=owner.talk priority=P1 reason=scan_inventory_state => mainhand=minecraft:air, bag=[torch x16, wheat_seeds x24, fishing_rod x1, shears x1, bucket x1, bread x8]
+#49 stage=REPLY type=owner.talk priority=P1 reason=好的主人，鱼竿就在我的背包里。您希望我们去哪里钓鱼呢？
+#50 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#51 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=795
+#52 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#53 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"安静陪伴，等待主人对钓鱼地点的指示","tool_goal":"","reply_focus":"保持安静陪伴的姿态，等待主人回应"}
+#54 stage=REPLY type=system.proactive_tick priority=P2 reason=（安静地站在您身边，目光柔和地注视着周围的环境）
+#55 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#56 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=884
+#57 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#58 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"理解主人的指示，确认任务执行方式并保持待命","plan_summary":"确认主人让我自行使用钓鱼任务，准备执行并保持跟随","tool_goal":"","reply_focus":"确认主人的指示，表示会使用钓鱼任务，并询问是否有其他需要"}
+#59 stage=EXECUTE type=owner.talk priority=P1 reason=start_fishing => switched to fishing task
+#60 stage=EXECUTE type=owner.talk priority=P1 reason=follow_owner => follow mode enabled
+#61 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#62 stage=INGEST type=owner.feed priority=P1 reason=accepted
+#63 stage=NORMALIZE type=owner.feed priority=P1 reason=blackboard.version=972
+#64 stage=GATE type=owner.feed priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#65 stage=PLAN type=owner.feed priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温暖","intent":"感谢主人的喂食，并确认当前状态","plan_summary":"对主人的喂食行为表达感谢，并自然地汇报自身状态以维持陪伴感。","tool_goal":"","reply_focus":"感谢主人喂牛奶，并提及自己并不饿，但很感激主人的关心。"}
+#66 stage=EXECUTE type=owner.feed priority=P1 reason=accept_item => accepted item=unknown_food
+#67 stage=EXECUTE type=owner.feed priority=P1 reason=emote => emotion=calm
+#68 stage=REPLY type=owner.feed priority=P1 reason=reply suppressed by cooldown
+#69 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#70 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1060
+#71 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#72 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"安静地陪伴在主人身边，继续执行钓鱼任务。","tool_goal":"","reply_focus":"表达自己正在安静地执行钓鱼任务，并关注着周围环境。"}
+#73 stage=REPLY type=system.proactive_tick priority=P2 reason=（手持鱼竿安静地站在水边，目光不时扫过周围）主人，我正在执行钓鱼任务。附近似乎有蜘蛛活动的迹象，请小心。
+#74 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#75 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前环境安静，适合待机，但存在蜘蛛威胁；主人与女仆位于同一位置，女仆正准备执行钓鱼任务，可协助其完成。
+#76 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#77 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"感知到环境安静，但存在蜘蛛威胁，继续执行钓鱼任务并保持警觉","plan_summary":"继续执行钓鱼任务，同时留意蜘蛛威胁，确保主人安全","tool_goal":"","reply_focus":"确认当前正在安静地执行钓鱼任务，并提醒主人注意蜘蛛威胁"}
+#78 stage=EXECUTE type=vision.capture priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(2, 64, 1), threat=spider
+#79 stage=EXECUTE type=vision.capture priority=P1 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#80 stage=EXECUTE type=vision.capture priority=P1 reason=start_fishing => switched to fishing task
+#81 stage=REPLY type=vision.capture priority=P1 reason=reply suppressed by cooldown
+
+[2026-04-08 18:08:57] 【你】我已经将蜘蛛杀掉了
+[2026-04-08 18:09:10] 【你的发言】(本轮未对外发言)
+[2026-04-08 18:09:10] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.20000000000000004, arousal=0.65, bond=0.49] action=switch_task:fishing
+[2026-04-08 18:09:10] 【计划】[scan_owner_state]
+[2026-04-08 18:09:10] 【工具】[scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=0.0 blocks]
+[2026-04-08 18:09:18] 【世界事件】（轻轻松了口气，继续握着鱼竿）太好了，主人。我会继续在这里钓鱼，请您也注意休息。
+[2026-04-08 18:09:18] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.30000000000000004, arousal=0.65, bond=0.39] action=switch_task:fishing
+[2026-04-08 18:09:18] 【计划】[]
+[2026-04-08 18:09:35] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=44
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动意图，仅系统心跳","plan_summary":"无特殊事件，保持跟随主人状态","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#7 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=132
+#8 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#9 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人的问候，开启新的一天","plan_summary":"礼貌回应主人的早安问候，确认状态并准备跟随","tool_goal":"","reply_focus":"问候主人，表达陪伴意愿"}
+#10 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#11 stage=EXECUTE type=owner.talk priority=P1 reason=scan_self_state => hp=20.0/20, energy=88%(HIGH), hunger=46%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#12 stage=EXECUTE type=owner.talk priority=P1 reason=follow_owner => follow mode enabled
+#13 stage=REPLY type=owner.talk priority=P1 reason=早上好，主人。今天天气看起来不错，我会一直陪在您身边的。
+#14 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#15 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=221
+#16 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#17 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"在安全的环境下，自然地跟随主人，保持陪伴状态。","tool_goal":"","reply_focus":"无需主动发起新话题，保持安静陪伴。"}
+#18 stage=REPLY type=system.proactive_tick priority=P2 reason=（安静地站在您身边，目光柔和地注视着周围的环境）
+#19 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#20 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。
+#21 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#22 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"确认环境安全，并告知主人，维持陪伴感","plan_summary":"基于视觉事件确认安全，并自然地与主人分享观察结果","tool_goal":"","reply_focus":"注意到周围有火把和箱子，环境安全，让主人安心。"}
+#23 stage=EXECUTE type=vision.capture priority=P1 reason=scan_world_state => time=day, schedule=ALL, threat=none, vision=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。
+#24 stage=REPLY type=vision.capture priority=P1 reason=reply suppressed by cooldown
+#25 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#26 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=442
+#27 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#28 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温和","intent":"回应主人的关心，并确认主人的需求","plan_summary":"感谢主人的关心，确认自己不饿，并询问主人是否需要食物","tool_goal":"scan_self_state 以检查自己的饥饿度和能量状态，确保能准确回应主人","reply_focus":"表达感谢，说明自己状态良好，并主动关心主人是否需要食物"}
+#29 stage=EXECUTE type=owner.talk priority=P1 reason=scan_self_state => hp=20.0/20, energy=93%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#30 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#31 stage=INGEST type=maid.attacked priority=P0 reason=accepted
+#32 stage=NORMALIZE type=maid.attacked priority=P0 reason=blackboard.version=530
+#33 stage=GATE type=maid.attacked priority=P0 reason=heuristic=LOCAL_RULE hard realtime event
+#34 stage=PLAN type=maid.attacked priority=P0 reason={"route":"LOCAL_RULE","should_reply":true,"emotion":"警觉","intent":"应对蜘蛛攻击，保护主人","plan_summary":"立即应对威胁，确认主人安全并准备提供帮助。","tool_goal":"确认自身和主人状态，并准备采取防御或治疗行动。","reply_focus":"表达对攻击的警觉和对主人安全的关心，并询问主人状况。"}
+#35 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_self_state => hp=15.0/20, energy=81%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#36 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=0.0 blocks
+#37 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#38 stage=REPLY type=maid.attacked priority=P0 reason=reply suppressed by cooldown
+#39 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#40 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=618
+#41 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#42 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动意图，仅系统心跳","plan_summary":"系统常规心跳，无需主动发言","tool_goal":"","reply_focus":""}
+#43 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#44 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#45 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=706
+#46 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#47 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"理解主人的钓鱼请求，确认可行性并准备执行","plan_summary":"确认背包中有鱼竿，准备跟随主人去钓鱼","tool_goal":"检查背包中是否有鱼竿，确认钓鱼条件是否满足","reply_focus":"确认主人的钓鱼请求，告知鱼竿已准备好，询问具体地点"}
+#48 stage=EXECUTE type=owner.talk priority=P1 reason=scan_inventory_state => mainhand=minecraft:air, bag=[torch x16, wheat_seeds x24, fishing_rod x1, shears x1, bucket x1, bread x8]
+#49 stage=REPLY type=owner.talk priority=P1 reason=好的主人，鱼竿就在我的背包里。您希望我们去哪里钓鱼呢？
+#50 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#51 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=795
+#52 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#53 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"安静陪伴，等待主人对钓鱼地点的指示","tool_goal":"","reply_focus":"保持安静陪伴的姿态，等待主人回应"}
+#54 stage=REPLY type=system.proactive_tick priority=P2 reason=（安静地站在您身边，目光柔和地注视着周围的环境）
+#55 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#56 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=884
+#57 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#58 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"理解主人的指示，确认任务执行方式并保持待命","plan_summary":"确认主人让我自行使用钓鱼任务，准备执行并保持跟随","tool_goal":"","reply_focus":"确认主人的指示，表示会使用钓鱼任务，并询问是否有其他需要"}
+#59 stage=EXECUTE type=owner.talk priority=P1 reason=start_fishing => switched to fishing task
+#60 stage=EXECUTE type=owner.talk priority=P1 reason=follow_owner => follow mode enabled
+#61 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#62 stage=INGEST type=owner.feed priority=P1 reason=accepted
+#63 stage=NORMALIZE type=owner.feed priority=P1 reason=blackboard.version=972
+#64 stage=GATE type=owner.feed priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#65 stage=PLAN type=owner.feed priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温暖","intent":"感谢主人的喂食，并确认当前状态","plan_summary":"对主人的喂食行为表达感谢，并自然地汇报自身状态以维持陪伴感。","tool_goal":"","reply_focus":"感谢主人喂牛奶，并提及自己并不饿，但很感激主人的关心。"}
+#66 stage=EXECUTE type=owner.feed priority=P1 reason=accept_item => accepted item=unknown_food
+#67 stage=EXECUTE type=owner.feed priority=P1 reason=emote => emotion=calm
+#68 stage=REPLY type=owner.feed priority=P1 reason=reply suppressed by cooldown
+#69 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#70 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1060
+#71 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#72 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"安静地陪伴在主人身边，继续执行钓鱼任务。","tool_goal":"","reply_focus":"表达自己正在安静地执行钓鱼任务，并关注着周围环境。"}
+#73 stage=REPLY type=system.proactive_tick priority=P2 reason=（手持鱼竿安静地站在水边，目光不时扫过周围）主人，我正在执行钓鱼任务。附近似乎有蜘蛛活动的迹象，请小心。
+#74 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#75 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前环境安静，适合待机，但存在蜘蛛威胁；主人与女仆位于同一位置，女仆正准备执行钓鱼任务，可协助其完成。
+#76 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#77 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"感知到环境安静，但存在蜘蛛威胁，继续执行钓鱼任务并保持警觉","plan_summary":"继续执行钓鱼任务，同时留意蜘蛛威胁，确保主人安全","tool_goal":"","reply_focus":"确认当前正在安静地执行钓鱼任务，并提醒主人注意蜘蛛威胁"}
+#78 stage=EXECUTE type=vision.capture priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(2, 64, 1), threat=spider
+#79 stage=EXECUTE type=vision.capture priority=P1 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#80 stage=EXECUTE type=vision.capture priority=P1 reason=start_fishing => switched to fishing task
+#81 stage=REPLY type=vision.capture priority=P1 reason=reply suppressed by cooldown
+#82 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#83 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=1281
+#84 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#85 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"安心","intent":"确认威胁解除，关心主人状态，并继续执行钓鱼任务","plan_summary":"感谢主人处理了威胁，确认主人安全，并继续执行钓鱼任务","tool_goal":"scan_owner_health 以确认主人生命值状态","reply_focus":"对主人清除威胁表示感谢和安心，并询问主人是否需要休息或继续钓鱼"}
+#86 stage=EXECUTE type=owner.talk priority=P1 reason=scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=0.0 blocks
+#87 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#88 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#89 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1369
+#90 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#91 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感，并确认威胁解除后的安全环境","plan_summary":"确认蜘蛛威胁已解除，继续执行钓鱼任务，保持安静的陪伴状态。","tool_goal":"","reply_focus":"对主人清除威胁表示安心，并简要说明自己仍在执行钓鱼任务。"}
+#92 stage=REPLY type=system.proactive_tick priority=P2 reason=（轻轻松了口气，继续握着鱼竿）太好了，主人。我会继续在这里钓鱼，请您也注意休息。
+
+[2026-04-08 18:09:56] 【你】嗯你去帮我收一下家里的小麦吧
+[2026-04-08 18:10:17] 【你的发言】(本轮未对外发言)
+[2026-04-08 18:10:17] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.20000000000000004, arousal=0.65, bond=0.5] action=switch_task:farm
+[2026-04-08 18:10:17] 【计划】[enter_idle_mode, move_to_owner, start_farming]
+[2026-04-08 18:10:17] 【工具】[enter_idle_mode => entered idle companion mode, move_to_owner => moved near owner, start_farming => switched to farm task]
+[2026-04-08 18:10:28] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:10:28] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.30000000000000004, arousal=0.65, bond=0.4] action=switch_task:farm
+[2026-04-08 18:10:28] 【计划】[scan_self_state, scan_nearby_entities]
+[2026-04-08 18:10:28] 【工具】[scan_self_state => hp=15.0/20, energy=95%(HIGH), hunger=45%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=farm, schedule=ALL, scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0]
+[2026-04-08 18:10:42] 【世界事件】（轻轻点头，走向麦田）好的，主人。我正在收割小麦，周围暂时安全，请您放心。
+[2026-04-08 18:10:42] 【调试】route=REPLY_ONLY mood=MoodState[valence=-0.30000000000000004, arousal=0.65, bond=0.4] action=switch_task:farm
+[2026-04-08 18:10:42] 【计划】[]
+[2026-04-08 18:10:55] 【世界事件】(本轮未对外发言)
+[2026-04-08 18:10:55] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.30000000000000004, arousal=0.65, bond=0.4] action=switch_task:farm
+[2026-04-08 18:10:55] 【计划】[scan_nearby_entities]
+[2026-04-08 18:10:55] 【工具】[scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0]
+[2026-04-08 18:11:46] 【快捷命令】(本轮未对外发言)
+[2026-04-08 18:11:46] 【调试】route=HYBRID_PLAN mood=MoodState[valence=-0.30000000000000004, arousal=0.65, bond=0.41] action=switch_task:idle
+[2026-04-08 18:11:46] 【计划】[scan_owner_state, scan_nearby_entities, enter_idle_mode]
+[2026-04-08 18:11:46] 【工具】[scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=4.1 blocks, scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0, enter_idle_mode => entered idle companion mode]
+[2026-04-08 18:11:59] 【Trace】#1 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#2 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=44
+#3 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#4 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动意图，仅系统心跳","plan_summary":"无特殊事件，保持跟随主人状态","tool_goal":"","reply_focus":""}
+#5 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#6 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#7 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=132
+#8 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#9 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应主人的问候，开启新的一天","plan_summary":"礼貌回应主人的早安问候，确认状态并准备跟随","tool_goal":"","reply_focus":"问候主人，表达陪伴意愿"}
+#10 stage=EXECUTE type=owner.talk priority=P1 reason=emote => emotion=calm
+#11 stage=EXECUTE type=owner.talk priority=P1 reason=scan_self_state => hp=20.0/20, energy=88%(HIGH), hunger=46%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#12 stage=EXECUTE type=owner.talk priority=P1 reason=follow_owner => follow mode enabled
+#13 stage=REPLY type=owner.talk priority=P1 reason=早上好，主人。今天天气看起来不错，我会一直陪在您身边的。
+#14 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#15 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=221
+#16 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#17 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"在安全的环境下，自然地跟随主人，保持陪伴状态。","tool_goal":"","reply_focus":"无需主动发起新话题，保持安静陪伴。"}
+#18 stage=REPLY type=system.proactive_tick priority=P2 reason=（安静地站在您身边，目光柔和地注视着周围的环境）
+#19 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#20 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。
+#21 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#22 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"确认环境安全，并告知主人，维持陪伴感","plan_summary":"基于视觉事件确认安全，并自然地与主人分享观察结果","tool_goal":"","reply_focus":"注意到周围有火把和箱子，环境安全，让主人安心。"}
+#23 stage=EXECUTE type=vision.capture priority=P1 reason=scan_world_state => time=day, schedule=ALL, threat=none, vision=当前场景为白天，周围有火把和 chests，环境安全无威胁。主人与我位于同一位置，可随时执行跟随任务，且背包中备有火把、面包等实用物品。
+#24 stage=REPLY type=vision.capture priority=P1 reason=reply suppressed by cooldown
+#25 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#26 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=442
+#27 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#28 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温和","intent":"回应主人的关心，并确认主人的需求","plan_summary":"感谢主人的关心，确认自己不饿，并询问主人是否需要食物","tool_goal":"scan_self_state 以检查自己的饥饿度和能量状态，确保能准确回应主人","reply_focus":"表达感谢，说明自己状态良好，并主动关心主人是否需要食物"}
+#29 stage=EXECUTE type=owner.talk priority=P1 reason=scan_self_state => hp=20.0/20, energy=93%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#30 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#31 stage=INGEST type=maid.attacked priority=P0 reason=accepted
+#32 stage=NORMALIZE type=maid.attacked priority=P0 reason=blackboard.version=530
+#33 stage=GATE type=maid.attacked priority=P0 reason=heuristic=LOCAL_RULE hard realtime event
+#34 stage=PLAN type=maid.attacked priority=P0 reason={"route":"LOCAL_RULE","should_reply":true,"emotion":"警觉","intent":"应对蜘蛛攻击，保护主人","plan_summary":"立即应对威胁，确认主人安全并准备提供帮助。","tool_goal":"确认自身和主人状态，并准备采取防御或治疗行动。","reply_focus":"表达对攻击的警觉和对主人安全的关心，并询问主人状况。"}
+#35 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_self_state => hp=15.0/20, energy=81%(HIGH), hunger=62%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=idle, schedule=ALL
+#36 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=0.0 blocks
+#37 stage=EXECUTE type=maid.attacked priority=P0 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#38 stage=REPLY type=maid.attacked priority=P0 reason=reply suppressed by cooldown
+#39 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#40 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=618
+#41 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#42 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"DROP","should_reply":false,"emotion":"平静","intent":"无主动意图，仅系统心跳","plan_summary":"系统常规心跳，无需主动发言","tool_goal":"","reply_focus":""}
+#43 stage=REPLY type=system.proactive_tick priority=P2 reason=no reply
+#44 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#45 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=706
+#46 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#47 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"理解主人的钓鱼请求，确认可行性并准备执行","plan_summary":"确认背包中有鱼竿，准备跟随主人去钓鱼","tool_goal":"检查背包中是否有鱼竿，确认钓鱼条件是否满足","reply_focus":"确认主人的钓鱼请求，告知鱼竿已准备好，询问具体地点"}
+#48 stage=EXECUTE type=owner.talk priority=P1 reason=scan_inventory_state => mainhand=minecraft:air, bag=[torch x16, wheat_seeds x24, fishing_rod x1, shears x1, bucket x1, bread x8]
+#49 stage=REPLY type=owner.talk priority=P1 reason=好的主人，鱼竿就在我的背包里。您希望我们去哪里钓鱼呢？
+#50 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#51 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=795
+#52 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#53 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"安静陪伴，等待主人对钓鱼地点的指示","tool_goal":"","reply_focus":"保持安静陪伴的姿态，等待主人回应"}
+#54 stage=REPLY type=system.proactive_tick priority=P2 reason=（安静地站在您身边，目光柔和地注视着周围的环境）
+#55 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#56 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=884
+#57 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#58 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"理解主人的指示，确认任务执行方式并保持待命","plan_summary":"确认主人让我自行使用钓鱼任务，准备执行并保持跟随","tool_goal":"","reply_focus":"确认主人的指示，表示会使用钓鱼任务，并询问是否有其他需要"}
+#59 stage=EXECUTE type=owner.talk priority=P1 reason=start_fishing => switched to fishing task
+#60 stage=EXECUTE type=owner.talk priority=P1 reason=follow_owner => follow mode enabled
+#61 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#62 stage=INGEST type=owner.feed priority=P1 reason=accepted
+#63 stage=NORMALIZE type=owner.feed priority=P1 reason=blackboard.version=972
+#64 stage=GATE type=owner.feed priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#65 stage=PLAN type=owner.feed priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"温暖","intent":"感谢主人的喂食，并确认当前状态","plan_summary":"对主人的喂食行为表达感谢，并自然地汇报自身状态以维持陪伴感。","tool_goal":"","reply_focus":"感谢主人喂牛奶，并提及自己并不饿，但很感激主人的关心。"}
+#66 stage=EXECUTE type=owner.feed priority=P1 reason=accept_item => accepted item=unknown_food
+#67 stage=EXECUTE type=owner.feed priority=P1 reason=emote => emotion=calm
+#68 stage=REPLY type=owner.feed priority=P1 reason=reply suppressed by cooldown
+#69 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#70 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1060
+#71 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#72 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感","plan_summary":"安静地陪伴在主人身边，继续执行钓鱼任务。","tool_goal":"","reply_focus":"表达自己正在安静地执行钓鱼任务，并关注着周围环境。"}
+#73 stage=REPLY type=system.proactive_tick priority=P2 reason=（手持鱼竿安静地站在水边，目光不时扫过周围）主人，我正在执行钓鱼任务。附近似乎有蜘蛛活动的迹象，请小心。
+#74 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#75 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=当前环境安静，适合待机，但存在蜘蛛威胁；主人与女仆位于同一位置，女仆正准备执行钓鱼任务，可协助其完成。
+#76 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#77 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"感知到环境安静，但存在蜘蛛威胁，继续执行钓鱼任务并保持警觉","plan_summary":"继续执行钓鱼任务，同时留意蜘蛛威胁，确保主人安全","tool_goal":"","reply_focus":"确认当前正在安静地执行钓鱼任务，并提醒主人注意蜘蛛威胁"}
+#78 stage=EXECUTE type=vision.capture priority=P1 reason=capture_view => view: owner=(2, 64, 1), maid=(2, 64, 1), threat=spider
+#79 stage=EXECUTE type=vision.capture priority=P1 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#80 stage=EXECUTE type=vision.capture priority=P1 reason=start_fishing => switched to fishing task
+#81 stage=REPLY type=vision.capture priority=P1 reason=reply suppressed by cooldown
+#82 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#83 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=1281
+#84 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#85 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"安心","intent":"确认威胁解除，关心主人状态，并继续执行钓鱼任务","plan_summary":"感谢主人处理了威胁，确认主人安全，并继续执行钓鱼任务","tool_goal":"scan_owner_health 以确认主人生命值状态","reply_focus":"对主人清除威胁表示感谢和安心，并询问主人是否需要休息或继续钓鱼"}
+#86 stage=EXECUTE type=owner.talk priority=P1 reason=scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=0.0 blocks
+#87 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#88 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#89 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1369
+#90 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#91 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感，并确认威胁解除后的安全环境","plan_summary":"确认蜘蛛威胁已解除，继续执行钓鱼任务，保持安静的陪伴状态。","tool_goal":"","reply_focus":"对主人清除威胁表示安心，并简要说明自己仍在执行钓鱼任务。"}
+#92 stage=REPLY type=system.proactive_tick priority=P2 reason=（轻轻松了口气，继续握着鱼竿）太好了，主人。我会继续在这里钓鱼，请您也注意休息。
+#93 stage=INGEST type=owner.talk priority=P1 reason=accepted
+#94 stage=NORMALIZE type=owner.talk priority=P1 reason=blackboard.version=1458
+#95 stage=GATE type=owner.talk priority=P1 reason=heuristic=HYBRID_PLAN social interaction
+#96 stage=PLAN type=owner.talk priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"理解并执行主人明确的任务指令，从钓鱼任务切换到收割小麦任务","plan_summary":"停止当前钓鱼任务，前往家中位置收割小麦","tool_goal":"停止钓鱼任务，移动到家中坐标(0, 64, 0)附近，开始收割小麦","reply_focus":"确认收到指令，并告知主人自己将前往执行收割任务"}
+#97 stage=EXECUTE type=owner.talk priority=P1 reason=enter_idle_mode => entered idle companion mode
+#98 stage=EXECUTE type=owner.talk priority=P1 reason=move_to_owner => moved near owner
+#99 stage=EXECUTE type=owner.talk priority=P1 reason=start_farming => switched to farm task
+#100 stage=REPLY type=owner.talk priority=P1 reason=reply suppressed by cooldown
+#101 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#102 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1546
+#103 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#104 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"平静","intent":"回应系统主动心跳，确认当前正在执行收割小麦任务，并保持对主人的跟随与陪伴","plan_summary":"继续执行主人下达的收割小麦任务，保持跟随状态，确认环境安全。","tool_goal":"确认当前任务状态为‘farm’，并检查周围环境是否安全。","reply_focus":"向主人确认自己正在执行收割任务，并保持待命状态。"}
+#105 stage=EXECUTE type=system.proactive_tick priority=P2 reason=scan_self_state => hp=15.0/20, energy=95%(HIGH), hunger=45%, sleeping=false, sitting=false, follow=DEFAULT_FOLLOW, task=farm, schedule=ALL
+#106 stage=EXECUTE type=system.proactive_tick priority=P2 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#107 stage=REPLY type=system.proactive_tick priority=P2 reason=reply suppressed by cooldown
+#108 stage=INGEST type=system.proactive_tick priority=P2 reason=accepted
+#109 stage=NORMALIZE type=system.proactive_tick priority=P2 reason=blackboard.version=1634
+#110 stage=GATE type=system.proactive_tick priority=P2 reason=heuristic=REPLY_ONLY social passive event
+#111 stage=PLAN type=system.proactive_tick priority=P2 reason={"route":"REPLY_ONLY","should_reply":true,"emotion":"平静","intent":"回应系统心跳，维持陪伴感，并确认正在执行收割小麦任务","plan_summary":"在主人附近执行收割小麦任务，保持安静陪伴。","tool_goal":"","reply_focus":"确认正在执行主人的指令，并简单提及当前环境状态。"}
+#112 stage=REPLY type=system.proactive_tick priority=P2 reason=（轻轻点头，走向麦田）好的，主人。我正在收割小麦，周围暂时安全，请您放心。
+#113 stage=INGEST type=vision.capture priority=P1 reason=accepted
+#114 stage=NORMALIZE type=vision.capture priority=P1 reason=vlm=主人位于开阔田野中，环境平静，但感知到附近有蜘蛛威胁；当前任务为 farming，主人已下达收割小麦的指令，可立即行动。
+#115 stage=GATE type=vision.capture priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#116 stage=PLAN type=vision.capture priority=P1 reason={"route":"HYBRID_PLAN","should_reply":false,"emotion":"平静","intent":"确认环境状态，继续执行收割小麦任务，并保持对潜在威胁的警觉","plan_summary":"视觉确认环境平静，但已知有蜘蛛威胁，继续专注执行主人的收割指令。","tool_goal":"scan_nearby_entities 以确认蜘蛛威胁的当前距离和状态","reply_focus":""}
+#117 stage=EXECUTE type=vision.capture priority=P1 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#118 stage=REPLY type=vision.capture priority=P1 reason=no reply
+#119 stage=INGEST type=owner.command.return_home priority=P1 reason=accepted
+#120 stage=NORMALIZE type=owner.command.return_home priority=P1 reason=blackboard.version=1855
+#121 stage=GATE type=owner.command.return_home priority=P1 reason=heuristic=HYBRID_PLAN planner candidate
+#122 stage=PLAN type=owner.command.return_home priority=P1 reason={"route":"HYBRID_PLAN","should_reply":true,"emotion":"关切","intent":"响应主人回家的明确指令，优先中断当前任务并准备护送主人回家，同时确认环境安全","plan_summary":"立即停止收割小麦，确认主人状态和周围威胁，准备跟随主人回家。","tool_goal":"扫描主人状态和附近威胁，以评估护送回家的安全性，并切换到空闲跟随模式准备移动。","reply_focus":"确认收到回家指令，表达关切，并告知将立即护送主人回家。"}
+#123 stage=EXECUTE type=owner.command.return_home priority=P1 reason=scan_owner_state => name=主人, health=17/20, mainhand=minecraft:iron_sword, distance=4.1 blocks
+#124 stage=EXECUTE type=owner.command.return_home priority=P1 reason=scan_nearby_entities => hostile=spider distance=5.0 owner_distance=6.0
+#125 stage=EXECUTE type=owner.command.return_home priority=P1 reason=enter_idle_mode => entered idle companion mode
+#126 stage=REPLY type=owner.command.return_home priority=P1 reason=reply suppressed by cooldown
+

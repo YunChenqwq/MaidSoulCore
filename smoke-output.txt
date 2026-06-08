@@ -1,0 +1,48 @@
+
+E:\wallpaper\MaidSoulCore>if "Windows_NT" == "Windows_NT" setlocal
+
+E:\wallpaper\MaidSoulCore>set DIRNAME=E:\wallpaper\MaidSoulCore\ 
+
+E:\wallpaper\MaidSoulCore>if "E:\wallpaper\MaidSoulCore\" == "" set DIRNAME=. 
+
+E:\wallpaper\MaidSoulCore>set APP_BASE_NAME=gradlew 
+
+E:\wallpaper\MaidSoulCore>set APP_HOME=E:\wallpaper\MaidSoulCore\ 
+
+E:\wallpaper\MaidSoulCore>for %i in ("E:\wallpaper\MaidSoulCore\") do set APP_HOME=%~fi 
+
+E:\wallpaper\MaidSoulCore>set APP_HOME=E:\wallpaper\MaidSoulCore\ 
+
+E:\wallpaper\MaidSoulCore>set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m" 
+
+E:\wallpaper\MaidSoulCore>if defined JAVA_HOME goto findJavaFromJavaHome 
+
+E:\wallpaper\MaidSoulCore>set JAVA_EXE=java.exe 
+
+E:\wallpaper\MaidSoulCore>java.exe -version  1>NUL 2>&1 
+
+E:\wallpaper\MaidSoulCore>if 0 EQU 0 goto execute 
+
+E:\wallpaper\MaidSoulCore>set CLASSPATH=E:\wallpaper\MaidSoulCore\\gradle\wrapper\gradle-wrapper.jar 
+
+E:\wallpaper\MaidSoulCore>"java.exe" "-Xmx64m" "-Xms64m"   "-Dorg.gradle.appname=gradlew" -classpath "E:\wallpaper\MaidSoulCore\\gradle\wrapper\gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain runTextGameSmoke --console=plain 
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+
+> Task :runTextGameSmoke
+config.available=true
+config.status=loaded-standalone
+replyModel=siliconflow-deepseek-v3.2
+plannerModel=siliconflow-deepseek-v3.2
+route=HYBRID_PLAN
+plan=���ߵػ�Ӧ���˵����⣬��̽����Լ���ɴ����ǿ������ɣ�����á�
+tools=[move_to_owner => ���ƶ������˸���, emote => ��������=ƽ��, reply => ����ظ����ɽ׶�]
+reply=����Ҫ��Ҫ���ҽ����𡭡�����ɴ������ɣ�������š�
+
+BUILD SUCCESSFUL in 38s
+3 actionable tasks: 1 executed, 2 up-to-date
+
+E:\wallpaper\MaidSoulCore>if 0 EQU 0 goto mainEnd 
+
+E:\wallpaper\MaidSoulCore>if "Windows_NT" == "Windows_NT" endlocal
