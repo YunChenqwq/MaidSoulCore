@@ -11,13 +11,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public final class LifeMemoryStore {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private final Path path;
     private final List<MemoryEpisode> episodes = new ArrayList<>();
+    private final MemoryLocalRetriever localRetriever = new MemoryLocalRetriever();
 
     public LifeMemoryStore(Path path) {
         this.path = path;
@@ -46,17 +46,23 @@ public final class LifeMemoryStore {
     }
 
     public synchronized String searchText(String query, int limit) {
-        return query(query, limit).stream()
-                .map(e -> "- " + e.summary + " (importance=" + e.importance + ")")
+        return queryDetailed(query, limit).stream()
+                .map(r -> "- " + r.episode().summary
+                        + " (score=" + String.format(java.util.Locale.ROOT, "%.3f", r.score())
+                        + ", source=" + r.source()
+                        + ", category=" + blankToDefault(r.episode().category, "unknown")
+                        + ", importance=" + r.episode().importance + ")")
                 .reduce("", (a, b) -> a.isBlank() ? b : a + "\n" + b);
     }
 
     public synchronized List<MemoryEpisode> query(String query, int limit) {
-        String normalized = query == null ? "" : query.trim();
-        return episodes.stream()
-                .sorted(Comparator.comparingInt((MemoryEpisode e) -> score(e, normalized)).reversed())
-                .limit(Math.max(1, limit))
+        return queryDetailed(query, limit).stream()
+                .map(MemorySearchResult::episode)
                 .toList();
+    }
+
+    public synchronized List<MemorySearchResult> queryDetailed(String query, int limit) {
+        return localRetriever.search(episodes, query, limit);
     }
 
     public synchronized List<String> querySummaries(String query, int limit) {
@@ -73,14 +79,6 @@ public final class LifeMemoryStore {
             episodes.addAll(replacement);
         }
         save();
-    }
-
-    private static int score(MemoryEpisode episode, String query) {
-        int score = episode.importance;
-        if (!query.isBlank() && episode.summary != null && episode.summary.contains(query)) {
-            score += 100;
-        }
-        return score;
     }
 
     private void load() {
@@ -106,6 +104,10 @@ public final class LifeMemoryStore {
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to save maid life memory: " + path, e);
         }
+    }
+
+    private static String blankToDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     public static final class MemoryEpisode {

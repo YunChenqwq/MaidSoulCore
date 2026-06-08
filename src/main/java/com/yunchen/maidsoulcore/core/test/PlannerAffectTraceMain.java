@@ -79,7 +79,7 @@ public final class PlannerAffectTraceMain {
         System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
 
         DialogueCoreConfig config = loadConfig(args);
-        List<String> script = useQuickScript(args) ? QUICK_SCRIPT : SCRIPT;
+        List<String> script = resolveScript(args);
         ModelPair models = loadRuntimeModels(config);
         if (config.model == null || config.model.apiKey == null || config.model.apiKey.isBlank()) {
             throw new IllegalStateException("No API key found in dialogue config.");
@@ -170,7 +170,15 @@ public final class PlannerAffectTraceMain {
     }
 
     private static DialogueCoreConfig loadConfig(String[] args) {
-        for (String arg : args) {
+        String explicit = optionValue(args, "--config");
+        if (explicit != null && !explicit.isBlank()) {
+            return DialogueConfigLoader.loadOrCreate(Path.of(explicit));
+        }
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (isOptionValue(args, i)) {
+                continue;
+            }
             if (arg != null && !arg.isBlank() && !arg.startsWith("--")) {
                 return DialogueConfigLoader.loadOrCreate(Path.of(arg));
             }
@@ -181,6 +189,44 @@ public final class PlannerAffectTraceMain {
         return DialogueConfigLoader.loadOrCreate(Path.of("config", "maidsoulcore", "dialogue-config.json"));
     }
 
+    private static List<String> resolveScript(String[] args) throws Exception {
+        List<String> texts = new ArrayList<>();
+        String scriptFile = optionValue(args, "--script-file");
+        if (scriptFile != null && !scriptFile.isBlank()) {
+            for (String line : Files.readAllLines(Path.of(scriptFile), StandardCharsets.UTF_8)) {
+                if (line != null && !line.isBlank()) {
+                    texts.add(line.trim());
+                }
+            }
+        }
+        String inlineLines = optionValue(args, "--script-lines");
+        if (inlineLines != null && !inlineLines.isBlank()) {
+            for (String line : inlineLines.split("\\|\\|")) {
+                if (line != null && !line.isBlank()) {
+                    texts.add(line.trim());
+                }
+            }
+        }
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if ("--text".equals(arg) && i + 1 < args.length) {
+                String value = args[++i];
+                if (value != null && !value.isBlank()) {
+                    texts.add(value.trim());
+                }
+            } else if (arg != null && arg.startsWith("--text=")) {
+                String value = arg.substring("--text=".length());
+                if (!value.isBlank()) {
+                    texts.add(value.trim());
+                }
+            }
+        }
+        if (!texts.isEmpty()) {
+            return texts;
+        }
+        return useQuickScript(args) ? QUICK_SCRIPT : SCRIPT;
+    }
+
     private static boolean useQuickScript(String[] args) {
         for (String arg : args) {
             if ("--quick".equalsIgnoreCase(arg)) {
@@ -188,6 +234,30 @@ public final class PlannerAffectTraceMain {
             }
         }
         return false;
+    }
+
+    private static String optionValue(String[] args, String name) {
+        for (int i = 0; i < args.length; i++) {
+            String arg = args[i];
+            if (name.equals(arg) && i + 1 < args.length) {
+                return args[i + 1];
+            }
+            if (arg != null && arg.startsWith(name + "=")) {
+                return arg.substring((name + "=").length());
+            }
+        }
+        return null;
+    }
+
+    private static boolean isOptionValue(String[] args, int index) {
+        if (index <= 0 || index >= args.length) {
+            return false;
+        }
+        String previous = args[index - 1];
+        return "--config".equals(previous)
+                || "--script-file".equals(previous)
+                || "--script-lines".equals(previous)
+                || "--text".equals(previous);
     }
 
     private static ModelPair loadRuntimeModels(DialogueCoreConfig config) throws Exception {
