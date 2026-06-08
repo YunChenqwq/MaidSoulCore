@@ -35,7 +35,7 @@ public final class ReplyGenerator {
         ));
 
         String last = "";
-        for (int attempt = 0; attempt <= Math.max(0, config.replyRetryCount); attempt++) {
+        for (int attempt = 0; attempt <= Math.max(1, config.replyRetryCount); attempt++) {
             String effectivePrompt = attempt == 0 ? prompt : prompt + "\n\n上一版回复不符合可见聊天格式，请重新生成一句自然发言，只输出台词。";
             last = llm.chat(List.of(new LlmMessage("system", effectivePrompt)), config.llmTimeoutMillis).content().trim();
             if (guard.isUsable(last)) {

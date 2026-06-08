@@ -145,9 +145,12 @@ public final class MaidSoulRuntime implements AutoCloseable {
         state = RuntimeState.RUNNING;
         long cycleVersion = version;
         trace.trace("runtime.cycle", "开始处理新消息，pending=" + pending.size() + "，version=" + cycleVersion);
+        String memoryQueryOverride = "";
+        boolean semanticAffectApplied = false;
+        int memoryQueryCount = 0;
         for (int round = 0; round < Math.max(1, config.maxInternalRounds); round++) {
-            ContextPack context = buildContext("");
-            boolean semanticAffectApplied = false;
+            ContextPack context = buildContext(memoryQueryOverride);
+            memoryQueryOverride = "";
             if (config.enableIndependentTimingGate) {
                 TimingDecision timing = timingGate.decide(context, identity());
                 trace.trace("timing", timing.action + " / " + timing.reason);
@@ -168,8 +171,8 @@ public final class MaidSoulRuntime implements AutoCloseable {
                 return;
             }
             String action = plan.action == null ? "reply" : plan.action.toLowerCase();
-            semanticAffectApplied = applyPlannerAffect(plan);
-            if (semanticAffectApplied) {
+            if (!semanticAffectApplied && applyPlannerAffect(plan)) {
+                semanticAffectApplied = true;
                 context = buildContext(plan.memory_query);
             }
             buffer.append(RuntimeMessage.thought("action=" + action
@@ -178,18 +181,22 @@ public final class MaidSoulRuntime implements AutoCloseable {
                     + " reason=" + plan.reason));
             tracePlanner(plan, action);
             if ("query_memory".equals(action)) {
-                context = buildContext(plan.memory_query);
-                plan = validatePlan(planner.plan(context, identity()), context);
-                if (cycleVersion != version) {
-                    trace.trace("planner.discard", "记忆查询后规划已过期，丢弃旧规划和旧情绪事件。");
+                memoryQueryCount++;
+                if (memoryQueryCount >= Math.max(1, config.maxInternalRounds - 1)) {
+                    plan.action = "reply";
+                    plan.target_message_id = blankToDefault(plan.target_message_id, context.latestMessageId());
+                    plan.reference_info = (blankToDefault(plan.reference_info, "")
+                            + "\n已完成可用记忆查询，本轮不要继续查询记忆；请直接回应最新消息，并保持与 planner event 一致。").trim();
+                    trace.trace("planner.validate", "query_memory_budget_exhausted_forced_reply");
+                    sendReply(context, plan, cycleVersion);
                     state = RuntimeState.STOP;
                     return;
                 }
-                action = plan.action == null ? "reply" : plan.action.toLowerCase();
-                tracePlanner(plan, action);
-                if (!semanticAffectApplied && applyPlannerAffect(plan)) {
-                    context = buildContext(plan.memory_query);
-                }
+                memoryQueryOverride = plan.memory_query == null || plan.memory_query.isBlank()
+                        ? latestContextText()
+                        : plan.memory_query;
+                trace.trace("memory.query", memoryQueryOverride);
+                continue;
             }
             if ("reply".equals(action)) {
                 sendReply(context, plan, cycleVersion);
@@ -213,6 +220,7 @@ public final class MaidSoulRuntime implements AutoCloseable {
             state = RuntimeState.STOP;
             return;
         }
+        trace.trace("planner.finish", "达到最大内部轮次，结束本轮。");
         state = RuntimeState.STOP;
     }
 
