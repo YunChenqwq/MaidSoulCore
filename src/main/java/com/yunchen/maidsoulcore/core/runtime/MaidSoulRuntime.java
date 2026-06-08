@@ -13,10 +13,12 @@ import com.yunchen.maidsoulcore.core.memory.LifeMemoryStore;
 import com.yunchen.maidsoulcore.core.memory.MemoryWritebackService;
 import com.yunchen.maidsoulcore.core.message.RuntimeMessage;
 import com.yunchen.maidsoulcore.core.event.StructuredEvent;
+import com.yunchen.maidsoulcore.core.event.StructuredEventPostProcessor;
 import com.yunchen.maidsoulcore.core.event.StructuredEventType;
 import com.yunchen.maidsoulcore.core.prompt.PromptCatalog;
 import com.yunchen.maidsoulcore.core.prompt.PromptRenderer;
 import com.yunchen.maidsoulcore.core.reasoning.PlanDecision;
+import com.yunchen.maidsoulcore.core.reasoning.PlanDecisionValidator;
 import com.yunchen.maidsoulcore.core.reasoning.PlannerRunner;
 import com.yunchen.maidsoulcore.core.reasoning.TimingDecision;
 import com.yunchen.maidsoulcore.core.reasoning.TimingGateRunner;
@@ -44,6 +46,8 @@ public final class MaidSoulRuntime implements AutoCloseable {
     private final AffectiveLongingEngine affectiveLonging = new AffectiveLongingEngine();
     private final AffectEngine affectEngine = affectiveLonging.affectEngine();
     private final MemoryWritebackService memoryWriteback = new MemoryWritebackService();
+    private final PlanDecisionValidator planValidator = new PlanDecisionValidator();
+    private final StructuredEventPostProcessor eventPostProcessor = new StructuredEventPostProcessor();
     private final MessageBuffer buffer = new MessageBuffer();
     private final ContextBuilder contextBuilder = new ContextBuilder();
     private final SentenceSplitter splitter = new SentenceSplitter();
@@ -157,7 +161,7 @@ public final class MaidSoulRuntime implements AutoCloseable {
                 }
             }
 
-            PlanDecision plan = planner.plan(context, identity());
+            PlanDecision plan = validatePlan(planner.plan(context, identity()), context);
             if (cycleVersion != version) {
                 trace.trace("planner.discard", "规划期间收到更新消息，丢弃旧规划和旧情绪事件。");
                 state = RuntimeState.STOP;
@@ -172,20 +176,17 @@ public final class MaidSoulRuntime implements AutoCloseable {
                     + " affect=" + blankToDefault(plan.affect_event, "none")
                     + " confidence=" + String.format(java.util.Locale.ROOT, "%.2f", plan.affect_confidence)
                     + " reason=" + plan.reason));
-            trace.trace("planner", action
-                    + " / affect=" + blankToDefault(plan.affect_event, "none")
-                    + "@" + String.format(java.util.Locale.ROOT, "%.2f", plan.affect_confidence)
-                    + " / target=" + plan.target_message_id
-                    + " / " + plan.reason);
+            tracePlanner(plan, action);
             if ("query_memory".equals(action)) {
                 context = buildContext(plan.memory_query);
-                plan = planner.plan(context, identity());
+                plan = validatePlan(planner.plan(context, identity()), context);
                 if (cycleVersion != version) {
                     trace.trace("planner.discard", "记忆查询后规划已过期，丢弃旧规划和旧情绪事件。");
                     state = RuntimeState.STOP;
                     return;
                 }
                 action = plan.action == null ? "reply" : plan.action.toLowerCase();
+                tracePlanner(plan, action);
                 if (!semanticAffectApplied && applyPlannerAffect(plan)) {
                     context = buildContext(plan.memory_query);
                 }
@@ -199,10 +200,43 @@ public final class MaidSoulRuntime implements AutoCloseable {
                 enterWait(plan.wait_seconds > 0 ? plan.wait_seconds : config.defaultWaitSeconds);
                 return;
             }
+            if ("no_action".equals(action)) {
+                trace.trace("planner.no_action", blankToDefault(plan.reason, "规划器选择本轮不动作。"));
+                state = RuntimeState.STOP;
+                return;
+            }
+            if ("finish".equals(action)) {
+                trace.trace("planner.finish", blankToDefault(plan.reason, "规划器结束本轮。"));
+                state = RuntimeState.STOP;
+                return;
+            }
             state = RuntimeState.STOP;
             return;
         }
         state = RuntimeState.STOP;
+    }
+
+    private PlanDecision validatePlan(PlanDecision rawPlan, ContextPack context) {
+        PlanDecisionValidator.ValidationResult result = planValidator.validate(rawPlan, context);
+        PlanDecision plan = result.decision();
+        plan.validation_note = result.reason();
+        if (result.changed()) {
+            trace.trace("planner.validate", result.reason());
+        }
+        return plan;
+    }
+
+    private void tracePlanner(PlanDecision plan, String action) {
+        trace.trace("planner.raw", blankToDefault(plan.raw_response, "{}"));
+        if (plan.tool_name != null && !plan.tool_name.isBlank()) {
+            trace.trace("planner.tool", plan.tool_name + " " + blankToDefault(plan.tool_arguments, "{}"));
+        }
+        trace.trace("planner", action
+                    + " / affect=" + blankToDefault(plan.affect_event, "none")
+                    + "@" + String.format(java.util.Locale.ROOT, "%.2f", plan.affect_confidence)
+                    + " / target=" + plan.target_message_id
+                    + " / validation=" + blankToDefault(plan.validation_note, "ok")
+                    + " / " + plan.reason);
     }
 
     private ContextPack buildContext(String memoryQuery) {
@@ -273,55 +307,20 @@ public final class MaidSoulRuntime implements AutoCloseable {
      * planner 这里只负责更高层的关系语义，避免同一条消息重复增益。</p>
      */
     private StructuredEvent structuredEventFromPlan(PlanDecision plan) {
-        StructuredEvent event = plan.event;
         RuntimeMessage target = buffer.findById(plan.target_message_id);
         if (target == null) {
             target = buffer.latestUserMessage();
         }
         String sourceText = target == null ? latestContextText() : target.content();
-        if (event == null || (event.type == null || event.type.isBlank())) {
-            event = StructuredEvent.fromLegacy(
-                    plan.affect_event,
-                    plan.affect_confidence,
-                    plan.affect_evidence,
-                    config.ownerName,
-                    config.botName,
-                    sourceText
-            );
-        }
-        event.normalize();
-        if (event.subject.isBlank()) {
-            event.subject = config.ownerName;
-        }
-        if (event.object.isBlank()) {
-            event.object = config.botName;
-        }
-        if (event.sourceText.isBlank()) {
-            event.sourceText = sourceText;
-        }
-        if (event.evidence.isBlank()) {
-            event.evidence = plan.affect_evidence;
-        }
-        if (event.summary.isBlank()) {
-            event.summary = event.evidence;
-        }
-        if (event.confidence <= 0.0D) {
-            event.confidence = plan.affect_confidence;
-        }
-        if (event.type == null || event.type.isBlank()) {
-            event.type = plan.affect_event;
-        }
-        if (event.importance <= 0.0D && event.isMeaningful()) {
-            event.importance = com.yunchen.maidsoulcore.core.event.EventImportancePolicy.defaultImportance(event.typeEnum(), event.confidence);
-        }
-        if (event.memoryCategory.isBlank()) {
-            event.memoryCategory = com.yunchen.maidsoulcore.core.event.EventImportancePolicy.defaultMemoryCategory(event.typeEnum());
-        }
-        event.shouldUpdateAffect = event.shouldUpdateAffect || event.isMeaningful();
-        event.shouldWriteMemory = event.shouldWriteMemory
-                || com.yunchen.maidsoulcore.core.event.EventImportancePolicy.shouldWriteMemory(event.typeEnum(), event.confidence, event.importance);
-        event.normalize();
-        return event;
+        return eventPostProcessor.complete(
+                plan.event,
+                plan.affect_event,
+                plan.affect_confidence,
+                plan.affect_evidence,
+                config.ownerName,
+                config.botName,
+                sourceText
+        );
     }
 
     private static boolean hasWritableAffectEvent(StructuredEvent event) {

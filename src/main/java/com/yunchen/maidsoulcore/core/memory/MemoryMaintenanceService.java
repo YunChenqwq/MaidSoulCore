@@ -134,8 +134,26 @@ public final class MemoryMaintenanceService {
         if (episode.eventType == null) {
             episode.eventType = "";
         }
+        if (episode.knowledgeType == null || episode.knowledgeType.isBlank()) {
+            episode.knowledgeType = "structured";
+        }
+        if (episode.sourceKind == null || episode.sourceKind.isBlank()) {
+            episode.sourceKind = "dialogue_event";
+        }
+        if (episode.relationPredicate == null || episode.relationPredicate.isBlank()) {
+            episode.relationPredicate = episode.eventType;
+        }
         if (episode.evidence == null) {
             episode.evidence = "";
+        }
+        if (episode.vectorText == null || episode.vectorText.isBlank()) {
+            episode.vectorText = (episode.subject + " " + episode.relationPredicate + " " + episode.object + "\n" + episode.summary).trim();
+        }
+        if (episode.vectorState == null || episode.vectorState.isBlank()) {
+            episode.vectorState = "none";
+        }
+        if (episode.writePolicy == null) {
+            episode.writePolicy = "";
         }
         episode.importance = Math.max(1, Math.min(100, episode.importance));
         episode.confidence = confidenceOrDefault(episode);

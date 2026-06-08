@@ -43,4 +43,13 @@ public final class PlanDecision {
      * 迁移期 fallback，避免某些模型暂时没有按新 schema 输出时整条链路断掉。</p>
      */
     public StructuredEvent event;
+
+    /**
+     * 调试字段：保存 planner 原始输出和工具调用信息，方便 trace 回放。
+     */
+    public String raw_response = "";
+    public String thought = "";
+    public String tool_name = "";
+    public String tool_arguments = "";
+    public String validation_note = "";
 }

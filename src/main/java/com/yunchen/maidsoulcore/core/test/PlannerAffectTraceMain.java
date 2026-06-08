@@ -62,6 +62,14 @@ public final class PlannerAffectTraceMain {
             "今天辛苦你了。",
             "明天也陪我，好吗？"
     );
+    private static final List<String> QUICK_SCRIPT = List.of(
+            "你好呀，我回来了。",
+            "刚才我对你发火了，说话很重。",
+            "对不起，我刚才不该凶你。",
+            "你要是还委屈，可以直接告诉我。",
+            "我现在有点累，想安静待一会儿。",
+            "明天也陪我，好吗？"
+    );
 
     private PlannerAffectTraceMain() {
     }
@@ -71,6 +79,7 @@ public final class PlannerAffectTraceMain {
         System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
 
         DialogueCoreConfig config = loadConfig(args);
+        List<String> script = useQuickScript(args) ? QUICK_SCRIPT : SCRIPT;
         ModelPair models = loadRuntimeModels(config);
         if (config.model == null || config.model.apiKey == null || config.model.apiKey.isBlank()) {
             throw new IllegalStateException("No API key found in dialogue config.");
@@ -118,16 +127,17 @@ public final class PlannerAffectTraceMain {
         append(report, "");
 
         try {
-            for (int i = 0; i < SCRIPT.size(); i++) {
+            for (int i = 0; i < script.size(); i++) {
                 currentTurn.set(i + 1);
-                String owner = SCRIPT.get(i);
+                String owner = script.get(i);
                 System.out.println("[" + (i + 1) + "] owner: " + owner);
                 runtime.receiveOwnerMessage(config.ownerName, owner);
                 String firstReply = replies.poll(120, TimeUnit.SECONDS);
                 List<String> turnReplies = new ArrayList<>();
                 if (firstReply == null) {
-                    turnReplies.add("(timeout: no reply in 120s)");
-                    System.out.println("[" + (i + 1) + "] maid : timeout");
+                    String plannedSilence = plannedSilenceLabel(traceLines, i + 1);
+                    turnReplies.add(plannedSilence);
+                    System.out.println("[" + (i + 1) + "] maid : " + plannedSilence);
                 } else {
                     turnReplies.add(firstReply);
                     Thread.sleep(900L);
@@ -160,13 +170,24 @@ public final class PlannerAffectTraceMain {
     }
 
     private static DialogueCoreConfig loadConfig(String[] args) {
-        if (args.length > 0 && !args[0].isBlank()) {
-            return DialogueConfigLoader.loadOrCreate(Path.of(args[0]));
+        for (String arg : args) {
+            if (arg != null && !arg.isBlank() && !arg.startsWith("--")) {
+                return DialogueConfigLoader.loadOrCreate(Path.of(arg));
+            }
         }
         if (Files.exists(DEFAULT_MC_CONFIG)) {
             return DialogueConfigLoader.loadOrCreate(DEFAULT_MC_CONFIG);
         }
         return DialogueConfigLoader.loadOrCreate(Path.of("config", "maidsoulcore", "dialogue-config.json"));
+    }
+
+    private static boolean useQuickScript(String[] args) {
+        for (String arg : args) {
+            if ("--quick".equalsIgnoreCase(arg)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static ModelPair loadRuntimeModels(DialogueCoreConfig config) throws Exception {
@@ -227,6 +248,17 @@ public final class PlannerAffectTraceMain {
             }
         }
         return selected.isEmpty() ? "(none)" : String.join("\n", selected);
+    }
+
+    private static String plannedSilenceLabel(List<String> traceLines, int turn) {
+        String trace = extractTurnTrace(traceLines, turn);
+        if (trace.contains("planner.no_action")) {
+            return "(planned no_action: planner chose silence)";
+        }
+        if (trace.contains("runtime.wait")) {
+            return "(planned wait: planner entered wait state)";
+        }
+        return "(timeout: no reply in 120s)";
     }
 
     private static void append(StringBuilder builder, String line) {

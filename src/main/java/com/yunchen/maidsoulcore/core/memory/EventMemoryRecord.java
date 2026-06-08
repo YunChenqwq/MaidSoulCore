@@ -9,8 +9,14 @@ public final class EventMemoryRecord {
     public String subject = "";
     public String object = "";
     public String eventType = "";
+    public String knowledgeType = "structured";
+    public String sourceKind = "dialogue_event";
+    public String relationPredicate = "";
     public String summary = "";
     public String evidence = "";
+    public String vectorText = "";
+    public String vectorState = "none";
+    public String writePolicy = "";
     public double confidence = 0.0D;
     public double importance = 0.0D;
     public double salience = 0.0D;
@@ -31,8 +37,18 @@ public final class EventMemoryRecord {
         subject = blankToEmpty(subject);
         object = blankToEmpty(object);
         eventType = blankToEmpty(eventType);
+        knowledgeType = blankToDefault(knowledgeType, "structured");
+        sourceKind = blankToDefault(sourceKind, "dialogue_event");
+        relationPredicate = blankToDefault(relationPredicate, eventType);
         summary = blankToEmpty(summary);
         evidence = blankToEmpty(evidence);
+        vectorState = blankToDefault(vectorState, "none");
+        writePolicy = blankToEmpty(writePolicy);
+        if (vectorText == null || vectorText.isBlank()) {
+            vectorText = buildRelationVectorText(subject, relationPredicate, object, summary);
+        } else {
+            vectorText = vectorText.trim();
+        }
         confidence = clamp01(confidence);
         importance = clamp01(importance);
         salience = clamp01(salience <= 0.0D ? importance * confidence : salience);
@@ -56,6 +72,17 @@ public final class EventMemoryRecord {
 
     private static String blankToEmpty(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private static String buildRelationVectorText(String subject, String predicate, String object, String summary) {
+        String s = blankToEmpty(subject);
+        String p = blankToEmpty(predicate);
+        String o = blankToEmpty(object);
+        String body = blankToEmpty(summary);
+        if (s.isBlank() && o.isBlank()) {
+            return body;
+        }
+        return (s + " " + p + " " + o + "\n" + body).trim();
     }
 
     private static double clamp01(double value) {
