@@ -28,7 +28,7 @@ public final class PlanDecisionValidator {
     private static String normalizeAction(String action) {
         String normalized = action == null || action.isBlank() ? "reply" : action.trim().toLowerCase(java.util.Locale.ROOT);
         return switch (normalized) {
-            case "reply", "query_memory", "wait", "no_action", "finish" -> normalized;
+            case "reply", "query_memory", "tool", "wait", "no_action", "finish" -> normalized;
             default -> "reply";
         };
     }

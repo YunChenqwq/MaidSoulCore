@@ -9,6 +9,9 @@
   "enableIndependentTimingGate": true,
   "timingGateCooldownMillis": 1200,
   "replyRetryCount": 2,
+  "silenceCheckTicks": 120,
+  "memoryMaintenanceTicks": 6000,
+  "proactiveThreshold": 0.62,
   "debug": {
     "echoTraceToOwnerChat": true,
     "echoPromptToOwnerChat": false,

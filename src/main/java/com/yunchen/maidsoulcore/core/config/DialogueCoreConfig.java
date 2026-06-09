@@ -11,6 +11,9 @@ public final class DialogueCoreConfig {
     public boolean enableIndependentTimingGate = true;
     public long timingGateCooldownMillis = 1200L;
     public int replyRetryCount = 2;
+    public int silenceCheckTicks = 120;
+    public int memoryMaintenanceTicks = 6000;
+    public double proactiveThreshold = 0.62D;
     public DialogueDebugConfig debug = new DialogueDebugConfig();
     public DialogueModelConfig model = new DialogueModelConfig();
 }

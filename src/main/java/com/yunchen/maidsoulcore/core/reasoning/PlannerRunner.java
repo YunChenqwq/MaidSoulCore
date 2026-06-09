@@ -61,7 +61,7 @@ public final class PlannerRunner {
         decision.reason = decision.thought;
         decision.action = switch (tool) {
             case "reply", "query_memory", "wait", "no_action", "finish" -> tool;
-            default -> "reply";
+            default -> "tool";
         };
         decision.target_message_id = call.argumentString("msg_id");
         decision.wait_seconds = call.argumentInt("seconds", 0);

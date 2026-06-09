@@ -20,9 +20,11 @@ import com.yunchen.maidsoulcore.core.prompt.PromptCatalog;
 import com.yunchen.maidsoulcore.core.prompt.PromptRenderer;
 import com.yunchen.maidsoulcore.core.reasoning.PlanDecision;
 import com.yunchen.maidsoulcore.core.reasoning.PlanDecisionValidator;
+import com.yunchen.maidsoulcore.core.reasoning.PlannerToolExecutor;
 import com.yunchen.maidsoulcore.core.reasoning.PlannerRunner;
 import com.yunchen.maidsoulcore.core.reasoning.TimingDecision;
 import com.yunchen.maidsoulcore.core.reasoning.TimingGateRunner;
+import com.yunchen.maidsoulcore.core.reasoning.ToolResult;
 import com.yunchen.maidsoulcore.core.reply.ReplyGenerator;
 import com.yunchen.maidsoulcore.core.text.SentenceSplitter;
 
@@ -41,6 +43,7 @@ public final class MaidSoulRuntime implements AutoCloseable {
     private final TimingGateRunner timingGate;
     private final PlannerRunner planner;
     private final ReplyGenerator replyer;
+    private final PlannerToolExecutor toolExecutor;
     private final LifeMemoryStore memory;
     private final AffectProfileStore affectStore;
     private final AffectProfile affectProfile;
@@ -61,6 +64,8 @@ public final class MaidSoulRuntime implements AutoCloseable {
     private volatile boolean messageTurnScheduled;
     private volatile boolean closed;
     private volatile long version;
+    private volatile long lastSilenceCheckAtMillis = System.currentTimeMillis();
+    private volatile long lastMemoryMaintenanceAtMillis = System.currentTimeMillis();
 
     public MaidSoulRuntime(
             DialogueCoreConfig config,
@@ -73,11 +78,27 @@ public final class MaidSoulRuntime implements AutoCloseable {
             Consumer<String> output,
             RuntimeTraceSink trace
     ) {
+        this(config, prompts, timingGate, planner, replyer, PlannerToolExecutor.noop(), memory, affectStore, output, trace);
+    }
+
+    public MaidSoulRuntime(
+            DialogueCoreConfig config,
+            PromptCatalog prompts,
+            TimingGateRunner timingGate,
+            PlannerRunner planner,
+            ReplyGenerator replyer,
+            PlannerToolExecutor toolExecutor,
+            LifeMemoryStore memory,
+            AffectProfileStore affectStore,
+            Consumer<String> output,
+            RuntimeTraceSink trace
+    ) {
         this.config = config;
         this.prompts = prompts;
         this.timingGate = timingGate;
         this.planner = planner;
         this.replyer = replyer;
+        this.toolExecutor = toolExecutor == null ? PlannerToolExecutor.noop() : toolExecutor;
         this.memory = memory;
         this.affectStore = affectStore;
         this.affectProfile = affectStore.load();
@@ -113,6 +134,29 @@ public final class MaidSoulRuntime implements AutoCloseable {
     public void syncFavorability(int favorability) {
         affectEngine.syncFavorability(affectProfile, favorability);
         saveAffect();
+    }
+
+    public void tick() {
+        if (closed) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long silenceInterval = Math.max(20L, config.silenceCheckTicks) * 50L;
+        if (now - lastSilenceCheckAtMillis >= silenceInterval) {
+            lastSilenceCheckAtMillis = now;
+            tickSilence();
+        }
+        long maintenanceInterval = Math.max(200L, config.memoryMaintenanceTicks) * 50L;
+        if (now - lastMemoryMaintenanceAtMillis >= maintenanceInterval) {
+            lastMemoryMaintenanceAtMillis = now;
+            MemoryMaintenanceService.MaintenanceReport maintenance = memoryMaintenance.maintain(memory);
+            trace.trace("memory.maintenance.tick", "scanned=" + maintenance.scanned()
+                    + " exactMerged=" + maintenance.merged()
+                    + " structuralMerged=" + maintenance.structuralMerged()
+                    + " degraded=" + maintenance.degraded()
+                    + " pinned=" + maintenance.pinned()
+                    + " errorAffected=" + maintenance.errorAffected());
+        }
     }
 
     private synchronized void scheduleMessageTurn() {
@@ -200,6 +244,20 @@ public final class MaidSoulRuntime implements AutoCloseable {
                 trace.trace("memory.query", memoryQueryOverride);
                 continue;
             }
+            if ("tool".equals(action)) {
+                if (round >= Math.max(1, config.maxInternalRounds - 1)) {
+                    trace.trace("tool.budget", "达到工具循环上限，结束工具调用。");
+                    state = RuntimeState.STOP;
+                    return;
+                }
+                ToolResult result = executeTool(plan);
+                buffer.append(RuntimeMessage.thought("tool_result | name=" + result.name()
+                        + ", success=" + result.success()
+                        + "\n" + result.content()));
+                version++;
+                cycleVersion = version;
+                continue;
+            }
             if ("reply".equals(action)) {
                 if (StructuredEventType.MEMORY_ANCHOR.id().equals(plan.affect_event)
                         && (plan.memory_query == null || plan.memory_query.isBlank())) {
@@ -252,6 +310,20 @@ public final class MaidSoulRuntime implements AutoCloseable {
                     + " / target=" + plan.target_message_id
                     + " / validation=" + blankToDefault(plan.validation_note, "ok")
                     + " / " + plan.reason);
+    }
+
+    private ToolResult executeTool(PlanDecision plan) {
+        String name = blankToDefault(plan.tool_name, "unknown_tool");
+        if ("memory_search".equals(name)) {
+            String query = plan.memory_query == null || plan.memory_query.isBlank() ? latestContextText() : plan.memory_query;
+            String text = memory.searchText(query, 6);
+            ToolResult result = new ToolResult(true, name, text.isBlank() ? "没有检索到相关长期记忆。" : text);
+            trace.trace("tool.result", name + " query=" + query + " success=true");
+            return result;
+        }
+        ToolResult result = toolExecutor.execute(plan);
+        trace.trace("tool.result", name + " success=" + result.success() + " content=" + blankToDefault(result.content(), ""));
+        return result;
     }
 
     private ContextPack buildContext(String memoryQuery) {
@@ -359,6 +431,30 @@ public final class MaidSoulRuntime implements AutoCloseable {
     private String latestContextText() {
         RuntimeMessage latest = buffer.latestUserMessage();
         return latest == null ? "" : latest.content();
+    }
+
+    private void tickSilence() {
+        if (state != RuntimeState.STOP || buffer.hasPendingMessages()) {
+            return;
+        }
+        String context = latestContextText();
+        AffectiveResult affective = affectiveLonging.tick(
+                affectProfile,
+                context,
+                memory.querySummaries(context, 8),
+                0.35D
+        );
+        saveAffect();
+        trace.trace("silence.tick", "boosted=" + String.format(java.util.Locale.ROOT, "%.2f", affective.boostedProbability())
+                + " proactive=" + String.format(java.util.Locale.ROOT, "%.2f", affectProfile.proactiveBias)
+                + " reason=" + affective.reason());
+        if (affective.boostedProbability() < config.proactiveThreshold) {
+            return;
+        }
+        buffer.append(RuntimeMessage.system("silence.longing",
+                "long_silence | 主人暂时没有新的话，情绪层判断可以轻轻主动陪伴；reason=" + affective.reason()));
+        version++;
+        scheduleMessageTurn();
     }
 
     private void sendReply(ContextPack context, PlanDecision plan, long cycleVersion) {

@@ -14,7 +14,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public final class MaidSoulRuntimeSite implements LLMSite, SupportModelSelect {
-    public static final String API_TYPE = "maid_soul_runtime";
+    public static final String API_TYPE = "maidsoul_runtime";
+    public static final String DEFAULT_MODEL = "maidsoul-runtime";
 
     private final String id;
     private final ResourceLocation icon;
@@ -33,12 +34,14 @@ public final class MaidSoulRuntimeSite implements LLMSite, SupportModelSelect {
     }
 
     public MaidSoulRuntimeSite(String id, ResourceLocation icon, String url, boolean enabled, Map<String, String> headers, List<String> models) {
-        this(id, icon, url, enabled, headers, toModelMap(models));
-    }
-
-    private static Map<String, String> toModelMap(List<String> models) {
-        return models.stream()
+        Map<String, String> modelMap = models.stream()
                 .collect(Collectors.toMap(model -> model, model -> model, (left, right) -> left, LinkedHashMap::new));
+        this.id = id;
+        this.icon = icon;
+        this.url = url;
+        this.enabled = enabled;
+        this.headers = new LinkedHashMap<>(headers);
+        this.models = new LinkedHashMap<>(modelMap);
     }
 
     @Override
@@ -48,7 +51,7 @@ public final class MaidSoulRuntimeSite implements LLMSite, SupportModelSelect {
 
     @Override
     public LLMClient client() {
-        return new MaidSoulRuntimeClient();
+        return new MaidSoulRuntimeClient(this);
     }
 
     @Override
@@ -110,7 +113,7 @@ public final class MaidSoulRuntimeSite implements LLMSite, SupportModelSelect {
                     "maidsoul://runtime",
                     true,
                     Map.of(),
-                    List.of("maid-soul-runtime")
+                    List.of(DEFAULT_MODEL)
             );
         }
     }

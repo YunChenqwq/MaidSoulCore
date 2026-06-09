@@ -3,7 +3,7 @@ package com.maidsoulcore.integration.maibot;
 import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
-import com.maidsoulcore.forge.config.MaidSoulCommonConfig;
+import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,7 +35,10 @@ public final class MaiBotConfigService {
      * 这里做了基于文件修改时间的缓存，避免每次取上下文都重新读盘。
      */
     public static MaiBotConfigSnapshot getSnapshot() {
-        Path configDir = Path.of(MaidSoulCommonConfig.MAIBOT_CONFIG_DIR.get());
+        String explicitDir = System.getenv("MAIDSOUL_MAIBOT_CONFIG_DIR");
+        Path configDir = explicitDir == null || explicitDir.isBlank()
+                ? FMLPaths.CONFIGDIR.get().resolve("maidsoulcore").resolve("maibot")
+                : Path.of(explicitDir);
         Path cleanBotConfig = configDir.resolve("textgame_bot_config.toml");
         Path botConfig = Files.exists(cleanBotConfig) ? cleanBotConfig : configDir.resolve("bot_config.toml");
         Path modelConfig = configDir.resolve("model_config.toml");
