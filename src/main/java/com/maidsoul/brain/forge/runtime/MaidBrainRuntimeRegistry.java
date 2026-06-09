@@ -104,7 +104,9 @@ public final class MaidBrainRuntimeRegistry {
             if (callbacks.isEmpty()) {
                 TLM_CALLBACKS.remove(maid.getUUID(), callbacks);
             }
-            callback.runOnServerThread(() -> maid.getChatBubbleManager().addLLMChatText(text, callback.getWaitingChatBubbleId()));
+            if (maid.level() instanceof ServerLevel serverLevel) {
+                serverLevel.getServer().submit(() -> maid.getChatBubbleManager().addLLMChatText(text, callback.getWaitingChatBubbleId()));
+            }
             return;
         }
         if (debug.echoReplyToOwnerChat()) {

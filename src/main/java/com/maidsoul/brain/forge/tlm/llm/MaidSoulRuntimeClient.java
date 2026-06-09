@@ -14,6 +14,7 @@ import com.maidsoul.brain.forge.debug.OwnerChatDebugEcho;
 import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
 import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.forge.tlm.MaidSoulTlmBootstrapper;
+import net.minecraft.server.level.ServerLevel;
 
 import java.util.List;
 
@@ -61,9 +62,9 @@ public final class MaidSoulRuntimeClient implements LLMClient {
         EntityMaid maid = callback.getMaid();
         MaidSoulTlmBootstrapper.ensureMaidSoulRuntime(maid);
         callback.getChatManager().customSetting = MaidSoulTlmBootstrapper.SENTINEL_SETTING;
-        callback.runOnServerThread(() -> {
-            maid.getChatBubbleManager().removeChatBubble(callback.getWaitingChatBubbleId());
-        });
+        if (maid.level() instanceof ServerLevel serverLevel) {
+            serverLevel.getServer().submit(() -> maid.getChatBubbleManager().addLLMChatText("", callback.getWaitingChatBubbleId()));
+        }
         MaidSoulCoreForgeMod.LOGGER.info("Installed MaidSoulCore sentinel setting for maid {}, bypassing TLM auto setting generation.", maid.getUUID());
     }
 

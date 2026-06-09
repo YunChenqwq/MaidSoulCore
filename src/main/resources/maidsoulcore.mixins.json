@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.maidsoul.brain.action.ysm.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "maidsoulcore-refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "YsmRenderMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

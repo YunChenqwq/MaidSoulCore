@@ -2,17 +2,20 @@ buildscript {
     repositories {
         maven { url = "https://maven.minecraftforge.net" }
         maven { url = "https://maven.parchmentmc.org" }
+        maven { url = "https://repo.spongepowered.org/repository/maven-public/" }
         mavenCentral()
     }
     dependencies {
         classpath group: "net.minecraftforge.gradle", name: "ForgeGradle", version: "[6.0.16,6.2)"
         classpath "org.parchmentmc:librarian:1.+"
+        classpath group: "org.spongepowered", name: "mixingradle", version: "0.7-SNAPSHOT"
     }
 }
 
 apply plugin: "eclipse"
 apply plugin: "net.minecraftforge.gradle"
 apply plugin: "org.parchmentmc.librarian.forgegradle"
+apply plugin: "org.spongepowered.mixin"
 apply plugin: "java"
 apply plugin: "idea"
 
@@ -32,6 +35,8 @@ minecraft {
         configureEach {
             property "forge.logging.markers", "REGISTRIES"
             property "forge.logging.console.level", "debug"
+            property "mixin.env.remapRefMap", "true"
+            property "mixin.env.refMapRemappingFile", "${projectDir}/build/createMcpToSrg/output.tsrg"
             mods {
                 "${mod_id}" {
                     source sourceSets.main
@@ -46,6 +51,11 @@ minecraft {
     }
 }
 
+mixin {
+    add sourceSets.main, "${mod_id}-refmap.json"
+    config "maidsoulcore.mixins.json"
+}
+
 repositories {
     maven { url = "https://maven.minecraftforge.net" }
     maven { url = "https://maven.parchmentmc.org" }
@@ -54,8 +64,9 @@ repositories {
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    compileOnly files("E:/wallpaper/TouhouLittleMaid/build/libs/touhoulittlemaid-1.5.1-forge+mc1.20.1.jar")
-    runtimeOnly files("E:/wallpaper/TouhouLittleMaid/build/libs/touhoulittlemaid-1.5.1-forge+mc1.20.1.jar")
+    compileOnly files("E:/MaidSoulCore1/config/libs/touhoulittlemaid-1.5.1-forge+mc1.20.1.jar")
+    runtimeOnly files("E:/MaidSoulCore1/config/libs/touhoulittlemaid-1.5.1-forge+mc1.20.1.jar")
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 
 tasks.withType(ProcessResources).configureEach {
@@ -88,7 +99,8 @@ jar {
                 "Specification-Title"   : mod_id,
                 "Specification-Version" : "1",
                 "Implementation-Title"  : project.name,
-                "Implementation-Version": project.version
+                "Implementation-Version": project.version,
+                "MixinConfigs"          : "maidsoulcore.mixins.json"
         ])
     }
     finalizedBy("reobfJar")
