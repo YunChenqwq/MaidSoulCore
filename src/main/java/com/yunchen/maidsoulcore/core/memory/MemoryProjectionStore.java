@@ -92,25 +92,89 @@ public final class MemoryProjectionStore {
 
     private Map<String, Object> graphPayload(List<RelationRecord> relations) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        Map<String, Integer> nodeWeights = new LinkedHashMap<>();
+        Map<String, GraphNode> nodeWeights = new LinkedHashMap<>();
+        List<RelationRecord> graphEdges = new ArrayList<>();
         for (RelationRecord relation : relations) {
-            if (!relation.subject.isBlank()) {
-                nodeWeights.put(relation.subject, nodeWeights.getOrDefault(relation.subject, 0) + 1);
-            }
-            if (!relation.object.isBlank()) {
-                nodeWeights.put(relation.object, nodeWeights.getOrDefault(relation.object, 0) + 1);
+            addNode(nodeWeights, relation.subject, "person", relation.category);
+            addNode(nodeWeights, relation.object, "entity", relation.category);
+            graphEdges.add(relation);
+
+            String topic = topicNodeId(relation);
+            if (!topic.isBlank()
+                    && !topic.equals(relation.subject)
+                    && !topic.equals(relation.object)) {
+                addNode(nodeWeights, topic, "memory_topic", relation.category);
+                graphEdges.add(RelationRecord.topicEdge(relation, relation.subject, topic, "mentions"));
+                if (!relation.object.isBlank()) {
+                    graphEdges.add(RelationRecord.topicEdge(relation, topic, relation.object, "about"));
+                }
             }
         }
         List<Map<String, Object>> nodes = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : nodeWeights.entrySet()) {
+        for (GraphNode entry : nodeWeights.values()) {
             Map<String, Object> node = new LinkedHashMap<>();
-            node.put("id", entry.getKey());
-            node.put("weight", entry.getValue());
+            node.put("id", entry.id);
+            node.put("kind", entry.kind);
+            node.put("category", entry.category);
+            node.put("weight", entry.weight);
             nodes.add(node);
         }
         payload.put("nodes", nodes);
-        payload.put("edges", relations);
+        payload.put("edges", graphEdges);
         return payload;
+    }
+
+    private static void addNode(Map<String, GraphNode> nodes, String id, String kind, String category) {
+        if (id == null || id.isBlank()) {
+            return;
+        }
+        GraphNode node = nodes.get(id);
+        if (node == null) {
+            node = new GraphNode();
+            node.id = id;
+            node.kind = kind;
+            node.category = category == null || category.isBlank() ? "unknown" : category;
+            nodes.put(id, node);
+        }
+        node.weight++;
+        if ("unknown".equals(node.category) && category != null && !category.isBlank()) {
+            node.category = category;
+        }
+    }
+
+    private static String topicNodeId(RelationRecord relation) {
+        if (relation == null || relation.summary == null || relation.summary.isBlank()) {
+            return "";
+        }
+        String category = relation.category == null || relation.category.isBlank() ? "memory" : relation.category;
+        return categoryLabel(category) + "：" + compact(relation.summary, 18);
+    }
+
+    private static String categoryLabel(String category) {
+        return switch (category) {
+            case "promise" -> "承诺";
+            case "memory_anchor" -> "锚点";
+            case "owner_profile" -> "画像";
+            case "repair_record" -> "修复";
+            case "world_fact" -> "世界";
+            case "maid_self" -> "自我";
+            case "relation_event" -> "关系";
+            default -> "记忆";
+        };
+    }
+
+    private static String compact(String text, int maxCodePoints) {
+        String normalized = text == null ? "" : text
+                .replaceAll("，关系阶段=.*$", "")
+                .replaceAll("\\s+", "");
+        if (normalized.isBlank()) {
+            return "";
+        }
+        int[] cps = normalized.codePoints().toArray();
+        if (cps.length <= maxCodePoints) {
+            return normalized;
+        }
+        return new String(cps, 0, Math.max(1, maxCodePoints)) + "…";
     }
 
     private void writeJson(String fileName, Object payload) {
@@ -188,6 +252,28 @@ public final class MemoryProjectionStore {
             record.active = !episode.errorMarked && !episode.contradicted;
             return record;
         }
+
+        static RelationRecord topicEdge(RelationRecord source, String subject, String object, String predicate) {
+            RelationRecord record = new RelationRecord();
+            record.subject = safe(subject);
+            record.predicate = safe(predicate);
+            record.object = safe(object);
+            record.category = safe(source.category);
+            record.eventType = safe(source.eventType);
+            record.summary = safe(source.summary);
+            record.evidence = safe(source.evidence);
+            record.confidence = source.confidence;
+            record.importance = source.importance;
+            record.active = source.active;
+            return record;
+        }
+    }
+
+    private static final class GraphNode {
+        String id;
+        String kind;
+        String category;
+        int weight;
     }
 
     private static String safe(String value) {

@@ -716,7 +716,7 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
       const memoryGraph = files["memory_graph.json"];
       if (memoryGraph && Array.isArray(memoryGraph.nodes)) {
         for (const raw of memoryGraph.nodes) {
-          const node = ensureNode(raw.id || raw.label, "entity", "unknown", null);
+          const node = ensureNode(raw.id || raw.label, raw.kind || "entity", raw.category || "unknown", null);
           node.weight = Math.max(node.weight, Number(raw.weight || 1));
         }
       }
