@@ -410,6 +410,8 @@
         </label>
         <button id="demoButton">载入演示</button>
         <button id="fitButton" class="primary">适配视图</button>
+        <button id="relayoutButton">重新排布</button>
+        <button id="pauseButton">暂停布局</button>
         <input id="searchInput" type="search" placeholder="搜索节点、摘要、证据">
         <select id="categoryFilter" title="按记忆类别过滤">
           <option value="">全部类别</option>
@@ -467,7 +469,9 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
       </section>
       <section class="section">
         <h2>操作</h2>
-        <div class="hint">拖动画布平移，滚轮缩放。
+        <div class="hint">拖动画布空白处平移，滚轮缩放。
+拖动节点可以手动整理位置，节点会被固定。
+双击节点可以解除固定并重新参与布局。
 点击节点查看它相关的关系边。
 点击左侧记忆列表会定位到对应实体。
 按 <span class="kbd">Esc</span> 清除选中。</div>
@@ -527,7 +531,10 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
       offsetX: 0,
       offsetY: 0,
       dragging: false,
+      dragMode: "",
+      dragNode: null,
       dragStart: null,
+      simulationPaused: false,
       animation: null
     };
 
@@ -538,6 +545,8 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
     const fileInput = document.getElementById("fileInput");
     const demoButton = document.getElementById("demoButton");
     const fitButton = document.getElementById("fitButton");
+    const relayoutButton = document.getElementById("relayoutButton");
+    const pauseButton = document.getElementById("pauseButton");
     const searchInput = document.getElementById("searchInput");
     const categoryFilter = document.getElementById("categoryFilter");
     const statusEl = document.getElementById("status");
@@ -553,6 +562,24 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
     fileInput.addEventListener("change", event => loadFiles(event.target.files));
     demoButton.addEventListener("click", loadDemo);
     fitButton.addEventListener("click", fitView);
+    relayoutButton.addEventListener("click", () => {
+      layoutInitial(state.nodes);
+      for (const node of state.nodes) {
+        node.fixed = false;
+      }
+      state.simulationPaused = false;
+      pauseButton.textContent = "暂停布局";
+      fitView();
+      startSimulation();
+    });
+    pauseButton.addEventListener("click", () => {
+      state.simulationPaused = !state.simulationPaused;
+      pauseButton.textContent = state.simulationPaused ? "继续布局" : "暂停布局";
+      if (!state.simulationPaused) {
+        startSimulation();
+      }
+      draw();
+    });
     searchInput.addEventListener("input", () => {
       state.query = searchInput.value.trim().toLowerCase();
       renderSidebars();
@@ -579,24 +606,67 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
 
     canvas.addEventListener("mousedown", event => {
       const hit = hitTest(event);
+      if (hit && hit.type === "node") {
+        const world = screenToWorld(event.offsetX, event.offsetY);
+        state.dragging = true;
+        state.dragMode = "node";
+        state.dragNode = hit.item;
+        state.dragNode.fixed = true;
+        state.dragStart = {
+          x: event.clientX,
+          y: event.clientY,
+          nodeX: hit.item.x,
+          nodeY: hit.item.y,
+          worldX: world.x,
+          worldY: world.y
+        };
+        selectItem(hit);
+        canvas.classList.add("dragging");
+        return;
+      }
       if (hit) {
         selectItem(hit);
         return;
       }
       state.dragging = true;
+      state.dragMode = "pan";
       state.dragStart = { x: event.clientX, y: event.clientY, ox: state.offsetX, oy: state.offsetY };
       canvas.classList.add("dragging");
     });
 
+    canvas.addEventListener("dblclick", event => {
+      const hit = hitTest(event);
+      if (hit && hit.type === "node") {
+        hit.item.fixed = false;
+        hit.item.vx = 0;
+        hit.item.vy = 0;
+        selectItem(hit);
+        if (!state.simulationPaused) {
+          startSimulation();
+        }
+      }
+    });
+
     window.addEventListener("mousemove", event => {
       if (!state.dragging || !state.dragStart) return;
-      state.offsetX = state.dragStart.ox + event.clientX - state.dragStart.x;
-      state.offsetY = state.dragStart.oy + event.clientY - state.dragStart.y;
+      if (state.dragMode === "node" && state.dragNode) {
+        const rect = canvas.getBoundingClientRect();
+        const world = screenToWorld(event.clientX - rect.left, event.clientY - rect.top);
+        state.dragNode.x = state.dragStart.nodeX + (world.x - state.dragStart.worldX);
+        state.dragNode.y = state.dragStart.nodeY + (world.y - state.dragStart.worldY);
+        state.dragNode.vx = 0;
+        state.dragNode.vy = 0;
+      } else {
+        state.offsetX = state.dragStart.ox + event.clientX - state.dragStart.x;
+        state.offsetY = state.dragStart.oy + event.clientY - state.dragStart.y;
+      }
       draw();
     });
 
     window.addEventListener("mouseup", () => {
       state.dragging = false;
+      state.dragMode = "";
+      state.dragNode = null;
       state.dragStart = null;
       canvas.classList.remove("dragging");
     });
@@ -684,7 +754,8 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
             x: Math.random() * 500 - 250,
             y: Math.random() * 340 - 170,
             vx: 0,
-            vy: 0
+            vy: 0,
+            fixed: false
           };
           nodeMap.set(cleanId, node);
         }
@@ -840,6 +911,10 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
       if (state.animation) cancelAnimationFrame(state.animation);
       let ticks = 0;
       function frame() {
+        if (state.simulationPaused) {
+          draw();
+          return;
+        }
         simulate();
         draw();
         ticks += 1;
@@ -869,10 +944,14 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
             d2 = 1;
           }
           const force = 520 / d2;
-          a.vx += dx * force;
-          a.vy += dy * force;
-          b.vx -= dx * force;
-          b.vy -= dy * force;
+          if (!a.fixed) {
+            a.vx += dx * force;
+            a.vy += dy * force;
+          }
+          if (!b.fixed) {
+            b.vx -= dx * force;
+            b.vy -= dy * force;
+          }
         }
       }
 
@@ -887,13 +966,22 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
         const force = (dist - target) * strength;
         const fx = dx / dist * force;
         const fy = dy / dist * force;
-        a.vx += fx;
-        a.vy += fy;
-        b.vx -= fx;
-        b.vy -= fy;
+        if (!a.fixed) {
+          a.vx += fx;
+          a.vy += fy;
+        }
+        if (!b.fixed) {
+          b.vx -= fx;
+          b.vy -= fy;
+        }
       }
 
       for (const node of nodes) {
+        if (node.fixed) {
+          node.vx = 0;
+          node.vy = 0;
+          continue;
+        }
         node.vx += -node.x * 0.002;
         node.vy += -node.y * 0.002;
         node.vx *= 0.82;
@@ -970,7 +1058,7 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
       ctx.fill();
       ctx.shadowBlur = 0;
       ctx.lineWidth = selected ? 4 : 2;
-      ctx.strokeStyle = selected ? "#111827" : "#ffffff";
+      ctx.strokeStyle = selected ? "#111827" : node.fixed ? "#f59e0b" : "#ffffff";
       ctx.stroke();
 
       ctx.fillStyle = "#172033";
@@ -979,6 +1067,12 @@ build/tmp/planner-affect-trace/.../memory/.../</div>
       ctx.textBaseline = "top";
       const label = node.label.length > 14 ? node.label.slice(0, 13) + "…" : node.label;
       ctx.fillText(label, p.x, p.y + radius + 7, 96);
+      if (node.fixed) {
+        ctx.fillStyle = "#111827";
+        ctx.beginPath();
+        ctx.arc(p.x + radius * 0.62, p.y - radius * 0.62, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     }
 
