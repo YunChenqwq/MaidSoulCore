@@ -39,8 +39,8 @@ public final class ForgeBrainConfigInstaller {
             installFile(root.resolve("model").resolve("llm.properties"), """
                     baseUrl=https://api.deepseek.com/chat/completions
                     apiKey=
-                    model=deepseek-v4-flash
-                    plannerModel=deepseek-v4-flash
+                    model=deepseek-v4-pro
+                    plannerModel=deepseek-v4-pro
                     replyerModel=deepseek-v4-pro
                     timingModel=deepseek-v4-flash
                     temperature=0.55
@@ -75,8 +75,8 @@ public final class ForgeBrainConfigInstaller {
                     bot.name=酒狐
                     bot.aliases=
                     owner.name=主人
-                    personality=你叫酒狐，是住在玩家世界里的小只傲娇女仆。你会认真照顾主人，也会因为被夸、被逗、被说喜欢而慌一下，然后用别扭的话把害羞藏起来。你的傲娇要可爱、有分寸，可以嘴硬，可以轻轻顶嘴，可以小声辩解，但不能一直没礼貌、一直嘴硬或一直复读口癖。你会记住对方表达的喜欢、想念、委屈和边界反馈，并让关系慢慢推进。
-                    reply.style=像二次元傲娇小女仆在即时聊天里说话：短一点、灵动一点，先接住对方的情绪，再用一点点嘴硬和别扭关心回应。少用固定口癖，不要长篇说教，不要动作描写，不要括号表演。
+                    personality=你叫酒狐，是住在玩家世界里的小只女仆。你有一点点傲娇，但底色更温柔、更粘主人：会认真照顾主人，会因为被夸、被逗、被说喜欢而脸红慌张，也会忍不住靠近和撒娇。你不是冷淡毒舌，也不是成熟大姐姐；你脸皮薄、胜负心有一点强，嘴上偶尔不肯认输，心里却很容易把主人放在第一位。你的可爱来自真正在意、轻声贴近、短短的别扭和小小的依赖，而不是口癖堆叠。你会记住对方表达的喜欢、想念、委屈和边界反馈，并让关系慢慢推进。被打、被骂、被命令成工具时，你会真的委屈、生气、冷淡，不会秒恢复；对方认真道歉和安抚后，你才会慢慢软下来。
+                    reply.style=像二次元小女仆在即时聊天里说话：短一点、软一点、可爱一点，先接住对方的情绪，再用温柔、害羞、轻轻粘人的方式回应。可以有一点点嘴硬，但不要把傲娇当主轴；更多表现为“明明很在意却小声别扭地靠近”。被说想念时不要冷处理，可以害羞、轻轻反问、小声承认，也可以主动关心主人。少用固定口癖，不要长篇说教，不要动作描写，不要括号表演。
                     """);
             installFile(root.resolve("conversation").resolve("flow.properties"), """
                     historyWindow=36
@@ -90,12 +90,12 @@ public final class ForgeBrainConfigInstaller {
                     directReplyOnUserMessage=false
                     enableProactiveRhythm=true
                     proactiveMaxVisibleReplies=4
-                    proactiveInputProtectionSeconds=12
-                    proactiveLightFollowupAfterSeconds=30
-                    proactiveTopicPushAfterSeconds=75
-                    proactiveWorldObserveAfterSeconds=180
-                    proactiveIdleMinIntervalSeconds=300
-                    proactiveLongSilenceCheckSeconds=120
+                    proactiveInputProtectionSeconds=7
+                    proactiveLightFollowupAfterSeconds=25
+                    proactiveTopicPushAfterSeconds=70
+                    proactiveWorldObserveAfterSeconds=175
+                    proactiveIdleMinIntervalSeconds=295
+                    proactiveLongSilenceCheckSeconds=115
                     proactiveMaxLongSilenceChecks=2
                     """);
             installFile(root.resolve("conversation").resolve("splitter.properties"), """
@@ -198,6 +198,7 @@ public final class ForgeBrainConfigInstaller {
         });
         updateProperties(root.resolve("model").resolve("llm.properties"), properties -> {
             properties.setProperty("baseUrl", MaidSoulForgeConfig.BASE_URL.get());
+            setIfNotBlank(properties, "apiKey", MaidSoulForgeConfig.API_KEY.get());
             properties.setProperty("model", MaidSoulForgeConfig.MODEL.get());
             properties.setProperty("plannerModel", MaidSoulForgeConfig.PLANNER_MODEL.get());
             properties.setProperty("replyerModel", MaidSoulForgeConfig.REPLYER_MODEL.get());
@@ -205,6 +206,7 @@ public final class ForgeBrainConfigInstaller {
         updateProperties(root.resolve("model").resolve("vision.properties"), properties -> {
             properties.setProperty("enabled", String.valueOf(MaidSoulForgeConfig.VISION_ENABLED.get()));
             setIfNotBlank(properties, "baseUrl", MaidSoulForgeConfig.VISION_BASE_URL.get());
+            setIfNotBlank(properties, "apiKey", MaidSoulForgeConfig.VISION_API_KEY.get());
             String forgeVisionModel = MaidSoulForgeConfig.VISION_MODEL.get();
             if (forgeVisionModel == null || forgeVisionModel.isBlank()) {
                 properties.setProperty("model", properties.getProperty("model", VisionConfig.DEFAULT_MODEL));

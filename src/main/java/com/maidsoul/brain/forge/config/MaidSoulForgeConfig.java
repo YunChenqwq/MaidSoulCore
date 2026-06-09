@@ -19,11 +19,13 @@ public final class MaidSoulForgeConfig {
     public static final ForgeConfigSpec.BooleanValue ECHO_AFFECT_TO_OWNER_CHAT;
     public static final ForgeConfigSpec.BooleanValue ECHO_REPLY_TO_OWNER_CHAT;
     public static final ForgeConfigSpec.ConfigValue<String> BASE_URL;
+    public static final ForgeConfigSpec.ConfigValue<String> API_KEY;
     public static final ForgeConfigSpec.ConfigValue<String> MODEL;
     public static final ForgeConfigSpec.ConfigValue<String> PLANNER_MODEL;
     public static final ForgeConfigSpec.ConfigValue<String> REPLYER_MODEL;
     public static final ForgeConfigSpec.BooleanValue VISION_ENABLED;
     public static final ForgeConfigSpec.ConfigValue<String> VISION_BASE_URL;
+    public static final ForgeConfigSpec.ConfigValue<String> VISION_API_KEY;
     public static final ForgeConfigSpec.ConfigValue<String> VISION_MODEL;
 
     static {
@@ -39,8 +41,11 @@ public final class MaidSoulForgeConfig {
         BASE_URL = builder
                 .comment("OpenAI compatible chat completions endpoint.")
                 .define("baseUrl", "https://api.deepseek.com/chat/completions");
-        MODEL = builder.define("model", "deepseek-v4-flash");
-        PLANNER_MODEL = builder.define("plannerModel", "deepseek-v4-flash");
+        API_KEY = builder
+                .comment("LLM API key / skey. It will be synced to config/maidsoulcore/model/llm.properties.")
+                .define("apiKey", "");
+        MODEL = builder.define("model", "deepseek-v4-pro");
+        PLANNER_MODEL = builder.define("plannerModel", "deepseek-v4-pro");
         REPLYER_MODEL = builder.define("replyerModel", "deepseek-v4-pro");
         builder.pop();
 
@@ -51,6 +56,9 @@ public final class MaidSoulForgeConfig {
         VISION_BASE_URL = builder
                 .comment("OpenAI compatible vision chat completions endpoint.")
                 .define("baseUrl", "https://api.siliconflow.cn/v1/chat/completions");
+        VISION_API_KEY = builder
+                .comment("Vision API key / skey. If empty, the vision config keeps its existing apiKey.")
+                .define("apiKey", "");
         VISION_MODEL = builder
                 .comment("支持图片输入的视觉模型。默认使用硅基流动可用的 Qwen3-VL 32B。")
                 .define("model", VisionConfig.DEFAULT_MODEL);
