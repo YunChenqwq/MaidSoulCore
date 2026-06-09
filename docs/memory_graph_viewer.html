@@ -1,0 +1,1396 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MaidSoulCore 记忆关系可视化</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d9e2ef;
+      --blue: #2563eb;
+      --blue-soft: #e8f0ff;
+      --green: #16845f;
+      --amber: #b76b12;
+      --red: #c03546;
+      --violet: #7452c7;
+      --cyan: #168aa6;
+      --gray: #7a8798;
+      --shadow: 0 12px 28px rgba(21, 33, 56, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr) 390px;
+      grid-template-rows: 58px minmax(0, 1fr);
+    }
+
+    header {
+      grid-column: 1 / 4;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 14px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 2px 10px rgba(18, 28, 46, 0.05);
+      z-index: 3;
+    }
+
+    .brand {
+      min-width: 220px;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 15px;
+      line-height: 20px;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 1px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      flex-wrap: wrap;
+    }
+
+    button,
+    label.file-button,
+    select,
+    input[type="search"] {
+      height: 36px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 8px;
+      font: inherit;
+      font-size: 13px;
+    }
+
+    button,
+    label.file-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 12px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    input[type="file"] { display: none; }
+
+    input[type="search"] {
+      width: min(24vw, 280px);
+      min-width: 160px;
+      padding: 0 10px;
+    }
+
+    select {
+      width: 138px;
+      padding: 0 8px;
+    }
+
+    nav {
+      min-height: 0;
+      overflow: auto;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      padding: 14px;
+    }
+
+    main {
+      min-width: 0;
+      min-height: 0;
+      position: relative;
+      background:
+        linear-gradient(rgba(34, 49, 78, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 49, 78, 0.045) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    aside {
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+      background: var(--panel);
+      border-left: 1px solid var(--line);
+      padding: 14px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+
+    canvas.dragging { cursor: grabbing; }
+
+    .section {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+    }
+
+    .section:last-child {
+      border-bottom: 0;
+      margin-bottom: 0;
+    }
+
+    h2, h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    .hint {
+      border: 1px solid #dce5f4;
+      background: #f8fbff;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #344054;
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 12px;
+      min-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      padding: 8px;
+      min-width: 0;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 19px;
+      line-height: 22px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .tab {
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .tab.active {
+      color: var(--blue);
+      border-color: #b8ccff;
+      background: var(--blue-soft);
+      font-weight: 600;
+    }
+
+    .list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 9px;
+      cursor: pointer;
+    }
+
+    .item:hover,
+    .item.active {
+      border-color: #9db8ff;
+      background: #f7faff;
+    }
+
+    .item-title {
+      font-size: 13px;
+      line-height: 18px;
+      overflow-wrap: anywhere;
+    }
+
+    .item-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #344054;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--gray);
+    }
+
+    .legend {
+      display: grid;
+      gap: 7px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .details {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      color: #243041;
+      font-size: 13px;
+      line-height: 1.58;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .drop-hint {
+      position: absolute;
+      inset: 18px;
+      display: grid;
+      place-items: center;
+      border: 2px dashed #b8c3d8;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--muted);
+      text-align: center;
+      padding: 26px;
+      pointer-events: none;
+    }
+
+    .drop-hint strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .kbd {
+      display: inline-flex;
+      height: 22px;
+      align-items: center;
+      padding: 0 6px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: #344054;
+      font-size: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 260px minmax(0, 1fr);
+      }
+      aside {
+        display: none;
+      }
+      header {
+        grid-column: 1 / 3;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body { overflow: auto; }
+      .app {
+        height: auto;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto 68vh auto;
+      }
+      header, nav, main, aside {
+        grid-column: 1;
+      }
+      nav, aside {
+        max-height: none;
+      }
+      aside {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <strong>MaidSoulCore 记忆关系可视化</strong>
+        <span>读取新版投影 JSON：事实、承诺、关系锚点、画像、修复记录、关系图谱</span>
+      </div>
+      <div class="toolbar">
+        <label class="file-button" title="选择包含 life.json / memory_graph.json 等文件的女仆记忆目录">
+          选择记忆文件夹
+          <input id="folderInput" type="file" webkitdirectory multiple>
+        </label>
+        <label class="file-button" title="也可以一次选择多个 JSON 文件">
+          选择 JSON 文件
+          <input id="fileInput" type="file" accept=".json,application/json" multiple>
+        </label>
+        <button id="demoButton">载入演示</button>
+        <button id="fitButton" class="primary">适配视图</button>
+        <input id="searchInput" type="search" placeholder="搜索节点、摘要、证据">
+        <select id="categoryFilter" title="按记忆类别过滤">
+          <option value="">全部类别</option>
+        </select>
+        <span id="status" class="status">等待载入记忆 JSON</span>
+      </div>
+    </header>
+
+    <nav>
+      <section class="section">
+        <h2>这张图怎么看</h2>
+        <div class="hint">圆点是“实体”：主人、女仆、世界、承诺对象、画像对象。
+线是关系事件：选择、承诺、照顾、修复、世界变化。
+左侧列表是具体记忆。右侧会显示选中节点或记忆的详细证据。
+
+建议选择一个女仆记忆目录，例如：
+build/tmp/planner-affect-trace/.../memory/.../</div>
+      </section>
+
+      <section class="section">
+        <h2>统计</h2>
+        <div id="stats" class="stats"></div>
+      </section>
+
+      <section class="section">
+        <h2>类别</h2>
+        <div id="legend" class="legend"></div>
+      </section>
+
+      <section class="section">
+        <h2>记忆列表</h2>
+        <div class="tabs" id="tabs"></div>
+        <div id="memoryList" class="list" style="margin-top: 10px;"></div>
+      </section>
+    </nav>
+
+    <main id="stage">
+      <canvas id="graph"></canvas>
+      <div id="dropHint" class="drop-hint">
+        <div>
+          <strong>选择或拖入女仆记忆 JSON</strong>
+          <div>支持新版投影：memory_graph.json、relations.json、promises.json、anchors.json、owner_profile.json、repair_records.json、facts.json、life.json</div>
+        </div>
+      </div>
+    </main>
+
+    <aside>
+      <section class="section">
+        <h2>选中内容</h2>
+        <div id="details" class="details empty">还没有选中节点或记忆。点击图上的圆点、连线，或左侧记忆列表查看详情。</div>
+      </section>
+      <section class="section">
+        <h2>当前数据源</h2>
+        <div id="sourceFiles" class="details empty">未载入。</div>
+      </section>
+      <section class="section">
+        <h2>操作</h2>
+        <div class="hint">拖动画布平移，滚轮缩放。
+点击节点查看它相关的关系边。
+点击左侧记忆列表会定位到对应实体。
+按 <span class="kbd">Esc</span> 清除选中。</div>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+    const REQUIRED_FILES = [
+      "life.json",
+      "raw_events.json",
+      "facts.json",
+      "relations.json",
+      "promises.json",
+      "anchors.json",
+      "repair_records.json",
+      "owner_profile.json",
+      "maid_self.json",
+      "world_facts.json",
+      "memory_graph.json"
+    ];
+
+    const CATEGORY_META = {
+      memory_anchor: { label: "关系锚点", color: "#2563eb", note: "第一次绑定、命名、选择等不能轻易遗忘的关系根基" },
+      promise: { label: "承诺/未来约定", color: "#16845f", note: "未来要做、一起去、会陪伴、会提醒等约定" },
+      owner_profile: { label: "主人画像", color: "#7452c7", note: "主人偏好、边界、相处方式" },
+      repair_record: { label: "修复记录", color: "#c03546", note: "道歉、确认委屈、补偿、关系修复" },
+      world_fact: { label: "世界事实", color: "#168aa6", note: "世界、天气、危险、维度、存档事件" },
+      maid_self: { label: "女仆自我记忆", color: "#b76b12", note: "女仆对自身状态和关系感受的沉淀" },
+      relation_event: { label: "关系事件", color: "#64748b", note: "照顾、亲近、陪伴、冲突等一般关系事件" },
+      short_context: { label: "短期上下文", color: "#94a3b8", note: "近期会话片段，不一定长期固化" },
+      error_mark: { label: "错误标记", color: "#111827", note: "被标记为错误或需要复核的记忆" },
+      unknown: { label: "未分类", color: "#7a8798", note: "缺少 category 的记录" }
+    };
+
+    const FILE_TO_CATEGORY = {
+      promises: "promise",
+      anchors: "memory_anchor",
+      repair_records: "repair_record",
+      owner_profile: "owner_profile",
+      maid_self: "maid_self",
+      world_facts: "world_fact",
+      facts: "fact",
+      raw_events: "raw_event"
+    };
+
+    const state = {
+      files: {},
+      records: [],
+      nodes: [],
+      edges: [],
+      selected: null,
+      activeTab: "all",
+      query: "",
+      category: "",
+      scale: 1,
+      offsetX: 0,
+      offsetY: 0,
+      dragging: false,
+      dragStart: null,
+      animation: null
+    };
+
+    const canvas = document.getElementById("graph");
+    const ctx = canvas.getContext("2d");
+    const stage = document.getElementById("stage");
+    const folderInput = document.getElementById("folderInput");
+    const fileInput = document.getElementById("fileInput");
+    const demoButton = document.getElementById("demoButton");
+    const fitButton = document.getElementById("fitButton");
+    const searchInput = document.getElementById("searchInput");
+    const categoryFilter = document.getElementById("categoryFilter");
+    const statusEl = document.getElementById("status");
+    const statsEl = document.getElementById("stats");
+    const legendEl = document.getElementById("legend");
+    const tabsEl = document.getElementById("tabs");
+    const listEl = document.getElementById("memoryList");
+    const detailsEl = document.getElementById("details");
+    const sourceFilesEl = document.getElementById("sourceFiles");
+    const dropHint = document.getElementById("dropHint");
+
+    folderInput.addEventListener("change", event => loadFiles(event.target.files));
+    fileInput.addEventListener("change", event => loadFiles(event.target.files));
+    demoButton.addEventListener("click", loadDemo);
+    fitButton.addEventListener("click", fitView);
+    searchInput.addEventListener("input", () => {
+      state.query = searchInput.value.trim().toLowerCase();
+      renderSidebars();
+      draw();
+    });
+    categoryFilter.addEventListener("change", () => {
+      state.category = categoryFilter.value;
+      renderSidebars();
+      draw();
+    });
+
+    stage.addEventListener("dragover", event => {
+      event.preventDefault();
+      stage.style.outline = "2px solid #9db8ff";
+    });
+    stage.addEventListener("dragleave", () => {
+      stage.style.outline = "";
+    });
+    stage.addEventListener("drop", event => {
+      event.preventDefault();
+      stage.style.outline = "";
+      loadFiles(event.dataTransfer.files);
+    });
+
+    canvas.addEventListener("mousedown", event => {
+      const hit = hitTest(event);
+      if (hit) {
+        selectItem(hit);
+        return;
+      }
+      state.dragging = true;
+      state.dragStart = { x: event.clientX, y: event.clientY, ox: state.offsetX, oy: state.offsetY };
+      canvas.classList.add("dragging");
+    });
+
+    window.addEventListener("mousemove", event => {
+      if (!state.dragging || !state.dragStart) return;
+      state.offsetX = state.dragStart.ox + event.clientX - state.dragStart.x;
+      state.offsetY = state.dragStart.oy + event.clientY - state.dragStart.y;
+      draw();
+    });
+
+    window.addEventListener("mouseup", () => {
+      state.dragging = false;
+      state.dragStart = null;
+      canvas.classList.remove("dragging");
+    });
+
+    canvas.addEventListener("wheel", event => {
+      event.preventDefault();
+      const before = screenToWorld(event.offsetX, event.offsetY);
+      const factor = event.deltaY < 0 ? 1.12 : 0.88;
+      state.scale = clamp(state.scale * factor, 0.25, 3.2);
+      const after = worldToScreen(before.x, before.y);
+      state.offsetX += event.offsetX - after.x;
+      state.offsetY += event.offsetY - after.y;
+      draw();
+    }, { passive: false });
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      draw();
+    });
+
+    window.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        state.selected = null;
+        renderDetails();
+        draw();
+      }
+    });
+
+    async function loadFiles(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+
+      const jsonFiles = files.filter(file => file.name.endsWith(".json"));
+      const loaded = {};
+      for (const file of jsonFiles) {
+        try {
+          const text = await file.text();
+          loaded[file.name] = JSON.parse(text);
+        } catch (error) {
+          console.warn("无法读取 JSON", file.name, error);
+        }
+      }
+
+      if (!Object.keys(loaded).length) {
+        setStatus("没有读取到有效 JSON");
+        return;
+      }
+      applyData(loaded);
+    }
+
+    function applyData(files) {
+      state.files = files;
+      const built = buildGraph(files);
+      state.records = built.records;
+      state.nodes = built.nodes;
+      state.edges = built.edges;
+      state.selected = null;
+      state.query = "";
+      state.category = "";
+      searchInput.value = "";
+      categoryFilter.value = "";
+      dropHint.style.display = "none";
+      setStatus(`已载入 ${Object.keys(files).length} 个 JSON，${state.records.length} 条记忆，${state.edges.length} 条关系`);
+      renderSidebars();
+      fitView();
+      startSimulation();
+    }
+
+    function buildGraph(files) {
+      const records = collectRecords(files);
+      const nodeMap = new Map();
+      const edgeMap = new Map();
+
+      function ensureNode(id, kind, category, sourceRecord) {
+        const cleanId = safe(id) || "未知";
+        let node = nodeMap.get(cleanId);
+        if (!node) {
+          node = {
+            id: cleanId,
+            label: cleanId,
+            kind,
+            category: category || "unknown",
+            weight: 0,
+            records: [],
+            x: Math.random() * 500 - 250,
+            y: Math.random() * 340 - 170,
+            vx: 0,
+            vy: 0
+          };
+          nodeMap.set(cleanId, node);
+        }
+        node.weight += 1;
+        if (sourceRecord) node.records.push(sourceRecord);
+        if (category && node.category === "unknown") node.category = category;
+        return node;
+      }
+
+      for (const record of records) {
+        const subject = safe(record.subject) || subjectFromCategory(record.category);
+        const object = safe(record.object) || objectFromRecord(record);
+        const category = normalizeCategory(record.category);
+        const eventType = safe(record.eventType || record.type || record.predicate) || category;
+        const source = ensureNode(subject, "entity", category, record);
+        const target = ensureNode(object, "entity", category, record);
+        const edgeKey = `${source.id}|${eventType}|${target.id}|${record.summary}`;
+        edgeMap.set(edgeKey, {
+          id: edgeKey,
+          source,
+          target,
+          label: eventType,
+          category,
+          record,
+          weight: Math.max(1, Math.round(Number(record.importance || 50) / 20))
+        });
+      }
+
+      const memoryGraph = files["memory_graph.json"];
+      if (memoryGraph && Array.isArray(memoryGraph.nodes)) {
+        for (const raw of memoryGraph.nodes) {
+          const node = ensureNode(raw.id || raw.label, "entity", "unknown", null);
+          node.weight = Math.max(node.weight, Number(raw.weight || 1));
+        }
+      }
+      if (memoryGraph && Array.isArray(memoryGraph.edges)) {
+        for (const raw of memoryGraph.edges) {
+          const record = normalizeRecord(raw, "memory_graph", raw.category);
+          const subject = safe(record.subject) || "未知";
+          const object = safe(record.object) || "未知";
+          const source = ensureNode(subject, "entity", normalizeCategory(record.category), record);
+          const target = ensureNode(object, "entity", normalizeCategory(record.category), record);
+          const edgeKey = `${source.id}|${record.relationPredicate || record.eventType}|${target.id}|${record.summary}`;
+          if (!edgeMap.has(edgeKey)) {
+            edgeMap.set(edgeKey, {
+              id: edgeKey,
+              source,
+              target,
+              label: safe(record.relationPredicate || record.eventType || raw.predicate),
+              category: normalizeCategory(record.category),
+              record,
+              weight: Math.max(1, Math.round(Number(record.importance || 50) / 20))
+            });
+          }
+        }
+      }
+
+      const nodes = Array.from(nodeMap.values());
+      const edges = Array.from(edgeMap.values()).filter(edge => edge.source && edge.target);
+      if (!nodes.length) {
+        ensureNode("主人", "entity", "unknown", null);
+        ensureNode("女仆", "entity", "unknown", null);
+      }
+      layoutInitial(nodes);
+      return { records, nodes: Array.from(nodeMap.values()), edges };
+    }
+
+    function collectRecords(files) {
+      const out = [];
+      const seen = new Set();
+
+      function addRecord(raw, sourceFile, fallbackCategory) {
+        const record = normalizeRecord(raw, sourceFile, fallbackCategory);
+        const key = `${record.category}|${record.eventType}|${record.subject}|${record.object}|${record.summary}|${record.evidence}`;
+        if (!record.summary && !record.subject && !record.object) return;
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(record);
+      }
+
+      if (Array.isArray(files["life.json"])) {
+        files["life.json"].forEach(raw => addRecord(raw, "life.json", raw.category));
+      }
+
+      for (const [fileName, payload] of Object.entries(files)) {
+        if (fileName === "life.json" || fileName === "memory_graph.json") continue;
+        const base = fileName.replace(/\.json$/i, "");
+        const fallback = FILE_TO_CATEGORY[base] || "";
+        if (Array.isArray(payload)) {
+          payload.forEach(raw => addRecord(raw, fileName, fallback));
+        }
+      }
+      return out;
+    }
+
+    function normalizeRecord(raw, sourceFile, fallbackCategory) {
+      const category = normalizeCategory(raw.category || fallbackCategory || raw.memoryCategory);
+      return {
+        sourceFile,
+        time: safe(raw.time || raw.happenedAt || raw.createdAt),
+        category,
+        eventType: safe(raw.eventType || raw.type || raw.predicate),
+        relationPredicate: safe(raw.relationPredicate || raw.predicate || raw.eventType || raw.type),
+        subject: safe(raw.subject),
+        object: safe(raw.object),
+        summary: safe(raw.summary || raw.label || raw.detail),
+        evidence: safe(raw.evidence || raw.sourceText),
+        importance: Number(raw.importance || 0),
+        confidence: Number(raw.confidence || 0),
+        salience: Number(raw.salience || 0),
+        pinned: Boolean(raw.pinned),
+        contradicted: Boolean(raw.contradicted),
+        errorMarked: Boolean(raw.errorMarked),
+        active: raw.active !== false
+      };
+    }
+
+    function normalizeCategory(category) {
+      const value = safe(category);
+      if (!value) return "unknown";
+      if (value === "fact" || value === "raw_event") return "relation_event";
+      return value;
+    }
+
+    function subjectFromCategory(category) {
+      if (category === "world_fact") return "世界";
+      if (category === "maid_self") return "女仆";
+      return "主人";
+    }
+
+    function objectFromRecord(record) {
+      if (record.category === "promise") return record.summary.slice(0, 22) || "承诺";
+      if (record.category === "owner_profile") return "主人画像";
+      if (record.category === "repair_record") return "修复记录";
+      if (record.category === "world_fact") return "世界事实";
+      if (record.category === "memory_anchor") return "关系锚点";
+      return "灵汐";
+    }
+
+    function layoutInitial(nodes) {
+      const count = Math.max(1, nodes.length);
+      const radius = Math.max(120, Math.min(360, count * 28));
+      nodes.forEach((node, index) => {
+        const angle = Math.PI * 2 * index / count;
+        node.x = Math.cos(angle) * radius;
+        node.y = Math.sin(angle) * radius;
+        node.vx = 0;
+        node.vy = 0;
+      });
+    }
+
+    function startSimulation() {
+      if (state.animation) cancelAnimationFrame(state.animation);
+      let ticks = 0;
+      function frame() {
+        simulate();
+        draw();
+        ticks += 1;
+        if (ticks < 360) {
+          state.animation = requestAnimationFrame(frame);
+        }
+      }
+      frame();
+    }
+
+    function simulate() {
+      const nodes = filteredNodes();
+      const edges = filteredEdges();
+      const nodeSet = new Set(nodes);
+      const strength = 0.018;
+
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i];
+          const b = nodes[j];
+          let dx = a.x - b.x;
+          let dy = a.y - b.y;
+          let d2 = dx * dx + dy * dy;
+          if (d2 < 1) {
+            dx = Math.random() - 0.5;
+            dy = Math.random() - 0.5;
+            d2 = 1;
+          }
+          const force = 520 / d2;
+          a.vx += dx * force;
+          a.vy += dy * force;
+          b.vx -= dx * force;
+          b.vy -= dy * force;
+        }
+      }
+
+      for (const edge of edges) {
+        if (!nodeSet.has(edge.source) || !nodeSet.has(edge.target)) continue;
+        const a = edge.source;
+        const b = edge.target;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        const target = 115 + Math.min(80, edge.weight * 8);
+        const force = (dist - target) * strength;
+        const fx = dx / dist * force;
+        const fy = dy / dist * force;
+        a.vx += fx;
+        a.vy += fy;
+        b.vx -= fx;
+        b.vy -= fy;
+      }
+
+      for (const node of nodes) {
+        node.vx += -node.x * 0.002;
+        node.vy += -node.y * 0.002;
+        node.vx *= 0.82;
+        node.vy *= 0.82;
+        node.x += node.vx;
+        node.y += node.vy;
+      }
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function draw() {
+      resizeCanvas();
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      const nodes = filteredNodes();
+      const nodeSet = new Set(nodes);
+      const edges = filteredEdges().filter(edge => nodeSet.has(edge.source) && nodeSet.has(edge.target));
+
+      for (const edge of edges) {
+        drawEdge(edge);
+      }
+      for (const node of nodes) {
+        drawNode(node);
+      }
+    }
+
+    function drawEdge(edge) {
+      const a = worldToScreen(edge.source.x, edge.source.y);
+      const b = worldToScreen(edge.target.x, edge.target.y);
+      const selected = state.selected && state.selected.type === "edge" && state.selected.item === edge;
+      ctx.save();
+      ctx.globalAlpha = selected ? 1 : 0.62;
+      ctx.strokeStyle = selected ? "#111827" : colorFor(edge.category);
+      ctx.lineWidth = selected ? 3 : Math.max(1, Math.min(3, edge.weight));
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      if (selected || state.scale > 0.75) {
+        ctx.fillStyle = "#ffffff";
+        const label = edge.label || categoryLabel(edge.category);
+        const w = Math.min(130, ctx.measureText(label).width + 14);
+        roundedRect(ctx, mx - w / 2, my - 11, w, 22, 6);
+        ctx.fill();
+        ctx.fillStyle = "#344054";
+        ctx.font = "12px Segoe UI, Microsoft YaHei";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, mx, my, w - 10);
+      }
+      ctx.restore();
+    }
+
+    function drawNode(node) {
+      const p = worldToScreen(node.x, node.y);
+      const selected = state.selected && state.selected.type === "node" && state.selected.item === node;
+      const radius = nodeRadius(node);
+      ctx.save();
+      ctx.shadowColor = selected ? "rgba(37,99,235,0.35)" : "rgba(21,33,56,0.18)";
+      ctx.shadowBlur = selected ? 18 : 8;
+      ctx.fillStyle = colorFor(node.category);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = selected ? 4 : 2;
+      ctx.strokeStyle = selected ? "#111827" : "#ffffff";
+      ctx.stroke();
+
+      ctx.fillStyle = "#172033";
+      ctx.font = selected ? "600 13px Segoe UI, Microsoft YaHei" : "12px Segoe UI, Microsoft YaHei";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      const label = node.label.length > 14 ? node.label.slice(0, 13) + "…" : node.label;
+      ctx.fillText(label, p.x, p.y + radius + 7, 96);
+      ctx.restore();
+    }
+
+    function nodeRadius(node) {
+      return Math.max(12, Math.min(26, 10 + Math.sqrt(Math.max(1, node.weight)) * 4));
+    }
+
+    function hitTest(event) {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const nodes = filteredNodes();
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        const node = nodes[i];
+        const p = worldToScreen(node.x, node.y);
+        const dx = x - p.x;
+        const dy = y - p.y;
+        if (Math.sqrt(dx * dx + dy * dy) <= nodeRadius(node) + 5) {
+          return { type: "node", item: node };
+        }
+      }
+      for (const edge of filteredEdges()) {
+        const a = worldToScreen(edge.source.x, edge.source.y);
+        const b = worldToScreen(edge.target.x, edge.target.y);
+        if (distanceToSegment(x, y, a.x, a.y, b.x, b.y) <= 6) {
+          return { type: "edge", item: edge };
+        }
+      }
+      return null;
+    }
+
+    function selectItem(selection) {
+      state.selected = selection;
+      renderDetails();
+      renderMemoryList();
+      draw();
+    }
+
+    function fitView() {
+      const nodes = filteredNodes();
+      const rect = canvas.getBoundingClientRect();
+      if (!nodes.length || !rect.width || !rect.height) {
+        state.scale = 1;
+        state.offsetX = rect.width / 2;
+        state.offsetY = rect.height / 2;
+        draw();
+        return;
+      }
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const node of nodes) {
+        minX = Math.min(minX, node.x);
+        minY = Math.min(minY, node.y);
+        maxX = Math.max(maxX, node.x);
+        maxY = Math.max(maxY, node.y);
+      }
+      const width = Math.max(1, maxX - minX + 120);
+      const height = Math.max(1, maxY - minY + 120);
+      state.scale = clamp(Math.min(rect.width / width, rect.height / height), 0.35, 1.7);
+      state.offsetX = rect.width / 2 - ((minX + maxX) / 2) * state.scale;
+      state.offsetY = rect.height / 2 - ((minY + maxY) / 2) * state.scale;
+      draw();
+    }
+
+    function renderSidebars() {
+      renderStats();
+      renderLegend();
+      renderTabs();
+      renderCategoryFilter();
+      renderMemoryList();
+      renderDetails();
+      renderSourceFiles();
+    }
+
+    function renderStats() {
+      const categoryCounts = groupCount(state.records, record => normalizeCategory(record.category));
+      statsEl.innerHTML = [
+        statHtml(state.nodes.length, "图谱节点"),
+        statHtml(state.edges.length, "关系边"),
+        statHtml(state.records.length, "记忆记录"),
+        statHtml(categoryCounts.size, "记忆类别")
+      ].join("");
+    }
+
+    function statHtml(value, label) {
+      return `<div class="stat"><b>${escapeHtml(String(value))}</b><span>${escapeHtml(label)}</span></div>`;
+    }
+
+    function renderLegend() {
+      const categories = Array.from(new Set(state.records.map(r => normalizeCategory(r.category)).concat(state.edges.map(e => normalizeCategory(e.category)))));
+      if (!categories.length) {
+        categories.push("memory_anchor", "promise", "owner_profile", "repair_record", "relation_event");
+      }
+      legendEl.innerHTML = categories.sort().map(category => {
+        const meta = CATEGORY_META[category] || CATEGORY_META.unknown;
+        return `<div class="legend-row" title="${escapeHtml(meta.note)}"><span class="dot" style="background:${escapeHtml(meta.color)}"></span><span>${escapeHtml(meta.label)} <small>(${escapeHtml(category)})</small></span></div>`;
+      }).join("");
+    }
+
+    function renderTabs() {
+      const tabs = [
+        ["all", "全部"],
+        ["memory_anchor", "锚点"],
+        ["promise", "承诺"],
+        ["repair_record", "修复"],
+        ["owner_profile", "画像"],
+        ["relation_event", "关系"]
+      ];
+      tabsEl.innerHTML = tabs.map(([id, label]) => `<button class="tab ${state.activeTab === id ? "active" : ""}" data-tab="${escapeHtml(id)}">${escapeHtml(label)}</button>`).join("");
+      for (const button of tabsEl.querySelectorAll("button")) {
+        button.addEventListener("click", () => {
+          state.activeTab = button.dataset.tab;
+          renderMemoryList();
+        });
+      }
+    }
+
+    function renderCategoryFilter() {
+      const categories = Array.from(new Set(state.records.map(r => normalizeCategory(r.category)))).sort();
+      const current = state.category;
+      categoryFilter.innerHTML = `<option value="">全部类别</option>` + categories.map(category => {
+        return `<option value="${escapeHtml(category)}">${escapeHtml(categoryLabel(category))}</option>`;
+      }).join("");
+      categoryFilter.value = current;
+    }
+
+    function renderMemoryList() {
+      const records = filteredRecords().slice(0, 160);
+      if (!records.length) {
+        listEl.innerHTML = `<div class="empty">没有匹配的记忆。</div>`;
+        return;
+      }
+      listEl.innerHTML = records.map((record, index) => {
+        const selected = state.selected && state.selected.type === "record" && state.selected.item === record;
+        return `<div class="item ${selected ? "active" : ""}" data-index="${index}">
+          <div class="item-title">${escapeHtml(record.summary || "(无摘要)")}</div>
+          <div class="item-meta">
+            <span class="badge">${escapeHtml(categoryLabel(record.category))}</span>
+            <span>${escapeHtml(record.eventType || "event")}</span>
+            <span>重要度 ${escapeHtml(formatScore(record.importance))}</span>
+            <span>置信 ${escapeHtml(formatConfidence(record.confidence))}</span>
+          </div>
+        </div>`;
+      }).join("");
+      const realRecords = records;
+      for (const [index, el] of Array.from(listEl.querySelectorAll(".item")).entries()) {
+        el.addEventListener("click", () => {
+          const record = realRecords[index];
+          state.selected = { type: "record", item: record };
+          focusRecord(record);
+          renderDetails();
+          renderMemoryList();
+          draw();
+        });
+      }
+    }
+
+    function renderDetails() {
+      const selection = state.selected;
+      if (!selection) {
+        detailsEl.className = "details empty";
+        detailsEl.textContent = "还没有选中节点或记忆。点击图上的圆点、连线，或左侧记忆列表查看详情。";
+        return;
+      }
+      detailsEl.className = "details";
+      if (selection.type === "node") {
+        const node = selection.item;
+        const related = state.edges.filter(edge => edge.source === node || edge.target === node);
+        detailsEl.textContent = [
+          `节点：${node.label}`,
+          `类别：${categoryLabel(node.category)} (${node.category})`,
+          `关联记忆：${node.records.length}`,
+          `关系边：${related.length}`,
+          "",
+          "相关关系：",
+          ...related.slice(0, 12).map(edge => `- ${edge.source.label} --${edge.label || categoryLabel(edge.category)}--> ${edge.target.label}\n  ${edge.record.summary || ""}`)
+        ].join("\n");
+      } else if (selection.type === "edge") {
+        detailsEl.textContent = formatRecord(selection.item.record, `关系边：${selection.item.source.label} -> ${selection.item.target.label}`);
+      } else {
+        detailsEl.textContent = formatRecord(selection.item, "记忆记录");
+      }
+    }
+
+    function renderSourceFiles() {
+      const names = Object.keys(state.files).sort();
+      if (!names.length) {
+        sourceFilesEl.className = "details empty";
+        sourceFilesEl.textContent = "未载入。";
+        return;
+      }
+      sourceFilesEl.className = "details";
+      sourceFilesEl.textContent = names.map(name => {
+        const mark = REQUIRED_FILES.includes(name) ? "✓" : "•";
+        return `${mark} ${name}`;
+      }).join("\n");
+    }
+
+    function formatRecord(record, title) {
+      return [
+        title,
+        `类别：${categoryLabel(record.category)} (${record.category || "unknown"})`,
+        `事件：${record.eventType || "(无)"}`,
+        `主体：${record.subject || "(无)"}`,
+        `客体：${record.object || "(无)"}`,
+        `重要度：${formatScore(record.importance)}`,
+        `置信度：${formatConfidence(record.confidence)}`,
+        `显著度：${formatConfidence(record.salience)}`,
+        `状态：${record.errorMarked ? "错误标记" : record.contradicted ? "冲突/停用" : record.active === false ? "停用" : "有效"}`,
+        `来源：${record.sourceFile || "(未知)"}`,
+        record.time ? `时间：${record.time}` : "",
+        "",
+        "摘要：",
+        record.summary || "(无)",
+        "",
+        "证据：",
+        record.evidence || "(无)"
+      ].filter(Boolean).join("\n");
+    }
+
+    function filteredRecords() {
+      return state.records.filter(record => {
+        const category = normalizeCategory(record.category);
+        if (state.activeTab !== "all" && category !== state.activeTab) return false;
+        if (state.category && category !== state.category) return false;
+        if (!state.query) return true;
+        return recordText(record).includes(state.query);
+      });
+    }
+
+    function filteredNodes() {
+      const records = new Set(filteredRecords());
+      return state.nodes.filter(node => {
+        if (state.category && node.category !== state.category && !node.records.some(r => normalizeCategory(r.category) === state.category)) return false;
+        if (!state.query) return true;
+        if (node.label.toLowerCase().includes(state.query)) return true;
+        return node.records.some(record => records.has(record));
+      });
+    }
+
+    function filteredEdges() {
+      const records = new Set(filteredRecords());
+      return state.edges.filter(edge => {
+        if (state.category && edge.category !== state.category) return false;
+        if (!state.query) return true;
+        return records.has(edge.record)
+          || edge.source.label.toLowerCase().includes(state.query)
+          || edge.target.label.toLowerCase().includes(state.query)
+          || (edge.label || "").toLowerCase().includes(state.query);
+      });
+    }
+
+    function focusRecord(record) {
+      const candidates = state.nodes.filter(node => node.records.includes(record));
+      if (candidates.length) {
+        state.selectedNodeHint = candidates[0];
+      }
+    }
+
+    function worldToScreen(x, y) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: x * state.scale + state.offsetX + rect.width / 2,
+        y: y * state.scale + state.offsetY + rect.height / 2
+      };
+    }
+
+    function screenToWorld(x, y) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (x - state.offsetX - rect.width / 2) / state.scale,
+        y: (y - state.offsetY - rect.height / 2) / state.scale
+      };
+    }
+
+    function distanceToSegment(px, py, x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      if (dx === 0 && dy === 0) {
+        return Math.hypot(px - x1, py - y1);
+      }
+      const t = clamp(((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy), 0, 1);
+      return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+    }
+
+    function colorFor(category) {
+      return (CATEGORY_META[normalizeCategory(category)] || CATEGORY_META.unknown).color;
+    }
+
+    function categoryLabel(category) {
+      return (CATEGORY_META[normalizeCategory(category)] || CATEGORY_META.unknown).label;
+    }
+
+    function recordText(record) {
+      return [
+        record.category,
+        record.eventType,
+        record.subject,
+        record.object,
+        record.summary,
+        record.evidence,
+        record.sourceFile
+      ].join("\n").toLowerCase();
+    }
+
+    function groupCount(items, getKey) {
+      const out = new Map();
+      for (const item of items) {
+        const key = getKey(item);
+        out.set(key, (out.get(key) || 0) + 1);
+      }
+      return out;
+    }
+
+    function formatScore(value) {
+      const number = Number(value || 0);
+      if (number <= 1) return Math.round(number * 100).toString();
+      return Math.round(number).toString();
+    }
+
+    function formatConfidence(value) {
+      const number = Number(value || 0);
+      if (!number) return "0.00";
+      return number.toFixed(2);
+    }
+
+    function safe(value) {
+      return value == null ? "" : String(value).trim();
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function roundedRect(context, x, y, w, h, r) {
+      context.beginPath();
+      context.moveTo(x + r, y);
+      context.lineTo(x + w - r, y);
+      context.quadraticCurveTo(x + w, y, x + w, y + r);
+      context.lineTo(x + w, y + h - r);
+      context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      context.lineTo(x + r, y + h);
+      context.quadraticCurveTo(x, y + h, x, y + h - r);
+      context.lineTo(x, y + r);
+      context.quadraticCurveTo(x, y, x + r, y);
+      context.closePath();
+    }
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function loadDemo() {
+      applyData({
+        "life.json": [
+          {
+            category: "memory_anchor",
+            eventType: "memory_anchor",
+            subject: "主人",
+            object: "灵汐",
+            summary: "主人第一次见面时选择了灵汐，并要求她记住。",
+            evidence: "这是第一次见面，你要记住：我选择了你。",
+            importance: 100,
+            confidence: 0.95,
+            pinned: true
+          },
+          {
+            category: "promise",
+            eventType: "promise",
+            subject: "主人",
+            object: "新世界同行",
+            summary: "主人承诺去新的世界时也会带上灵汐。",
+            evidence: "如果我去新的世界，也会带上你。",
+            importance: 92,
+            confidence: 0.95,
+            pinned: true
+          },
+          {
+            category: "owner_profile",
+            eventType: "boundary_request",
+            subject: "主人",
+            object: "安静陪伴",
+            summary: "主人累的时候希望灵汐安静陪在旁边。",
+            evidence: "我现在有点累，想安静待一会儿。",
+            importance: 78,
+            confidence: 0.95
+          }
+        ],
+        "memory_graph.json": {
+          nodes: [
+            { id: "主人", weight: 3 },
+            { id: "灵汐", weight: 3 },
+            { id: "新世界同行", weight: 1 },
+            { id: "安静陪伴", weight: 1 }
+          ],
+          edges: []
+        }
+      });
+    }
+
+    resizeCanvas();
+    renderSidebars();
+    draw();
+  </script>
+</body>
+</html>
