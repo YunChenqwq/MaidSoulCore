@@ -16,6 +16,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -26,10 +27,13 @@ public final class MaidViewPerceptionService {
     private static final long IDLE_SCAN_INTERVAL_MILLIS = 45_000L;
     private static final long NOTABLE_EVENT_COOLDOWN_MILLIS = 90_000L;
     private static final double FOCUS_RANGE = 12.0D;
+    private static final double NEARBY_ENTITY_RANGE = 16.0D;
     private static final double ENTITY_FOCUS_DOT = 0.965D;
     private static final ConcurrentMap<UUID, Long> LAST_SCAN = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, Integer> LAST_SIGNATURE = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, Long> LAST_NOTABLE_EVENT = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<UUID, String> LAST_WEATHER = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<UUID, String> LAST_TIME = new ConcurrentHashMap<>();
 
     private MaidViewPerceptionService() {
     }
@@ -54,8 +58,14 @@ public final class MaidViewPerceptionService {
 
         ViewSummary summary = capture(maid);
         Integer previous = LAST_SIGNATURE.put(maid.getUUID(), summary.signature());
+        String previousWeather = LAST_WEATHER.put(maid.getUUID(), summary.weather());
+        String previousTime = LAST_TIME.put(maid.getUUID(), summary.time());
         boolean changed = previous == null || previous != summary.signature();
-        String eventType = summary.notable()
+        boolean weatherChanged = previousWeather != null && !previousWeather.equals(summary.weather());
+        boolean timeChanged = previousTime != null && !previousTime.equals(summary.time());
+        String eventType = weatherChanged
+                ? "owner.view.risk_weather_changed"
+                : timeChanged ? "owner.view.risk_time_changed" : summary.notable()
                 ? summary.eventType()
                 : changed ? "owner.view.changed" : "owner.view.snapshot";
         MaidBrainRuntimeRegistry.receiveWorldEvent(maid, eventType, summary.text());
@@ -99,7 +109,7 @@ public final class MaidViewPerceptionService {
     private static ViewSummary capture(EntityMaid maid) {
         LivingEntity owner = maid.getOwner();
         if (owner == null) {
-            return new ViewSummary("owner.view.none", "maid_uuid=" + maid.getUUID() + ", owner=unavailable", false);
+            return new ViewSummary("owner.view.none", "maid_uuid=" + maid.getUUID() + ", owner=unavailable", false, "unknown", "unknown");
         }
         FocusInfo focus = describeFocus(owner, maid);
         List<Monster> monsters = owner.level().getEntitiesOfClass(
@@ -107,17 +117,24 @@ public final class MaidViewPerceptionService {
                 owner.getBoundingBox().inflate(10.0D),
                 entity -> entity.isAlive() && entity.distanceTo(owner) <= 10.0F
         );
+        List<Entity> nearbyEntities = owner.level().getEntities(
+                owner,
+                owner.getBoundingBox().inflate(NEARBY_ENTITY_RANGE),
+                entity -> entity.isAlive() && entity.distanceTo(owner) <= NEARBY_ENTITY_RANGE
+        );
         List<EntityMaid> nearbyMaids = owner.level().getEntitiesOfClass(
                 EntityMaid.class,
-                owner.getBoundingBox().inflate(16.0D),
-                entity -> entity.isAlive() && entity.distanceTo(owner) <= 16.0F
+                owner.getBoundingBox().inflate(NEARBY_ENTITY_RANGE),
+                entity -> entity.isAlive() && entity.distanceTo(owner) <= NEARBY_ENTITY_RANGE
         );
         String time = timeLabel(owner.level().getDayTime() % 24000L);
         String weather = owner.level().isThundering() ? "thunder" : owner.level().isRaining() ? "rain" : "clear";
+        List<String> ownerRisks = ownerRisks(owner);
         String ownerState = owner instanceof Player player
                 ? "health=%.1f,hunger=%d".formatted(owner.getHealth(), player.getFoodData().getFoodLevel())
                 : "health=%.1f".formatted(owner.getHealth());
         boolean ownerLookingAtRequestMaid = focus.ownerLookingAtRequestMaid();
+        double maidDistance = maid.distanceTo(owner);
         String text = "maid_uuid=" + maid.getUUID()
                 + ", maid_name=" + maid.getName().getString()
                 + ", owner=" + owner.getName().getString()
@@ -126,9 +143,17 @@ public final class MaidViewPerceptionService {
                 + ", time=" + time
                 + ", weather=" + weather
                 + ", owner_state=" + ownerState
+                + ", owner_risks=" + ownerRisks
                 + ", nearby_monsters=" + monsters.size()
                 + ", nearby_maids=" + nearbyMaids.size()
-                + ", maid_distance=%.1f".formatted(maid.distanceTo(owner));
+                + ", nearby_entities_count=" + nearbyEntities.size()
+                + ", nearby_entities=" + nearbyEntitiesText(owner, maid, nearbyEntities)
+                + ", companion_cues=" + companionCues(ownerLookingAtRequestMaid, maidDistance, time, weather)
+                + ", topic_candidates=" + topicCandidates(ownerLookingAtRequestMaid, maidDistance, ownerRisks, monsters.size(), time, weather)
+                + ", maid_distance=%.1f".formatted(maidDistance);
+        if (!ownerRisks.isEmpty()) {
+            return new ViewSummary("owner.view.risk_owner_state", text, true, time, weather);
+        }
         if (!monsters.isEmpty()) {
             String monstersText = monsters.stream()
                     .sorted(Comparator.comparingDouble(entity -> entity.distanceTo(owner)))
@@ -136,9 +161,90 @@ public final class MaidViewPerceptionService {
                     .map(entity -> entityTypeId(entity) + "@%.1f".formatted(entity.distanceTo(owner)))
                     .toList()
                     .toString();
-            return new ViewSummary("owner.view.risk_mob", text + ", nearest_monsters=" + monstersText, true);
+            return new ViewSummary("owner.view.risk_mob", text + ", nearest_monsters=" + monstersText, true, time, weather);
         }
-        return new ViewSummary("owner.view.changed", text, false);
+        if (!"clear".equals(weather)) {
+            return new ViewSummary("owner.view.risk_weather", text, true, time, weather);
+        }
+        if ("night".equals(time)) {
+            return new ViewSummary("owner.view.risk_time", text, true, time, weather);
+        }
+        return new ViewSummary("owner.view.changed", text, false, time, weather);
+    }
+
+    private static List<String> ownerRisks(LivingEntity owner) {
+        List<String> risks = new ArrayList<>();
+        if (owner.getHealth() <= 8.0F) {
+            risks.add("low_health");
+        }
+        if (owner instanceof Player player && player.getFoodData().getFoodLevel() <= 6) {
+            risks.add("low_hunger");
+        }
+        if (owner.isOnFire()) {
+            risks.add("on_fire");
+        }
+        if (owner.isInWaterOrBubble()) {
+            risks.add("in_water");
+        }
+        return risks;
+    }
+
+    private static String companionCues(boolean lookingAtSelf, double distance, String time, String weather) {
+        List<String> cues = new ArrayList<>();
+        if (lookingAtSelf) {
+            cues.add("owner_looking_at_current_maid");
+        }
+        if (distance < 20.0D) {
+            cues.add("owner_within_companion_range");
+        }
+        if ("rain".equals(weather) || "thunder".equals(weather)) {
+            cues.add("weather_mood");
+        }
+        if ("night".equals(time) || "evening".equals(time)) {
+            cues.add("quiet_time");
+        }
+        return cues.isEmpty() ? "[]" : cues.toString();
+    }
+
+    private static String topicCandidates(
+            boolean lookingAtSelf,
+            double distance,
+            List<String> ownerRisks,
+            int monsterCount,
+            String time,
+            String weather
+    ) {
+        List<String> topics = new ArrayList<>();
+        if (!ownerRisks.isEmpty() || monsterCount > 0) {
+            topics.add("care_check");
+        }
+        if (lookingAtSelf) {
+            topics.add("affection_ping");
+        }
+        if (distance < 20.0D) {
+            topics.add("companionship");
+        }
+        if ("rain".equals(weather) || "thunder".equals(weather) || "night".equals(time) || "evening".equals(time)) {
+            topics.add("world_comment");
+        }
+        return topics.isEmpty() ? "[natural_company]" : topics.toString();
+    }
+
+    private static String nearbyEntitiesText(LivingEntity owner, EntityMaid requestMaid, List<Entity> entities) {
+        if (entities == null || entities.isEmpty()) {
+            return "[]";
+        }
+        return entities.stream()
+                .sorted(Comparator.comparingDouble(entity -> entity.distanceTo(owner)))
+                .limit(10)
+                .map(entity -> {
+                    String relation = entity.getUUID().equals(requestMaid.getUUID())
+                            ? "current_maid_self"
+                            : entity instanceof EntityMaid ? "other_maid" : entity instanceof Monster ? "monster" : entity instanceof LivingEntity ? "living" : "entity";
+                    return relation + ":" + entityTypeId(entity) + "@%.1f".formatted(entity.distanceTo(owner));
+                })
+                .toList()
+                .toString();
     }
 
     private static FocusInfo describeFocus(LivingEntity owner, EntityMaid requestMaid) {
@@ -217,7 +323,7 @@ public final class MaidViewPerceptionService {
         return "night";
     }
 
-    private record ViewSummary(String eventType, String text, boolean notable) {
+    private record ViewSummary(String eventType, String text, boolean notable, String time, String weather) {
         private int signature() {
             return java.util.Objects.hash(eventType, text);
         }

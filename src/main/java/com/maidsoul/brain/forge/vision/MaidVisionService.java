@@ -9,6 +9,7 @@ import com.maidsoul.brain.forge.perception.MaidViewPerceptionService;
 import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
 import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.vision.VisionConfig;
+import com.maidsoul.brain.vision.VisionSceneFacts;
 import com.maidsoul.brain.vision.VisionSummaryClient;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -108,12 +109,14 @@ public final class MaidVisionService {
             }
             return;
         }
-        completePending(requestId, cleanSummary);
-        String detail = "source=" + reason
-                + ", owner=" + player.getName().getString()
-                + ", request_maid_uuid=" + requestContext.maidUuid()
-                + ", scene_hint=" + clip(sceneHint, 300)
-                + ", summary=" + clip(cleanSummary, 1200);
+        VisionSceneFacts facts = VisionSceneFacts.from(cleanSummary, sceneHint);
+        completePending(requestId, facts.toPlannerText());
+        String detail = facts.toWorldEventDetail(
+                reason,
+                player.getName().getString(),
+                String.valueOf(requestContext.maidUuid()),
+                sceneHint
+        );
         MaidBrainRuntimeRegistry.receiveWorldEvent(maid, "owner.view.vision_summary", detail);
         if ("manual".equals(reason)) {
             MaidSpeechDispatcher.queueSpeechOnServer(maid, cleanSummary.startsWith("[视觉摘要失败]")

@@ -121,6 +121,9 @@ public final class ProactiveScheduler {
                 + "本轮用户沉默后的主动候选次数=" + (firedCandidates + 1) + "/" + maxVisibleReplies() + "。"
                 + "长沉默复检次数=" + (longSilenceChecks + 1) + "/" + maxLongSilenceChecks() + "。"
                 + rule
+                + "如果最近上下文里有 companion_cues、topic_candidates、[视觉事实] 或 owner.view.risk_*，优先把它们当作主动话题来源；"
+                + "可选类型包括 care_check、companionship、affection_ping、world_comment、memory_recall、repair_followup。"
+                + "没有可靠候选时不要硬聊。"
                 + "当前情绪主动参考：" + (affectHint == null || affectHint.isBlank() ? "none" : affectHint)
                 + "这只是提交给 planner 的候选信号，不是可见话题；planner 可以 reply、wait 或 no_action，运行时不会覆盖。";
     }
