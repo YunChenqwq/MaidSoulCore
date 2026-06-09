@@ -10,6 +10,7 @@ import com.yunchen.maidsoulcore.core.config.DialogueCoreConfig;
 import com.yunchen.maidsoulcore.core.context.ContextBuilder;
 import com.yunchen.maidsoulcore.core.context.ContextPack;
 import com.yunchen.maidsoulcore.core.memory.LifeMemoryStore;
+import com.yunchen.maidsoulcore.core.memory.MemoryMaintenanceService;
 import com.yunchen.maidsoulcore.core.memory.MemoryWritebackService;
 import com.yunchen.maidsoulcore.core.message.RuntimeMessage;
 import com.yunchen.maidsoulcore.core.event.StructuredEvent;
@@ -46,6 +47,7 @@ public final class MaidSoulRuntime implements AutoCloseable {
     private final AffectiveLongingEngine affectiveLonging = new AffectiveLongingEngine();
     private final AffectEngine affectEngine = affectiveLonging.affectEngine();
     private final MemoryWritebackService memoryWriteback = new MemoryWritebackService();
+    private final MemoryMaintenanceService memoryMaintenance = new MemoryMaintenanceService();
     private final PlanDecisionValidator planValidator = new PlanDecisionValidator();
     private final StructuredEventPostProcessor eventPostProcessor = new StructuredEventPostProcessor();
     private final MessageBuffer buffer = new MessageBuffer();
@@ -199,6 +201,11 @@ public final class MaidSoulRuntime implements AutoCloseable {
                 continue;
             }
             if ("reply".equals(action)) {
+                if (StructuredEventType.MEMORY_ANCHOR.id().equals(plan.affect_event)
+                        && (plan.memory_query == null || plan.memory_query.isBlank())) {
+                    context = buildContext(latestContextText());
+                    trace.trace("memory.query", "auto_memory_anchor_query=" + latestContextText());
+                }
                 sendReply(context, plan, cycleVersion);
                 state = RuntimeState.STOP;
                 return;
@@ -301,7 +308,14 @@ public final class MaidSoulRuntime implements AutoCloseable {
                 event,
                 affective
         ));
+        MemoryMaintenanceService.MaintenanceReport maintenance = memoryMaintenance.maintain(memory);
         trace.trace("structured.event", event.brief());
+        trace.trace("memory.maintenance", "scanned=" + maintenance.scanned()
+                + " exactMerged=" + maintenance.merged()
+                + " structuralMerged=" + maintenance.structuralMerged()
+                + " degraded=" + maintenance.degraded()
+                + " pinned=" + maintenance.pinned()
+                + " errorAffected=" + maintenance.errorAffected());
         trace.trace("affect.event", event.type
                 + " confidence=" + String.format(java.util.Locale.ROOT, "%.2f", event.confidence)
                 + " evidence=" + blankToDefault(event.evidence, "无"));

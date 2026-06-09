@@ -82,6 +82,17 @@ public final class MemoryMaintenanceSmokeMain {
                 1
         ));
         store.appendRecord(record(
+                MemoryCategory.OWNER_PROFILE.id(),
+                StructuredEventType.MEMORY_ANCHOR.id(),
+                "主人",
+                "称呼偏好",
+                "主人后来再次确认希望灵汐称呼自己为主人。",
+                "planner:profile object=称呼偏好 confidence=0.90",
+                0.90D,
+                0.74D,
+                0
+        ));
+        store.appendRecord(record(
                 MemoryCategory.ERROR_MARK.id(),
                 StructuredEventType.MEMORY_ANCHOR.id(),
                 "主人",
@@ -122,9 +133,12 @@ public final class MemoryMaintenanceSmokeMain {
         append(report, "- 扫描条目: " + maintenance.scanned());
         append(report, "- 精确重复: " + maintenance.exactDuplicates());
         append(report, "- 合并次数: " + maintenance.merged());
+        append(report, "- 结构合并候选: " + maintenance.structuralDuplicates());
+        append(report, "- 结构合并次数: " + maintenance.structuralMerged());
         append(report, "- 降权条目: " + maintenance.degraded());
         append(report, "- 固化条目: " + maintenance.pinned());
         append(report, "- 错误标记: " + maintenance.errorMarked());
+        append(report, "- 错误影响旧记忆: " + maintenance.errorAffected());
         append(report, "");
         append(report, "## 维护后的记忆");
         append(report, "");
@@ -168,6 +182,7 @@ public final class MemoryMaintenanceSmokeMain {
         record.eventType = eventType;
         record.subject = subject;
         record.object = object;
+        record.relationPredicate = eventType;
         record.summary = summary;
         record.evidence = evidence;
         record.confidence = confidence;

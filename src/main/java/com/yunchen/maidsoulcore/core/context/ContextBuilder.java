@@ -28,7 +28,7 @@ public final class ContextBuilder {
             builder.append("\n关系和实时状态：\n").append(relationText).append("\n");
         }
         if (memoryText != null && !memoryText.isBlank()) {
-            builder.append("\n相关人生记忆：\n").append(memoryText).append("\n");
+            builder.append("\n相关本地记忆证据：\n").append(memoryText).append("\n");
         }
         return new ContextPack(builder.toString().trim(), latest == null ? "" : latest.id());
     }

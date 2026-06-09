@@ -18,10 +18,13 @@ public final class LifeMemoryStore {
     private final Path path;
     private final List<MemoryEpisode> episodes = new ArrayList<>();
     private final MemoryLocalRetriever localRetriever = new MemoryLocalRetriever();
+    private final MemoryProjectionStore projectionStore;
 
     public LifeMemoryStore(Path path) {
         this.path = path;
+        this.projectionStore = new MemoryProjectionStore(path);
         load();
+        projectionStore.rebuild(episodes);
     }
 
     public synchronized void append(String summary, int importance) {
@@ -46,13 +49,51 @@ public final class LifeMemoryStore {
     }
 
     public synchronized String searchText(String query, int limit) {
-        return queryDetailed(query, limit).stream()
-                .map(r -> "- " + r.episode().summary
-                        + " (score=" + String.format(java.util.Locale.ROOT, "%.3f", r.score())
-                        + ", source=" + r.source()
-                        + ", category=" + blankToDefault(r.episode().category, "unknown")
-                        + ", importance=" + r.episode().importance + ")")
-                .reduce("", (a, b) -> a.isBlank() ? b : a + "\n" + b);
+        List<MemorySearchResult> results = queryDetailed(query, limit);
+        if (results.isEmpty()) {
+            return "";
+        }
+        List<String> facts = new ArrayList<>();
+        List<String> promises = new ArrayList<>();
+        List<String> anchors = new ArrayList<>();
+        List<String> repairs = new ArrayList<>();
+        List<String> profile = new ArrayList<>();
+        List<String> tone = new ArrayList<>();
+        for (MemorySearchResult result : results) {
+            MemoryEpisode episode = result.episode();
+            String line = "- " + episode.summary
+                    + evidenceSuffix(episode)
+                    + " (score=" + String.format(java.util.Locale.ROOT, "%.3f", result.score())
+                    + ", category=" + blankToDefault(episode.category, "unknown")
+                    + ", confidence=" + String.format(java.util.Locale.ROOT, "%.2f", episode.confidence)
+                    + ")";
+            switch (blankToDefault(episode.category, "")) {
+                case "promise" -> promises.add(line);
+                case "memory_anchor" -> anchors.add(line);
+                case "repair_record" -> repairs.add(line);
+                case "owner_profile" -> profile.add(line);
+                case "world_fact", "maid_self" -> facts.add(line);
+                default -> {
+                    if (episode.pinned || episode.importance >= 88) {
+                        facts.add(line);
+                    } else {
+                        tone.add(line);
+                    }
+                }
+            }
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append("[记忆使用边界]\n")
+                .append("- 只能引用下方已列出的事实、承诺、画像和锚点。\n")
+                .append("- 没列出的动作、地点、物品、天气、身体接触、额外台词都视为未知，不能补全。\n")
+                .append("- 细节不足时，应说只记得这件事很重要。\n");
+        appendSection(builder, "已确认事实", facts);
+        appendSection(builder, "承诺和未来约定", promises);
+        appendSection(builder, "关系锚点", anchors);
+        appendSection(builder, "主人画像", profile);
+        appendSection(builder, "修复记录", repairs);
+        appendSection(builder, "关系氛围参考", tone);
+        return builder.toString().trim();
     }
 
     public synchronized List<MemoryEpisode> query(String query, int limit) {
@@ -101,6 +142,7 @@ public final class LifeMemoryStore {
         try {
             Files.createDirectories(path.getParent());
             Files.writeString(path, GSON.toJson(episodes), StandardCharsets.UTF_8);
+            projectionStore.rebuild(episodes);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to save maid life memory: " + path, e);
         }
@@ -108,6 +150,26 @@ public final class LifeMemoryStore {
 
     private static String blankToDefault(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String evidenceSuffix(MemoryEpisode episode) {
+        if (episode.evidence == null || episode.evidence.isBlank()) {
+            return "";
+        }
+        return "；证据=" + episode.evidence;
+    }
+
+    private static void appendSection(StringBuilder builder, String title, List<String> lines) {
+        if (lines == null || lines.isEmpty()) {
+            return;
+        }
+        if (builder.length() > 0) {
+            builder.append("\n");
+        }
+        builder.append("[").append(title).append("]\n");
+        for (String line : lines) {
+            builder.append(line).append("\n");
+        }
     }
 
     public static final class MemoryEpisode {

@@ -11,7 +11,7 @@ import java.util.Map;
 public final class MemoryMaintenanceService {
     public MaintenanceReport maintain(LifeMemoryStore store) {
         if (store == null) {
-            return new MaintenanceReport(0, 0, 0, 0, 0, 0);
+            return new MaintenanceReport(0, 0, 0, 0, 0, 0, 0, 0, 0);
         }
         List<LifeMemoryStore.MemoryEpisode> all = store.allEpisodes();
         List<LifeMemoryStore.MemoryEpisode> normalized = new ArrayList<>();
@@ -23,18 +23,23 @@ public final class MemoryMaintenanceService {
             normalized.add(episode);
         }
 
-        MergeResult merged = mergeDuplicates(normalized);
-        int degraded = applyDecay(merged.episodes());
-        int pinned = pinImportant(merged.episodes());
-        int errorMarked = preservePlannerErrorMarks(merged.episodes());
-        store.replaceAllEpisodes(merged.episodes());
+        MergeResult exactMerged = mergeDuplicates(normalized);
+        MergeResult structuralMerged = mergeStructurallyEquivalent(exactMerged.episodes());
+        int errorMarked = preservePlannerErrorMarks(structuralMerged.episodes());
+        int errorAffected = applyErrorMarks(structuralMerged.episodes());
+        int degraded = applyDecay(structuralMerged.episodes());
+        int pinned = pinImportant(structuralMerged.episodes());
+        store.replaceAllEpisodes(structuralMerged.episodes());
         return new MaintenanceReport(
                 all.size(),
-                merged.duplicates(),
-                merged.merged(),
+                exactMerged.duplicates(),
+                exactMerged.merged(),
+                structuralMerged.duplicates(),
+                structuralMerged.merged(),
                 degraded,
                 pinned,
-                errorMarked
+                errorMarked,
+                errorAffected
         );
     }
 
@@ -69,6 +74,61 @@ public final class MemoryMaintenanceService {
             }
         }
         return new MergeResult(new ArrayList<>(unique.values()), duplicates, merged);
+    }
+
+    private static MergeResult mergeStructurallyEquivalent(List<LifeMemoryStore.MemoryEpisode> episodes) {
+        Map<String, LifeMemoryStore.MemoryEpisode> unique = new LinkedHashMap<>();
+        int duplicates = 0;
+        int merged = 0;
+        for (LifeMemoryStore.MemoryEpisode episode : episodes) {
+            if (!canStructuralMerge(episode)) {
+                unique.put("raw|" + unique.size(), episode);
+                continue;
+            }
+            String key = structuralKeyOf(episode);
+            LifeMemoryStore.MemoryEpisode previous = unique.get(key);
+            if (previous == null) {
+                unique.put(key, episode);
+                continue;
+            }
+            duplicates++;
+            merged++;
+            mergeInto(previous, episode);
+        }
+        return new MergeResult(new ArrayList<>(unique.values()), duplicates, merged);
+    }
+
+    private static boolean canStructuralMerge(LifeMemoryStore.MemoryEpisode episode) {
+        String category = category(episode);
+        if ("error_mark".equals(category) || episode.errorMarked || episode.contradicted) {
+            return false;
+        }
+        return "owner_profile".equals(category)
+                || "maid_self".equals(category)
+                || "world_fact".equals(category)
+                || "promise".equals(category)
+                || "memory_anchor".equals(category)
+                || "repair_record".equals(category);
+    }
+
+    private static void mergeInto(LifeMemoryStore.MemoryEpisode previous, LifeMemoryStore.MemoryEpisode episode) {
+        double previousConfidence = previous.confidence;
+        int previousImportance = previous.importance;
+        previous.importance = Math.max(previous.importance, episode.importance);
+        previous.confidence = Math.max(previous.confidence, episode.confidence);
+        previous.salience = Math.max(previous.salience, episode.salience);
+        previous.pinned = previous.pinned || episode.pinned;
+        previous.contradicted = previous.contradicted || episode.contradicted;
+        previous.errorMarked = previous.errorMarked || episode.errorMarked;
+        previous.mergeCount = Math.max(1, previous.mergeCount) + Math.max(1, episode.mergeCount);
+        previous.time = newerTime(previous.time, episode.time);
+        previous.evidence = mergeEvidence(previous.evidence, episode.evidence);
+        if (episode.summary != null && !episode.summary.isBlank()
+                && (previous.summary == null || previous.summary.isBlank()
+                || episode.confidence > previousConfidence
+                || episode.importance > previousImportance)) {
+            previous.summary = episode.summary;
+        }
     }
 
     private static int applyDecay(List<LifeMemoryStore.MemoryEpisode> episodes) {
@@ -121,6 +181,33 @@ public final class MemoryMaintenanceService {
         return marked;
     }
 
+    private static int applyErrorMarks(List<LifeMemoryStore.MemoryEpisode> episodes) {
+        int affected = 0;
+        List<LifeMemoryStore.MemoryEpisode> marks = episodes.stream()
+                .filter(e -> "error_mark".equals(category(e)) || e.errorMarked)
+                .toList();
+        if (marks.isEmpty()) {
+            return 0;
+        }
+        for (LifeMemoryStore.MemoryEpisode episode : episodes) {
+            if ("error_mark".equals(category(episode))) {
+                continue;
+            }
+            for (LifeMemoryStore.MemoryEpisode mark : marks) {
+                if (sameMemoryTarget(episode, mark)) {
+                    if (!episode.contradicted || !episode.errorMarked) {
+                        affected++;
+                    }
+                    episode.contradicted = true;
+                    episode.errorMarked = true;
+                    episode.evidence = mergeEvidence(episode.evidence, "被错误标记影响：" + mark.evidence);
+                    break;
+                }
+            }
+        }
+        return affected;
+    }
+
     private static void normalizeEpisode(LifeMemoryStore.MemoryEpisode episode) {
         if (episode.category == null) {
             episode.category = "";
@@ -171,6 +258,57 @@ public final class MemoryMaintenanceService {
                 + normalize(episode.summary);
     }
 
+    private static String structuralKeyOf(LifeMemoryStore.MemoryEpisode episode) {
+        return category(episode)
+                + "|"
+                + normalize(episode.subject)
+                + "|"
+                + normalize(episode.object)
+                + "|"
+                + normalize(episode.relationPredicate)
+                + "|"
+                + normalize(episode.eventType);
+    }
+
+    private static boolean sameMemoryTarget(LifeMemoryStore.MemoryEpisode episode, LifeMemoryStore.MemoryEpisode mark) {
+        String markSubject = normalize(mark.subject);
+        String markObject = normalize(mark.object);
+        if (markSubject.isBlank() && markObject.isBlank()) {
+            return false;
+        }
+        boolean subjectMatch = markSubject.isBlank() || markSubject.equals(normalize(episode.subject));
+        boolean objectMatch = markObject.isBlank() || markObject.equals(normalize(episode.object));
+        boolean predicateMatch = normalize(mark.relationPredicate).isBlank()
+                || normalize(mark.relationPredicate).equals(normalize(episode.relationPredicate));
+        return subjectMatch && objectMatch && predicateMatch;
+    }
+
+    private static String mergeEvidence(String left, String right) {
+        String a = left == null ? "" : left.trim();
+        String b = right == null ? "" : right.trim();
+        if (a.isBlank()) {
+            return b;
+        }
+        if (b.isBlank() || a.contains(b)) {
+            return a;
+        }
+        return a + " | " + b;
+    }
+
+    private static String newerTime(String left, String right) {
+        if (left == null || left.isBlank()) {
+            return right;
+        }
+        if (right == null || right.isBlank()) {
+            return left;
+        }
+        try {
+            return Instant.parse(right).isAfter(Instant.parse(left)) ? right : left;
+        } catch (DateTimeParseException ignored) {
+            return left;
+        }
+    }
+
     private static double ageDays(String time, long nowMillis) {
         if (time == null || time.isBlank()) {
             return 0.0D;
@@ -204,9 +342,12 @@ public final class MemoryMaintenanceService {
             int scanned,
             int exactDuplicates,
             int merged,
+            int structuralDuplicates,
+            int structuralMerged,
             int degraded,
             int pinned,
-            int errorMarked
+            int errorMarked,
+            int errorAffected
     ) {
     }
 

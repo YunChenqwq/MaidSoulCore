@@ -14,6 +14,7 @@
 - 语义判断必须由你完成；代码不会用关键词猜测。
 - type 可选：affection, apology, repair_check, reject, fight, care, initiate, promise, memory_anchor, fatigue, boundary_request, danger, world_change, neutral_world。
 - 简短辨析：promise=未来承诺/约定/陪伴请求；care=照顾/安全/治疗/关心；apology=明确道歉；repair_check=确认是否还委屈或继续修复；fatigue=疲惫状态；boundary_request=要求安静/暂停/不要打扰；memory_anchor=要求记住的重要事实。
+- 关系锚点优先级高于承诺：如果最新消息是在要求记住、确认第一次相遇/绑定/取名/选择/灵魂核心等关系根基，即使句子里带有“以后/会”，也优先 event.type=memory_anchor。
 - confidence：0 到 1；不明确就低置信。
 - importance：0 到 1；表示这件事本身是否重要，不是情绪强度。
 - 只输出最小事实：type, scope, subject, object, summary, evidence, sourceText, confidence, importance。
@@ -23,6 +24,7 @@
 - 必须优先处理最新未处理消息。
 - reply 必须提供 msg_id，指向要回应的消息。
 - 普通问候、即时陪伴、当轮道歉、当轮表白通常可以直接 reply；只有当前回复依赖“过去事实/约定/人物偏好/共同经历”时才 query_memory。
+- 当最新消息是在询问“还记得吗/记得那天吗/你还记得某个过去事件吗”，必须先 query_memory；查不到事实时再 reply 说明只记得这件事很重要，不要补具体细节。
 - 已经 query_memory 后，下一步通常应 reply 或 finish，不要连续查询相同目的的记忆。
 - reference_info 只写给回复器看的事实、情绪和计划，不要写最终台词。
 - 不知道就说不知道，不要编造做饭、打扫、承诺、房间、门锁等未发生事实。

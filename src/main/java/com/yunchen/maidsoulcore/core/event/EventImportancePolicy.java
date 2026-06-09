@@ -48,7 +48,7 @@ public final class EventImportancePolicy {
         return switch (type) {
             case PROMISE, MEMORY_ANCHOR, OWNER_ATTACK, MAID_DEATH, WORLD_CHANGE,
                  APOLOGY, REPAIR_CHECK, FIGHT, REJECT, DANGER -> true;
-            case AFFECTION, CARE -> importance >= 0.72D;
+            case AFFECTION, CARE -> importance >= 0.82D;
             case FATIGUE, BOUNDARY_REQUEST -> importance >= 0.72D;
             default -> false;
         };
