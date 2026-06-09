@@ -26,6 +26,7 @@ public final class MaidSoulConfigScreen extends Screen {
     private Tab tab = Tab.BASIC;
 
     private EditBox baseUrlBox;
+    private EditBox apiKeyBox;
     private EditBox modelBox;
     private EditBox plannerModelBox;
     private EditBox replyerModelBox;
@@ -35,6 +36,7 @@ public final class MaidSoulConfigScreen extends Screen {
     private CycleButton<Boolean> replyEchoButton;
     private CycleButton<Boolean> visionEnabledButton;
     private EditBox visionBaseUrlBox;
+    private EditBox visionApiKeyBox;
     private EditBox visionModelBox;
     private Component status = Component.literal("未保存");
 
@@ -72,6 +74,8 @@ public final class MaidSoulConfigScreen extends Screen {
         } else if (tab == Tab.MODEL) {
             baseUrlBox = addTextRow(left, top, labelWidth, inputWidth, "模型接口", MaidSoulForgeConfig.BASE_URL.get());
             top += 28;
+            apiKeyBox = addTextRow(left, top, labelWidth, inputWidth, "模型 API Key", MaidSoulForgeConfig.API_KEY.get());
+            top += 28;
             modelBox = addTextRow(left, top, labelWidth, inputWidth, "默认模型", MaidSoulForgeConfig.MODEL.get());
             top += 28;
             plannerModelBox = addTextRow(left, top, labelWidth, inputWidth, "Planner 模型", MaidSoulForgeConfig.PLANNER_MODEL.get());
@@ -81,6 +85,8 @@ public final class MaidSoulConfigScreen extends Screen {
             visionEnabledButton = addBoolRow(left, top, labelWidth, inputWidth, "启用视觉摘要", MaidSoulForgeConfig.VISION_ENABLED.get());
             top += 28;
             visionBaseUrlBox = addTextRow(left, top, labelWidth, inputWidth, "视觉模型接口", MaidSoulForgeConfig.VISION_BASE_URL.get());
+            top += 28;
+            visionApiKeyBox = addTextRow(left, top, labelWidth, inputWidth, "视觉 API Key", MaidSoulForgeConfig.VISION_API_KEY.get());
             top += 28;
             visionModelBox = addTextRow(left, top, labelWidth, inputWidth, "视觉模型", MaidSoulForgeConfig.VISION_MODEL.get());
         } else {
@@ -127,6 +133,9 @@ public final class MaidSoulConfigScreen extends Screen {
         if (baseUrlBox != null) {
             MaidSoulForgeConfig.BASE_URL.set(baseUrlBox.getValue().trim());
         }
+        if (apiKeyBox != null) {
+            MaidSoulForgeConfig.API_KEY.set(apiKeyBox.getValue().trim());
+        }
         if (modelBox != null) {
             MaidSoulForgeConfig.MODEL.set(modelBox.getValue().trim());
         }
@@ -144,6 +153,9 @@ public final class MaidSoulConfigScreen extends Screen {
         }
         if (visionBaseUrlBox != null) {
             MaidSoulForgeConfig.VISION_BASE_URL.set(visionBaseUrlBox.getValue().trim());
+        }
+        if (visionApiKeyBox != null) {
+            MaidSoulForgeConfig.VISION_API_KEY.set(visionApiKeyBox.getValue().trim());
         }
         if (visionModelBox != null) {
             MaidSoulForgeConfig.VISION_MODEL.set(visionModelBox.getValue().trim());
@@ -178,14 +190,14 @@ public final class MaidSoulConfigScreen extends Screen {
 
     private void renderHelpText(GuiGraphics graphics) {
         int x = this.width / 2 - 220;
-        int y = 180;
+        int y = 212;
         if (tab == Tab.BASIC) {
             graphics.drawString(font, "基础页只放聊天节奏相关选项。模型、视觉和调试分别在各自分页里。", x, y, HELP_COLOR, false);
         } else if (tab == Tab.MODEL) {
-            graphics.drawString(font, "API Key 不在游戏界面显示，请在 config/maidsoulcore/model/llm.properties 编辑。", x, y + 28, HELP_COLOR, false);
+            graphics.drawString(font, "模型 API Key 留空时不会覆盖 config/maidsoulcore/model/llm.properties 里的已有 key。", x, y, HELP_COLOR, false);
         } else if (tab == Tab.VISION) {
             graphics.drawString(font, "视觉摘要会请求客户端截图，再由视觉模型转成世界事件写入女仆核心。", x, y, HELP_COLOR, false);
-            graphics.drawString(font, "视觉 API Key 在 config/maidsoulcore/model/vision.properties 中配置；为空时会沿用主模型 Key。", x, y + 14, HELP_COLOR, false);
+            graphics.drawString(font, "视觉 API Key 留空时不会覆盖已有视觉 key；视觉配置为空时仍可沿用主模型 key。", x, y + 14, HELP_COLOR, false);
         } else {
             graphics.drawString(font, "调试输出可能刷屏，只建议定位问题时打开。", x, y, HELP_COLOR, false);
         }
@@ -210,6 +222,7 @@ public final class MaidSoulConfigScreen extends Screen {
     private void switchTab(Tab target) {
         this.tab = target;
         this.baseUrlBox = null;
+        this.apiKeyBox = null;
         this.modelBox = null;
         this.plannerModelBox = null;
         this.replyerModelBox = null;
@@ -219,6 +232,7 @@ public final class MaidSoulConfigScreen extends Screen {
         this.replyEchoButton = null;
         this.visionEnabledButton = null;
         this.visionBaseUrlBox = null;
+        this.visionApiKeyBox = null;
         this.visionModelBox = null;
         init();
     }
