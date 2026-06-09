@@ -34,6 +34,27 @@ public final class AffectProfile {
     public String lastEvent = "";
 
     public String brief() {
+        return "她现在是“" + emotion().zhName()
+                + "”：" + affectReason()
+                + "；关系=" + stage().zhName() + "/" + relationshipLevel()
+                + "，亲密=" + level(intimacy)
+                + "，冲突=" + level(conflict)
+                + "，受伤债=" + level(hurtDebt)
+                + "，修复债=" + level(repairDebt)
+                + "，想念=" + level(longing)
+                + "；表达=" + styleToneZh()
+                + "；主动兼容=" + effectiveCuriosity()
+                + "，来源=" + curiositySource()
+                + "；raw: VAD=" + percent(valence) + "/" + percent(arousal) + "/" + percent(dominance)
+                + " intimacy=" + percent(intimacy)
+                + " conflict=" + percent(conflict)
+                + " longing=" + percent(longing)
+                + " hurtDebt=" + percent(hurtDebt)
+                + " repairDebt=" + percent(repairDebt)
+                + (lastEvent == null || lastEvent.isBlank() ? "" : " lastEvent=" + lastEvent);
+    }
+
+    public String legacyBrief() {
         return "心情=" + mood
                 + "，愤怒=" + anger
                 + "，受伤=" + hurt
@@ -192,6 +213,77 @@ public final class AffectProfile {
             return "bright_soft";
         }
         return "gentle_companion";
+    }
+
+    private String styleToneZh() {
+        if (styleCaution >= 0.62D) {
+            return "温柔谨慎";
+        }
+        if (emotion() == EmotionLabel.LOVE || styleClinginess >= 0.68D) {
+            return "温柔粘人";
+        }
+        if (emotion() == EmotionLabel.ANXIETY || emotion() == EmotionLabel.FEAR) {
+            return "紧张但想保护";
+        }
+        if (emotion() == EmotionLabel.EXCITEMENT || emotion() == EmotionLabel.JOY) {
+            return "明亮柔软";
+        }
+        return "柔和陪伴";
+    }
+
+    private String affectReason() {
+        if (hurtDebt >= 0.48D || conflict >= 0.48D) {
+            return "冲突或受伤债仍明显，不能当成已经完全恢复";
+        }
+        if (repairDebt >= 0.30D || stage() == RelationshipStage.REPAIRING) {
+            return "关系正在修复，需要先接住余波再靠近";
+        }
+        if (intimacy >= 0.62D && longing >= 0.55D) {
+            return "亲密感和想念都偏高，更想贴近主人";
+        }
+        if (valence >= 0.45D && conflict <= 0.16D) {
+            return "最近状态偏安心，冲突残留很低";
+        }
+        if (arousal >= 0.62D && valence < 0.10D) {
+            return "唤醒度偏高，当前更容易紧张或警觉";
+        }
+        if (valence <= -0.28D) {
+            return "愉悦度偏低，需要更轻、更软地回应";
+        }
+        return "状态整体平稳，适合自然陪伴和顺着话题接话";
+    }
+
+    private String curiositySource() {
+        if (conflict >= 0.35D || hurtDebt >= 0.30D) {
+            return "被冲突/受伤债压低";
+        }
+        if (longing >= 0.58D && intimacy >= 0.55D) {
+            return "想念高+亲密高";
+        }
+        if (intimacy >= 0.55D) {
+            return "亲密关系支撑";
+        }
+        if (arousal >= 0.58D) {
+            return "当前事件唤醒";
+        }
+        return "基础互动欲望";
+    }
+
+    private static String level(double value) {
+        int p = percent(value);
+        if (p >= 75) {
+            return "很高(" + p + ")";
+        }
+        if (p >= 55) {
+            return "高(" + p + ")";
+        }
+        if (p >= 30) {
+            return "中(" + p + ")";
+        }
+        if (p >= 12) {
+            return "低(" + p + ")";
+        }
+        return "无(" + p + ")";
     }
 
     public static double clamp01(double value) {
