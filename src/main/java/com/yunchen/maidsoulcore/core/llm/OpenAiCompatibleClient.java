@@ -10,8 +10,14 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -58,7 +64,7 @@ public final class OpenAiCompatibleClient implements LlmClient {
                 .uri(URI.create(config.baseUrl))
                 .timeout(Duration.ofMillis(timeoutMillis))
                 .header("Content-Type", "application/json; charset=utf-8")
-                .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(body), java.nio.charset.StandardCharsets.UTF_8));
+                .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(body), StandardCharsets.UTF_8));
         if (config.apiKey != null && !config.apiKey.isBlank()) {
             builder.header("Authorization", "Bearer " + config.apiKey);
         }
@@ -69,7 +75,7 @@ public final class OpenAiCompatibleClient implements LlmClient {
             }
             HttpResponse<String> response = client.send(
                     builder.build(),
-                    HttpResponse.BodyHandlers.ofString(java.nio.charset.StandardCharsets.UTF_8)
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
             );
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
                 throw new IllegalStateException("LLM 请求失败: HTTP " + response.statusCode() + " " + response.body());
@@ -92,25 +98,57 @@ public final class OpenAiCompatibleClient implements LlmClient {
         }
     }
 
-    private LlmResponse sendStream(HttpRequest.Builder builder, long timeoutMillis, Consumer<String> deltaConsumer)
-            throws IOException, InterruptedException {
-        HttpResponse<Stream<String>> response = client.send(
-                builder.build(),
-                HttpResponse.BodyHandlers.ofLines()
-        );
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("LLM 请求失败: HTTP " + response.statusCode() + " "
-                    + collectBody(response.body(), 800));
-        }
-
+    private LlmResponse sendStream(HttpRequest.Builder builder, long timeoutMillis, Consumer<String> deltaConsumer) {
         StringBuilder full = new StringBuilder();
-        long deadline = System.currentTimeMillis() + Math.max(1000L, timeoutMillis);
-        try (Stream<String> lines = response.body()) {
+        long started = System.currentTimeMillis();
+        try {
+            var future = client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofLines())
+                    .orTimeout(timeoutMillis, TimeUnit.MILLISECONDS);
+            HttpResponse<Stream<String>> response = awaitStreamResponse(started, future);
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalStateException("LLM 请求失败: HTTP " + response.statusCode() + " "
+                        + collectBody(response.body(), 800));
+            }
+            consumeStreamLines(response.body(), full, deltaConsumer);
+        } catch (CompletionException | CancellationException e) {
+            Throwable cause = e instanceof CompletionException && e.getCause() != null ? e.getCause() : e;
+            throw new IllegalStateException("LLM 流式请求异常: " + failureMessage(cause), cause);
+        }
+        return new LlmResponse(full.toString(), config.model, 0, 0);
+    }
+
+    private static HttpResponse<Stream<String>> awaitStreamResponse(
+            long started,
+            java.util.concurrent.CompletableFuture<HttpResponse<Stream<String>>> future
+    ) {
+        try {
+            while (true) {
+                try {
+                    return future.get(40, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException ignored) {
+                    // 短轮询保持和旧分支一致：不阻塞到整段完成，hard timeout 由 orTimeout 控制。
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            future.cancel(true);
+            throw new IllegalStateException("LLM 流式请求被中断，已等待 " + (System.currentTimeMillis() - started) + "ms", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            if (cause instanceof CompletionException completion && completion.getCause() != null) {
+                cause = completion.getCause();
+            }
+            throw new CompletionException(cause);
+        }
+    }
+
+    private static void consumeStreamLines(Stream<String> lines, StringBuilder full, Consumer<String> deltaConsumer) {
+        if (lines == null) {
+            return;
+        }
+        try (Stream<String> ignored = lines) {
             var iterator = lines.iterator();
             while (iterator.hasNext()) {
-                if (System.currentTimeMillis() > deadline) {
-                    throw new IllegalStateException("LLM 流式请求超时");
-                }
                 String delta = deltaFromSseLine(iterator.next());
                 if (delta.isBlank()) {
                     continue;
@@ -121,7 +159,14 @@ public final class OpenAiCompatibleClient implements LlmClient {
                 }
             }
         }
-        return new LlmResponse(full.toString(), config.model, 0, 0);
+    }
+
+    private static String failureMessage(Throwable throwable) {
+        if (throwable == null) {
+            return "未知错误";
+        }
+        String message = throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 
     private static String deltaFromSseLine(String line) {
