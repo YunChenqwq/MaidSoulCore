@@ -2,6 +2,7 @@ package com.yunchen.maidsoulcore.core.config;
 
 public final class DialogueDebugConfig {
     public boolean echoTraceToOwnerChat = true;
+    public boolean echoAffectToOwnerChat = false;
     public boolean echoPromptToOwnerChat = false;
     public boolean echoReplyToOwnerChat = true;
     public boolean echoRawTlmMessages = true;

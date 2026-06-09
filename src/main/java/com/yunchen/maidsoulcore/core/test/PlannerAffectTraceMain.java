@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -40,9 +39,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class PlannerAffectTraceMain {
     private static final Path DEFAULT_MC_CONFIG = Path.of(
             "C:/Users/Administrator/Desktop/.minecraft/versions/1.20.1-Forge_47.4.18/config/maidsoulcore/dialogue-config.json"
-    );
-    private static final Path DEFAULT_MC_LLM_PROPERTIES = Path.of(
-            "C:/Users/Administrator/Desktop/.minecraft/versions/1.20.1-Forge_47.4.18/config/maidsoulcore/model/llm.properties"
     );
     private static final List<String> SCRIPT = List.of(
             "你好呀，我回来了。",
@@ -326,47 +322,9 @@ public final class PlannerAffectTraceMain {
         if (config.model == null) {
             config.model = new DialogueModelConfig();
         }
-        if (!Files.exists(DEFAULT_MC_LLM_PROPERTIES)) {
-            DialogueModelConfig shared = copyModel(config.model);
-            return new ModelPair(shared, copyModel(shared));
-        }
-
-        Properties properties = new Properties();
-        try (java.io.Reader reader = Files.newBufferedReader(DEFAULT_MC_LLM_PROPERTIES, StandardCharsets.UTF_8)) {
-            properties.load(reader);
-        }
-        String apiKey = properties.getProperty("apiKey", "").trim();
-        String baseUrl = properties.getProperty("baseUrl", "").trim();
-        String plannerModel = properties.getProperty("plannerModel", "").trim();
-        String replyerModel = properties.getProperty("replyerModel", "").trim();
-
-        if (!apiKey.isBlank()) {
-            config.model.apiKey = apiKey;
-        }
-        if (!baseUrl.isBlank()) {
-            config.model.baseUrl = baseUrl;
-        }
-
-        DialogueModelConfig planner = copyModel(config.model);
-        DialogueModelConfig replyer = copyModel(config.model);
-        if (!plannerModel.isBlank()) {
-            planner.model = plannerModel;
-            config.model.model = plannerModel;
-        }
-        if (!replyerModel.isBlank()) {
-            replyer.model = replyerModel;
-        }
+        DialogueModelConfig planner = config.model.copyForModel(config.model.plannerModel);
+        DialogueModelConfig replyer = config.model.copyForModel(config.model.replyerModel);
         return new ModelPair(planner, replyer);
-    }
-
-    private static DialogueModelConfig copyModel(DialogueModelConfig source) {
-        DialogueModelConfig target = new DialogueModelConfig();
-        target.baseUrl = source.baseUrl;
-        target.apiKey = source.apiKey;
-        target.model = source.model;
-        target.temperature = source.temperature;
-        target.maxTokens = source.maxTokens;
-        return target;
     }
 
     private static String extractTurnTrace(List<String> traceLines, int turn) {

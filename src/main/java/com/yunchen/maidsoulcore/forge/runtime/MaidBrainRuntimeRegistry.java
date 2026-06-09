@@ -87,14 +87,16 @@ public final class MaidBrainRuntimeRegistry {
         PromptCatalog prompts = new PromptCatalog(root.resolve("prompts"));
         prompts.installDefaultsIfMissing();
         Path maidDir = root.resolve("memory").resolve(runtimeMemoryId(maid, binding));
-        OpenAiCompatibleClient llm = new OpenAiCompatibleClient(config.model);
+        OpenAiCompatibleClient timingLlm = new OpenAiCompatibleClient(config.model.copyForModel(config.model.timingModel));
+        OpenAiCompatibleClient plannerLlm = new OpenAiCompatibleClient(config.model.copyForModel(config.model.plannerModel));
+        OpenAiCompatibleClient replyerLlm = new OpenAiCompatibleClient(config.model.copyForModel(config.model.replyerModel));
         ForgeDebugOptions debug = debugOptions();
         MaidSoulRuntime runtime = new MaidSoulRuntime(
                 config,
                 prompts,
-                new TimingGateRunner(config, prompts, llm),
-                new PlannerRunner(config, prompts, llm),
-                new ReplyGenerator(config, prompts, llm),
+                new TimingGateRunner(config, prompts, timingLlm),
+                new PlannerRunner(config, prompts, plannerLlm),
+                new ReplyGenerator(config, prompts, replyerLlm),
                 new ForgePlannerToolExecutor(maid),
                 new LifeMemoryStore(maidDir.resolve("life.json")),
                 new AffectProfileStore(maidDir.resolve("affect.json")),

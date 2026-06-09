@@ -40,8 +40,8 @@ public final class MaidSoulForgeConfig {
                 .comment("OpenAI compatible chat completions endpoint.")
                 .define("baseUrl", "https://api.deepseek.com/chat/completions");
         MODEL = builder.define("model", "deepseek-v4-flash");
-        PLANNER_MODEL = builder.define("plannerModel", "deepseek-v4-flash");
-        REPLYER_MODEL = builder.define("replyerModel", "deepseek-v4-pro");
+        PLANNER_MODEL = builder.define("plannerModel", "deepseek-v4-pro");
+        REPLYER_MODEL = builder.define("replyerModel", "deepseek-v4-flash");
         builder.pop();
 
         builder.push("vision");

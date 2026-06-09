@@ -160,7 +160,7 @@ public final class MaidSoulConfigScreen extends Screen {
         MaidSoulForgeConfig.SPEC.save();
         ForgeBrainConfigInstaller.installIfMissing();
         ForgeBrainConfigInstaller.syncForgeConfigToCoreFiles();
-        status = Component.literal("已保存，并同步到 config/maidsoulcore");
+        status = Component.literal("已保存，并同步到 config/maidsoulcore/dialogue-config.json");
     }
 
     @Override
@@ -180,12 +180,12 @@ public final class MaidSoulConfigScreen extends Screen {
         int x = this.width / 2 - 220;
         int y = 180;
         if (tab == Tab.BASIC) {
-            graphics.drawString(font, "基础页只放聊天节奏相关选项。模型、视觉和调试分别在各自分页里。", x, y, HELP_COLOR, false);
+            graphics.drawString(font, "基础页只放聊天节奏。模型、视觉和调试分别在各自分页里。", x, y, HELP_COLOR, false);
         } else if (tab == Tab.MODEL) {
-            graphics.drawString(font, "API Key 不在游戏界面显示，请在 config/maidsoulcore/model/llm.properties 编辑。", x, y + 28, HELP_COLOR, false);
+            graphics.drawString(font, "API Key 不在游戏界面显示，请在 config/maidsoulcore/dialogue-config.json 的 model.apiKey 编辑。", x, y + 28, HELP_COLOR, false);
         } else if (tab == Tab.VISION) {
-            graphics.drawString(font, "视觉摘要会请求客户端截图，再由视觉模型转成世界事件写入女仆核心。", x, y, HELP_COLOR, false);
-            graphics.drawString(font, "视觉 API Key 在 config/maidsoulcore/model/vision.properties 中配置；为空时会沿用主模型 Key。", x, y + 14, HELP_COLOR, false);
+            graphics.drawString(font, "视觉摘要默认由客户端直接请求视觉模型，只把文字摘要写回女仆核心。", x, y, HELP_COLOR, false);
+            graphics.drawString(font, "视觉 API Key 在 dialogue-config.json 的 vision.apiKey；为空时不会自动暴露主模型 Key。", x, y + 14, HELP_COLOR, false);
         } else {
             graphics.drawString(font, "调试输出可能刷屏，只建议定位问题时打开。", x, y, HELP_COLOR, false);
         }
@@ -247,5 +247,3 @@ public final class MaidSoulConfigScreen extends Screen {
         }
     }
 }
-
-

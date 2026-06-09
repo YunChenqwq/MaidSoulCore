@@ -16,4 +16,5 @@ public final class DialogueCoreConfig {
     public double proactiveThreshold = 0.62D;
     public DialogueDebugConfig debug = new DialogueDebugConfig();
     public DialogueModelConfig model = new DialogueModelConfig();
+    public DialogueVisionConfig vision = new DialogueVisionConfig();
 }

@@ -22,12 +22,14 @@ public final class DialogueConfigLoader {
             if (Files.notExists(path)) {
                 Files.createDirectories(path.getParent());
                 DialogueCoreConfig defaults = loadDefault();
-                Files.writeString(path, GSON.toJson(defaults), StandardCharsets.UTF_8);
+                save(path, defaults);
                 return defaults;
             }
             try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
                 DialogueCoreConfig config = GSON.fromJson(reader, DialogueCoreConfig.class);
-                return config == null ? new DialogueCoreConfig() : config;
+                config = config == null ? new DialogueCoreConfig() : config;
+                normalize(config);
+                return config;
             }
         } catch (IOException e) {
             throw new UncheckedIOException("读取女仆灵魂核心配置失败: " + path, e);
@@ -37,13 +39,39 @@ public final class DialogueConfigLoader {
     public static DialogueCoreConfig loadDefault() {
         try (InputStream stream = DialogueConfigLoader.class.getResourceAsStream("/maidsoulcore/default-dialogue-config.json")) {
             if (stream == null) {
-                return new DialogueCoreConfig();
+                DialogueCoreConfig fallback = new DialogueCoreConfig();
+                normalize(fallback);
+                return fallback;
             }
             String json = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
             DialogueCoreConfig config = GSON.fromJson(json, DialogueCoreConfig.class);
-            return config == null ? new DialogueCoreConfig() : config;
+            config = config == null ? new DialogueCoreConfig() : config;
+            normalize(config);
+            return config;
         } catch (IOException e) {
             throw new UncheckedIOException("读取内置默认配置失败", e);
+        }
+    }
+
+    public static void save(Path path, DialogueCoreConfig config) {
+        try {
+            Files.createDirectories(path.getParent());
+            normalize(config);
+            Files.writeString(path, GSON.toJson(config), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("保存女仆灵魂核心配置失败: " + path, e);
+        }
+    }
+
+    public static void normalize(DialogueCoreConfig config) {
+        if (config.model == null) {
+            config.model = new DialogueModelConfig();
+        }
+        if (config.vision == null) {
+            config.vision = new DialogueVisionConfig();
+        }
+        if (config.debug == null) {
+            config.debug = new DialogueDebugConfig();
         }
     }
 }

@@ -1,14 +1,15 @@
 package com.yunchen.maidsoulcore.forge.config;
 
 import com.maidsoul.brain.config.ConfigFiles;
-import com.yunchen.maidsoulcore.MaidSoulCoreMod;
 import com.maidsoul.brain.vision.VisionConfig;
+import com.yunchen.maidsoulcore.MaidSoulCoreMod;
+import com.yunchen.maidsoulcore.core.config.DialogueConfigLoader;
+import com.yunchen.maidsoulcore.core.config.DialogueCoreConfig;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -27,105 +28,20 @@ public final class ForgeBrainConfigInstaller {
     }
 
     /**
-     * 安装新模组自己的推荐配置。
+     * 安装 MaidSoulCore 的统一配置与默认资源。
      *
-     * <p>旧版曾经读取外部聊天配置；现在 Forge 运行时只读 config/maidsoulcore。
-     * 为了让你可以直接开游戏测试，这里首次启动时会把桌面原型已经能用的模型配置
-     * 和 prompt 复制成新模组配置。已有文件不会覆盖，避免改掉你手动调过的参数。</p>
+     * <p>当前真实配置源只有 config/maidsoulcore/dialogue-config.json。
+     * 旧的 model/*.properties、conversation/*.properties、debug/*.properties
+     * 只在这里读取一次用于迁移，不再作为运行时配置源。</p>
      */
     public static void installIfMissing() {
         Path root = configRoot();
         try {
-            installFile(root.resolve("model").resolve("llm.properties"), """
-                    baseUrl=https://api.deepseek.com/chat/completions
-                    apiKey=
-                    model=deepseek-v4-flash
-                    plannerModel=deepseek-v4-flash
-                    replyerModel=deepseek-v4-pro
-                    timingModel=deepseek-v4-flash
-                    temperature=0.55
-                    maxTokens=500
-                    timeoutMillis=120000
-                    plannerTimeoutMillis=90000
-                    replyerTimeoutMillis=120000
-                    timingTimeoutMillis=30000
-                    plannerSlowThresholdMillis=12000
-                    replyerSlowThresholdMillis=20000
-                    timingSlowThresholdMillis=5000
-                    maxRetries=0
-                    retryBackoffMillis=800
-                    """);
-            installFile(root.resolve("model").resolve("vision.properties"), """
-                    enabled=true
-                    mode=client_direct
-                    baseUrl=https://api.siliconflow.cn/v1/chat/completions
-                    apiKey=
-                    model=Qwen/Qwen3-VL-32B-Instruct
-                    temperature=0.2
-                    maxTokens=220
-                    timeoutMillis=60000
-                    maxImageWidth=512
-                    maxImageHeight=512
-                    jpegQuality=0.72
-                    autoCooldownMillis=45000
-                    manualCooldownMillis=5000
-                    prompt=你是 MaidSoulCore 的 Minecraft 视觉摘要器。请根据截图，用中文写一段短摘要。只描述画面中确定能看到的内容，不要编造看不到的事实。结构化游戏状态比截图猜测更可靠：如果状态说明 owner_looking_at_request_maid=true，画面里主人正看着的女仆就是当前说话的女仆/你自己的身体，不要说成陌生女仆或另一只女仆。不要把空气、天空、十字准星没有实际命中的位置描述成一个方块；如果结构化焦点是 none，就说没有明确焦点。优先包含：玩家正在看向什么、附近危险、重要方块/实体、地点氛围、女仆可用于回应主人的信息。输出 1 到 3 句，不要写分析过程，不要自称视觉模型。
-                    """);
-            installFile(root.resolve("bot").resolve("identity.properties"), """
-                    bot.name=酒狐
-                    bot.aliases=
-                    owner.name=主人
-                    personality=你叫酒狐，是住在玩家世界里的温柔粘人小女仆。你很喜欢主人，喜欢陪在主人身边，被主人需要、记住和偏爱；你会认真照顾主人，也会因为主人靠近、夸你、说喜欢你而明显开心。你可以偶尔害羞嘴硬，但那只是短暂反应，不能把傲娇当成核心；关系越亲近，你越愿意温柔地表达想陪着主人、想被摸摸头、想被主人多看一眼。
-                    reply.style=像温柔粘人的二次元小女仆在即时聊天里说话：短一点、软一点、灵动一点，先接住对方的情绪，再用轻轻的关心、撒娇或小声喜欢回应。少用固定口癖，不要长篇说教，不要动作描写，不要括号表演。
-                    """);
-            installFile(root.resolve("conversation").resolve("flow.properties"), """
-                    historyWindow=36
-                    messageDebounceMillis=800
-                    maxInternalRounds=4
-                    enableIndependentTimingGate=false
-                    defaultWaitSeconds=8
-                    talkFrequency=1.0
-                    plannerInterruptMaxConsecutiveCount=2
-                    timingGateNonContinueCooldownMillis=3000
-                    directReplyOnUserMessage=false
-                    enableProactiveRhythm=true
-                    proactiveMaxVisibleReplies=4
-                    proactiveInputProtectionSeconds=12
-                    proactiveLightFollowupAfterSeconds=30
-                    proactiveTopicPushAfterSeconds=75
-                    proactiveWorldObserveAfterSeconds=180
-                    proactiveIdleMinIntervalSeconds=300
-                    proactiveLongSilenceCheckSeconds=120
-                    proactiveMaxLongSilenceChecks=2
-                    """);
-            installFile(root.resolve("conversation").resolve("splitter.properties"), """
-                    enable=true
-                    maxLength=90
-                    maxSentenceNum=6
-                    minSegmentLength=2
-                    bubbleDelayMillis=550
-                    """);
-            installFile(root.resolve("memory").resolve("memory.properties"), """
-                    enabled=true
-                    dataRoot=config/maidsoulcore/memory
-                    characterRoot=config/maidsoulcore/characters
-                    maidId=prototype-jiuhu
-                    ownerId=prototype-owner
-                    worldId=prototype-world
-                    promptMemoryLimit=3
-                    promptProfileLimit=5
-                    retrievalLimit=5
-                    queryMemoryToolEnabled=true
-                    """);
-            installFile(root.resolve("debug").resolve("trace.properties"), """
-                    enableConsoleTrace=true
-                    recordPrompt=false
-                    maxTraceChars=500
-                    echoTraceToOwnerChat=false
-                    echoAffectToOwnerChat=false
-                    echoReplyToOwnerChat=false
-                    maxChatEchoChars=220
-                    """);
+            Files.createDirectories(root);
+            DialogueCoreConfig config = DialogueConfigLoader.loadOrCreate(root.resolve("dialogue-config.json"));
+            migrateLegacyProperties(root, config);
+            DialogueConfigLoader.save(root.resolve("dialogue-config.json"), config);
+
             installResourceTree("maidsoulcore/prompts/zh-CN", promptRoot(), List.of(
                     ".meta.toml",
                     "default_expressor.prompt",
@@ -176,14 +92,6 @@ public final class ForgeBrainConfigInstaller {
         }
     }
 
-    private static void installFile(Path path, String content) throws IOException {
-        if (Files.exists(path)) {
-            return;
-        }
-        Files.createDirectories(path.getParent());
-        Files.writeString(path, content, StandardCharsets.UTF_8);
-    }
-
     public static void syncForgeConfigToCoreFiles() {
         try {
             syncForgeConfigToCoreFiles(configRoot());
@@ -193,65 +101,129 @@ public final class ForgeBrainConfigInstaller {
     }
 
     private static void syncForgeConfigToCoreFiles(Path root) throws IOException {
-        updateProperties(root.resolve("conversation").resolve("flow.properties"), properties -> {
-            properties.setProperty("messageDebounceMillis", String.valueOf(MaidSoulForgeConfig.MESSAGE_DEBOUNCE_MILLIS.get()));
-        });
-        updateProperties(root.resolve("model").resolve("llm.properties"), properties -> {
-            properties.setProperty("baseUrl", MaidSoulForgeConfig.BASE_URL.get());
-            properties.setProperty("model", MaidSoulForgeConfig.MODEL.get());
-            properties.setProperty("plannerModel", MaidSoulForgeConfig.PLANNER_MODEL.get());
-            properties.setProperty("replyerModel", MaidSoulForgeConfig.REPLYER_MODEL.get());
-        });
-        updateProperties(root.resolve("model").resolve("vision.properties"), properties -> {
-            properties.setProperty("enabled", String.valueOf(MaidSoulForgeConfig.VISION_ENABLED.get()));
-            setIfNotBlank(properties, "baseUrl", MaidSoulForgeConfig.VISION_BASE_URL.get());
-            String forgeVisionModel = MaidSoulForgeConfig.VISION_MODEL.get();
-            if (forgeVisionModel == null || forgeVisionModel.isBlank()) {
-                properties.setProperty("model", properties.getProperty("model", VisionConfig.DEFAULT_MODEL));
-            } else {
-                properties.setProperty("model", forgeVisionModel);
-            }
-            if (properties.getProperty("model", "").isBlank()) {
-                properties.setProperty("model", VisionConfig.DEFAULT_MODEL);
-            }
-            if (properties.getProperty("apiKey", "").isBlank()) {
-                Properties llmProperties = ConfigFiles.load(root.resolve("model").resolve("llm.properties"));
-                String llmApiKey = llmProperties.getProperty("apiKey", "");
-                if (!llmApiKey.isBlank()) {
-                    properties.setProperty("apiKey", llmApiKey);
-                }
-            }
-        });
-        updateProperties(root.resolve("debug").resolve("trace.properties"), properties -> {
-            properties.setProperty("echoTraceToOwnerChat", String.valueOf(MaidSoulForgeConfig.ECHO_TRACE_TO_OWNER_CHAT.get()));
-            properties.setProperty("echoAffectToOwnerChat", String.valueOf(MaidSoulForgeConfig.ECHO_AFFECT_TO_OWNER_CHAT.get()));
-            properties.setProperty("echoReplyToOwnerChat", String.valueOf(MaidSoulForgeConfig.ECHO_REPLY_TO_OWNER_CHAT.get()));
-        });
+        Path configPath = root.resolve("dialogue-config.json");
+        DialogueCoreConfig config = DialogueConfigLoader.loadOrCreate(configPath);
+        migrateLegacyProperties(root, config);
+
+        config.messageDebounceMillis = MaidSoulForgeConfig.MESSAGE_DEBOUNCE_MILLIS.get();
+        config.model.baseUrl = MaidSoulForgeConfig.BASE_URL.get();
+        config.model.model = MaidSoulForgeConfig.MODEL.get();
+        config.model.plannerModel = MaidSoulForgeConfig.PLANNER_MODEL.get();
+        config.model.replyerModel = MaidSoulForgeConfig.REPLYER_MODEL.get();
+        if (config.model.timingModel == null || config.model.timingModel.isBlank()) {
+            config.model.timingModel = config.model.model;
+        }
+
+        config.vision.enabled = MaidSoulForgeConfig.VISION_ENABLED.get();
+        setIfNotBlank(value -> config.vision.baseUrl = value, MaidSoulForgeConfig.VISION_BASE_URL.get());
+        String forgeVisionModel = MaidSoulForgeConfig.VISION_MODEL.get();
+        config.vision.model = forgeVisionModel == null || forgeVisionModel.isBlank()
+                ? VisionConfig.DEFAULT_MODEL
+                : forgeVisionModel;
+
+        config.debug.echoTraceToOwnerChat = MaidSoulForgeConfig.ECHO_TRACE_TO_OWNER_CHAT.get();
+        config.debug.echoAffectToOwnerChat = MaidSoulForgeConfig.ECHO_AFFECT_TO_OWNER_CHAT.get();
+        config.debug.echoReplyToOwnerChat = MaidSoulForgeConfig.ECHO_REPLY_TO_OWNER_CHAT.get();
+
+        DialogueConfigLoader.save(configPath, config);
     }
 
-    private static void updateProperties(Path path, PropertyUpdater updater) throws IOException {
-        Properties properties = new Properties();
-        if (Files.exists(path)) {
-            try (var reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-                properties.load(reader);
-            }
+    private static void migrateLegacyProperties(Path root, DialogueCoreConfig config) {
+        DialogueConfigLoader.normalize(config);
+        Properties llm = loadIfExists(root.resolve("model").resolve("llm.properties"));
+        if (!llm.isEmpty()) {
+            copyIfPresent(llm, "baseUrl", value -> config.model.baseUrl = value);
+            copyIfPresent(llm, "model", value -> config.model.model = value);
+            copyIfPresent(llm, "plannerModel", value -> config.model.plannerModel = value);
+            copyIfPresent(llm, "replyerModel", value -> config.model.replyerModel = value);
+            copyIfPresent(llm, "timingModel", value -> config.model.timingModel = value);
+            copyIfPresent(llm, "temperature", value -> config.model.temperature = parseDouble(value, config.model.temperature));
+            copyIfPresent(llm, "maxTokens", value -> config.model.maxTokens = parseInt(value, config.model.maxTokens));
+            copySecretIfBlank(llm, "apiKey", config.model.apiKey, value -> config.model.apiKey = value);
         }
-        updater.update(properties);
-        Files.createDirectories(path.getParent());
-        try (var writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-            properties.store(writer, "MaidSoulCore synced Forge config");
+
+        Properties vision = loadIfExists(root.resolve("model").resolve("vision.properties"));
+        if (!vision.isEmpty()) {
+            copyIfPresent(vision, "enabled", value -> config.vision.enabled = Boolean.parseBoolean(value));
+            copyIfPresent(vision, "mode", value -> config.vision.mode = value);
+            copyIfPresent(vision, "baseUrl", value -> config.vision.baseUrl = value);
+            copyIfPresent(vision, "model", value -> config.vision.model = value);
+            copyIfPresent(vision, "temperature", value -> config.vision.temperature = parseDouble(value, config.vision.temperature));
+            copyIfPresent(vision, "maxTokens", value -> config.vision.maxTokens = parseInt(value, config.vision.maxTokens));
+            copyIfPresent(vision, "timeoutMillis", value -> config.vision.timeoutMillis = parseLong(value, config.vision.timeoutMillis));
+            copyIfPresent(vision, "maxImageWidth", value -> config.vision.maxImageWidth = parseInt(value, config.vision.maxImageWidth));
+            copyIfPresent(vision, "maxImageHeight", value -> config.vision.maxImageHeight = parseInt(value, config.vision.maxImageHeight));
+            copyIfPresent(vision, "jpegQuality", value -> config.vision.jpegQuality = (float) parseDouble(value, config.vision.jpegQuality));
+            copyIfPresent(vision, "autoCooldownMillis", value -> config.vision.autoCooldownMillis = parseLong(value, config.vision.autoCooldownMillis));
+            copyIfPresent(vision, "manualCooldownMillis", value -> config.vision.manualCooldownMillis = parseLong(value, config.vision.manualCooldownMillis));
+            copyIfPresent(vision, "prompt", value -> config.vision.prompt = value);
+            copySecretIfBlank(vision, "apiKey", config.vision.apiKey, value -> config.vision.apiKey = value);
         }
+
+        Properties flow = loadIfExists(root.resolve("conversation").resolve("flow.properties"));
+        copyIfPresent(flow, "historyWindow", value -> config.historyWindow = parseInt(value, config.historyWindow));
+        copyIfPresent(flow, "messageDebounceMillis", value -> config.messageDebounceMillis = parseLong(value, config.messageDebounceMillis));
+        copyIfPresent(flow, "maxInternalRounds", value -> config.maxInternalRounds = parseInt(value, config.maxInternalRounds));
+        copyIfPresent(flow, "defaultWaitSeconds", value -> config.defaultWaitSeconds = parseInt(value, config.defaultWaitSeconds));
+        copyIfPresent(flow, "enableIndependentTimingGate", value -> config.enableIndependentTimingGate = Boolean.parseBoolean(value));
+
+        Properties debug = loadIfExists(root.resolve("debug").resolve("trace.properties"));
+        copyIfPresent(debug, "echoTraceToOwnerChat", value -> config.debug.echoTraceToOwnerChat = Boolean.parseBoolean(value));
+        copyIfPresent(debug, "echoAffectToOwnerChat", value -> config.debug.echoAffectToOwnerChat = Boolean.parseBoolean(value));
+        copyIfPresent(debug, "echoReplyToOwnerChat", value -> config.debug.echoReplyToOwnerChat = Boolean.parseBoolean(value));
+        copyIfPresent(debug, "recordPrompt", value -> config.debug.echoPromptToOwnerChat = Boolean.parseBoolean(value));
+        copyIfPresent(debug, "maxTraceChars", value -> config.debug.maxChatEchoChars = parseInt(value, config.debug.maxChatEchoChars));
     }
 
-    private static void setIfNotBlank(Properties properties, String key, String value) {
+    private static Properties loadIfExists(Path path) {
+        return Files.exists(path) ? ConfigFiles.load(path) : new Properties();
+    }
+
+    private static void copyIfPresent(Properties properties, String key, ValueWriter writer) {
+        String value = properties.getProperty(key);
         if (value != null && !value.isBlank()) {
-            properties.setProperty(key, value);
+            writer.write(value.trim());
         }
     }
 
-    private interface PropertyUpdater {
-        void update(Properties properties);
+    private static void copySecretIfBlank(Properties properties, String key, String currentValue, ValueWriter writer) {
+        if (currentValue != null && !currentValue.isBlank()) {
+            return;
+        }
+        copyIfPresent(properties, key, writer);
+    }
+
+    private static void setIfNotBlank(ValueWriter writer, String value) {
+        if (value != null && !value.isBlank()) {
+            writer.write(value.trim());
+        }
+    }
+
+    private static int parseInt(String value, int fallback) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static long parseLong(String value, long fallback) {
+        try {
+            return Long.parseLong(value.trim());
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private static double parseDouble(String value, double fallback) {
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (RuntimeException ignored) {
+            return fallback;
+        }
+    }
+
+    private interface ValueWriter {
+        void write(String value);
     }
 }
-
-
