@@ -1,6 +1,10 @@
 package com.yunchen.maidsoulcore.core.test;
 
+import com.yunchen.maidsoulcore.core.affect.AffectEngine;
 import com.yunchen.maidsoulcore.core.affect.AffectProfileStore;
+import com.yunchen.maidsoulcore.core.event.StructuredEvent;
+import com.yunchen.maidsoulcore.core.event.StructuredEventScope;
+import com.yunchen.maidsoulcore.core.event.StructuredEventType;
 import com.yunchen.maidsoulcore.core.config.DialogueConfigLoader;
 import com.yunchen.maidsoulcore.core.config.DialogueCoreConfig;
 import com.yunchen.maidsoulcore.core.config.DialogueModelConfig;
@@ -89,6 +93,7 @@ public final class PlannerAffectTraceMain {
         config.maxInternalRounds = 3;
         config.replyRetryCount = 0;
         config.llmTimeoutMillis = Math.max(config.llmTimeoutMillis, 90_000L);
+        int pollSeconds = parseIntArg(args, "--poll-seconds", 120);
 
         Path root = Path.of("build", "tmp", "planner-affect-trace", DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()));
         Path maidDir = root.resolve("memory").resolve(UUID.randomUUID().toString());
@@ -130,9 +135,35 @@ public final class PlannerAffectTraceMain {
             for (int i = 0; i < script.size(); i++) {
                 currentTurn.set(i + 1);
                 String owner = script.get(i);
+                if (owner.startsWith("@silence:")) {
+                    double hours = parseDouble(owner.substring("@silence:".length()), 1.0D);
+                    runtime.affectProfile().updatedAtEpochMillis -= Math.max(0.0D, hours) * 3_600_000L;
+                    StructuredEvent event = new StructuredEvent();
+                    event.type = StructuredEventType.LONG_SILENCE.id();
+                    event.scope = StructuredEventScope.OWNER_TO_MAID.id();
+                    event.subject = config.ownerName;
+                    event.object = config.botName;
+                    event.summary = "主人沉默了 " + fmt(hours) + " 小时";
+                    event.evidence = "script " + owner;
+                    event.confidence = 1.0D;
+                    event.importance = Math.min(1.0D, Math.max(0.30D, hours / 24.0D));
+                    event.shouldUpdateAffect = true;
+                    new AffectEngine().apply(runtime.affectProfile(), event);
+                    System.out.println("[" + (i + 1) + "] script: " + owner);
+                    append(report, "## Turn " + (i + 1));
+                    append(report, "");
+                    append(report, "- owner: " + owner);
+                    append(report, "- maid: (scripted silence, " + fmt(hours) + "h elapsed)");
+                    append(report, "- affect_snapshot:");
+                    append(report, codeBlock(runtime.affectProfile().brief()));
+                    append(report, "- trace:");
+                    append(report, codeBlock("script.silence hours=" + fmt(hours)));
+                    append(report, "");
+                    continue;
+                }
                 System.out.println("[" + (i + 1) + "] owner: " + owner);
                 runtime.receiveOwnerMessage(config.ownerName, owner);
-                String firstReply = replies.poll(120, TimeUnit.SECONDS);
+                String firstReply = replies.poll(Math.max(5, pollSeconds), TimeUnit.SECONDS);
                 List<String> turnReplies = new ArrayList<>();
                 if (firstReply == null) {
                     String plannedSilence = plannedSilenceLabel(traceLines, i + 1);
@@ -195,7 +226,7 @@ public final class PlannerAffectTraceMain {
         if (scriptFile != null && !scriptFile.isBlank()) {
             for (String line : Files.readAllLines(Path.of(scriptFile), StandardCharsets.UTF_8)) {
                 if (line != null && !line.isBlank()) {
-                    texts.add(line.trim());
+                    texts.add(stripBom(line).trim());
                 }
             }
         }
@@ -249,6 +280,13 @@ public final class PlannerAffectTraceMain {
         return null;
     }
 
+    private static String stripBom(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.startsWith("\uFEFF") ? value.substring(1) : value;
+    }
+
     private static boolean isOptionValue(String[] args, int index) {
         if (index <= 0 || index >= args.length) {
             return false;
@@ -257,7 +295,31 @@ public final class PlannerAffectTraceMain {
         return "--config".equals(previous)
                 || "--script-file".equals(previous)
                 || "--script-lines".equals(previous)
-                || "--text".equals(previous);
+                || "--text".equals(previous)
+                || "--poll-seconds".equals(previous);
+    }
+
+    private static int parseIntArg(String[] args, String name, int fallback) {
+        String value = optionValue(args, name);
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private static double parseDouble(String value, double fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 
     private static ModelPair loadRuntimeModels(DialogueCoreConfig config) throws Exception {
@@ -337,6 +399,10 @@ public final class PlannerAffectTraceMain {
 
     private static String codeBlock(String text) {
         return "```text\n" + text + "\n```";
+    }
+
+    private static String fmt(double value) {
+        return String.format(java.util.Locale.ROOT, "%.2f", value);
     }
 
     private record ModelPair(DialogueModelConfig planner, DialogueModelConfig replyer) {
