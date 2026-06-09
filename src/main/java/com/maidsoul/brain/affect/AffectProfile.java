@@ -1,10 +1,11 @@
 package com.maidsoul.brain.affect;
 
 /**
- * 酒狐面对玩家时的情绪与关系量化状态。
+ * 女仆面对主人时的情绪与关系量化状态。
  *
- * <p>这里刻意区分短期情绪和长期情感：心情、愤怒、受伤、紧张会随事件快速波动；
- * 信赖、熟悉、安全感、好感变化更慢，用来表达“她如何长期看待这个人”。</p>
+ * <p>旧版 0-100 字段仍然保留，是为了兼容现有日志、GUI、记忆快照和主动节奏。
+ * 新版核心状态是 VAD、intimacy/conflict、relationshipStage 与 emotionLabel。
+ * 回复器主要读取新版状态产生表达风格，运行时不应该把它当成是否发言的唯一开关。</p>
  */
 public final class AffectProfile {
     public int mood = 60;
@@ -16,6 +17,21 @@ public final class AffectProfile {
     public int affection = 50;
     public int security = 55;
     public int curiosity = 45;
+    public double valence = 0.18D;
+    public double arousal = 0.32D;
+    public double dominance = 0.48D;
+    public double intimacy = 0.28D;
+    public double conflict = 0.06D;
+    public double hurtDebt = 0.0D;
+    public double repairDebt = 0.0D;
+    public double longing = 0.42D;
+    public double styleWarmth = 0.50D;
+    public double styleClinginess = 0.42D;
+    public double styleCaution = 0.18D;
+    public int positiveEventStreak = 0;
+    public String relationshipStage = RelationshipStage.COURTING.id();
+    public String emotionLabel = EmotionLabel.NEUTRAL.id();
+    public String lastEvent = "";
 
     public String brief() {
         return "心情=" + mood
@@ -28,27 +44,54 @@ public final class AffectProfile {
                 + "，关系=" + relationshipLevel()
                 + "，安全感=" + security
                 + "，好奇心=" + curiosity
-                + "，主动好奇=" + effectiveCuriosity();
+                + "，主动好奇=" + effectiveCuriosity()
+                + "，VAD=" + percent(valence) + "/" + percent(arousal) + "/" + percent(dominance)
+                + "，亲密=" + percent(intimacy)
+                + "，冲突=" + percent(conflict)
+                + "，阶段=" + stage().zhName()
+                + "，主情绪=" + emotion().zhName();
     }
 
     public String stateHint() {
-        String relation = "当前关系层级：" + relationshipLevel() + "。" + relationshipHint() + " ";
-        if (hurt >= 55 || anger >= 55) {
-            return relation + "她还明显受伤或生气，不适合立刻热情关心玩家。";
+        String relation = "当前关系层级：" + relationshipLevel()
+                + "；动态阶段：" + stage().zhName()
+                + "；主导情绪：" + emotion().zhName() + "。"
+                + relationshipHint() + " ";
+        if (conflict >= 0.55D || hurtDebt >= 0.55D || repairDebt >= 0.55D) {
+            return relation + "她仍有明显受伤、防备或修复压力，回复时要承认情绪余波，不能直接甜蜜重置。";
         }
-        if (hurt >= 30 || anger >= 30 || tension >= 55) {
-            return relation + "她有些别扭和防备，可以继续聊，但语气会更短、更谨慎。";
+        if (stage() == RelationshipStage.REPAIRING || conflict >= 0.25D || hurtDebt >= 0.22D) {
+            return relation + "她正在修复关系，语气应该温柔但谨慎，先接住当前话题，再慢慢靠近。";
         }
-        if (effectiveCuriosity() >= 70 && mood >= 55) {
-            return relation + "她现在对玩家的状态很在意，容易主动追问或轻轻推进话题。";
+        if (stage() == RelationshipStage.SWEET || stage() == RelationshipStage.PASSIONATE || emotion() == EmotionLabel.LOVE) {
+            return relation + "她很喜欢主人，表达可以更柔软、粘人、愿意贴近，但仍要回应最新输入。";
         }
-        if (mood >= 70 && trust >= 55) {
-            return relation + "她现在比较放松，愿意自然接话和轻轻主动。";
+        if (valence >= 0.45D && arousal <= 0.55D) {
+            return relation + "她现在比较安心，适合轻声陪伴和自然接话。";
         }
-        if (mood <= 35) {
-            return relation + "她心情偏低，需要更安静、克制的表达。";
+        if (valence <= -0.35D) {
+            return relation + "她心情偏低，表达要短一些、软一些，避免跳到无关话题。";
         }
-        return relation + "她当前情绪基本平稳，可以正常聊天。";
+        return relation + "她当前状态基本平稳，可以正常聊天，并保持温柔陪伴感。";
+    }
+
+    public String replyStyleAdvice() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("表达建议：tone=").append(styleTone())
+                .append("；warmth=").append(percent(styleWarmth))
+                .append("；clinginess=").append(percent(styleClinginess))
+                .append("；caution=").append(percent(styleCaution))
+                .append("；状态=").append(emotion().zhName()).append("/").append(stage().zhName()).append("。");
+        if (repairDebt >= 0.22D || hurtDebt >= 0.22D || stage() == RelationshipStage.REPAIRING) {
+            builder.append(" 保留修复余波，先回应主人的当前话，再表达愿意慢慢和好。");
+        } else if (stage() == RelationshipStage.SWEET || stage() == RelationshipStage.PASSIONATE || emotion() == EmotionLabel.LOVE) {
+            builder.append(" 可以更温柔、更喜欢主人、更粘一点，但不要无视当前事实。");
+        } else if (emotion() == EmotionLabel.ANXIETY || emotion() == EmotionLabel.FEAR) {
+            builder.append(" 先确认安全和陪伴，不要装作轻松。");
+        } else {
+            builder.append(" 自然接话，保持柔和陪伴。");
+        }
+        return builder.toString();
     }
 
     public String relationshipLevel() {
@@ -94,19 +137,79 @@ public final class AffectProfile {
     }
 
     public String proactiveHint() {
-        int effective = effectiveCuriosity();
-        if (hurt >= 45 || anger >= 45) {
-            return "主动欲望被受伤/愤怒压住：即使好奇，也只适合冷一点、短一点地接话，不要热情追问。";
+        return "主动节奏仍由运行时和 planner 判断；情绪层只提供表达状态。"
+                + " 当前主动好奇兼容值=" + effectiveCuriosity()
+                + "，回复风格参考：" + replyStyleAdvice();
+    }
+
+    public RelationshipStage stage() {
+        return RelationshipStage.fromId(relationshipStage);
+    }
+
+    public EmotionLabel emotion() {
+        return EmotionLabel.fromId(emotionLabel);
+    }
+
+    public void refreshDerivedStyle() {
+        emotionLabel = EmotionLabel.fromVad(valence, arousal, dominance, intimacy).id();
+        styleWarmth = clamp01(0.42D + valence * 0.30D + intimacy * 0.22D - conflict * 0.30D);
+        styleClinginess = clamp01(0.32D + intimacy * 0.42D + longing * 0.18D - conflict * 0.24D);
+        styleCaution = clamp01(0.14D + conflict * 0.58D + hurtDebt * 0.32D + Math.max(0.0D, arousal - 0.58D) * 0.20D);
+        mood = clampInt((int) Math.round((valence + 1.0D) * 50.0D));
+        tension = clampInt((int) Math.round(arousal * 72.0D + conflict * 28.0D));
+        anger = clampInt((int) Math.round(Math.max(0.0D, -valence) * arousal * dominance * 100.0D + conflict * 35.0D));
+        hurt = clampInt((int) Math.round(hurtDebt * 100.0D));
+        trust = clampInt((int) Math.round(42.0D + intimacy * 42.0D - conflict * 24.0D));
+        affection = clampInt((int) Math.round(42.0D + intimacy * 48.0D + valence * 10.0D - conflict * 20.0D));
+        familiarity = clampInt((int) Math.round(20.0D + intimacy * 70.0D));
+        security = clampInt((int) Math.round(52.0D + dominance * 20.0D - conflict * 35.0D));
+    }
+
+    public void normalize() {
+        valence = clamp(valence, -1.0D, 1.0D);
+        arousal = clamp01(arousal);
+        dominance = clamp01(dominance);
+        intimacy = clamp01(intimacy);
+        conflict = clamp01(conflict);
+        hurtDebt = clamp01(hurtDebt);
+        repairDebt = clamp01(repairDebt);
+        longing = clamp01(longing);
+        positiveEventStreak = Math.max(0, positiveEventStreak);
+        refreshDerivedStyle();
+    }
+
+    private String styleTone() {
+        if (styleCaution >= 0.62D) {
+            return "soft_cautious";
         }
-        if (effective >= 75) {
-            return "主动好奇很高：如果用户沉默较久，可以更积极地轻推一次，问一个低压力问题或接住刚才的情绪余韵。";
+        if (emotion() == EmotionLabel.LOVE || styleClinginess >= 0.68D) {
+            return "warm_clingy";
         }
-        if (effective >= 55) {
-            return "主动好奇中等：可以轻轻续话，但不要连续追问。";
+        if (emotion() == EmotionLabel.ANXIETY || emotion() == EmotionLabel.FEAR) {
+            return "protective_nervous";
         }
-        if (curiosity >= 65 && effective < 45) {
-            return "她其实很想知道，但被紧张或安全感压住了；主动时应更试探、更短，不要显得逼问。";
+        if (emotion() == EmotionLabel.EXCITEMENT || emotion() == EmotionLabel.JOY) {
+            return "bright_soft";
         }
-        return "主动好奇偏低：除非话题明显未收束，否则优先安静等待。";
+        return "gentle_companion";
+    }
+
+    public static double clamp01(double value) {
+        return clamp(value, 0.0D, 1.0D);
+    }
+
+    public static double clamp(double value, double min, double max) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return min;
+        }
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private static int percent(double value) {
+        return clampInt((int) Math.round(value * 100.0D));
+    }
+
+    private static int clampInt(int value) {
+        return Math.max(0, Math.min(100, value));
     }
 }
