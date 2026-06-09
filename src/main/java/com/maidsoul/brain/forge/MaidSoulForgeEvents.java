@@ -8,6 +8,7 @@ import com.github.tartaricacid.touhoulittlemaid.api.event.MaidTickEvent;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.maidsoul.brain.forge.perception.MaidViewPerceptionService;
 import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
+import com.maidsoul.brain.forge.soul.SoulBindingService;
 import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.forge.tlm.MaidSoulTlmBootstrapper;
 import net.minecraft.world.entity.Entity;
@@ -26,6 +27,9 @@ public final class MaidSoulForgeEvents {
         if (maid.level().isClientSide()) {
             return;
         }
+        if (!SoulBindingService.isRegistered(maid)) {
+            return;
+        }
         MaidSoulTlmBootstrapper.ensureMaidSoulRuntime(maid);
         MaidSpeechDispatcher.flush(maid);
         MaidViewPerceptionService.onMaidTick(maid);
@@ -34,6 +38,9 @@ public final class MaidSoulForgeEvents {
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
         if (event.getLevel().isClientSide() || !(event.getEntity() instanceof EntityMaid maid)) {
+            return;
+        }
+        if (!SoulBindingService.isRegistered(maid)) {
             return;
         }
         MaidSoulTlmBootstrapper.ensureMaidSoulRuntime(maid);
@@ -50,13 +57,16 @@ public final class MaidSoulForgeEvents {
         }
         event.player.level()
                 .getEntitiesOfClass(EntityMaid.class, event.player.getBoundingBox().inflate(16.0D),
-                        maid -> maid.isAlive() && maid.isOwnedBy(event.player))
+                        maid -> maid.isAlive() && maid.isOwnedBy(event.player) && SoulBindingService.isRegistered(maid))
                 .forEach(MaidSoulTlmBootstrapper::ensureMaidSoulRuntime);
     }
 
     @SubscribeEvent
     public static void onInteract(InteractMaidEvent event) {
         if (event.getWorld().isClientSide()) {
+            return;
+        }
+        if (!SoulBindingService.isRegistered(event.getMaid())) {
             return;
         }
         MaidSoulTlmBootstrapper.ensureMaidSoulRuntime(event.getMaid());
@@ -69,6 +79,9 @@ public final class MaidSoulForgeEvents {
     public static void onAttack(MaidAttackEvent event) {
         EntityMaid maid = event.getMaid();
         if (maid.level().isClientSide()) {
+            return;
+        }
+        if (!SoulBindingService.isRegistered(maid)) {
             return;
         }
         Entity direct = event.getSource().getDirectEntity();
@@ -91,6 +104,9 @@ public final class MaidSoulForgeEvents {
         if (event.getMaid().level().isClientSide()) {
             return;
         }
+        if (!SoulBindingService.isRegistered(event.getMaid())) {
+            return;
+        }
         MaidBrainRuntimeRegistry.receiveWorldEvent(
                 event.getMaid(),
                 "maid.ate",
@@ -101,6 +117,9 @@ public final class MaidSoulForgeEvents {
     @SubscribeEvent
     public static void onDeath(MaidDeathEvent event) {
         if (event.getMaid().level().isClientSide()) {
+            return;
+        }
+        if (!SoulBindingService.isRegistered(event.getMaid())) {
             return;
         }
         MaidBrainRuntimeRegistry.receiveWorldEvent(event.getMaid(), "maid.death", "source=" + event.getSource().getMsgId());

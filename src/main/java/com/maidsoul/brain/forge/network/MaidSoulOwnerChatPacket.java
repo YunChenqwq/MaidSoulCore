@@ -2,8 +2,10 @@ package com.maidsoul.brain.forge.network;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
+import com.maidsoul.brain.forge.soul.SoulBindingService;
 import com.maidsoul.brain.forge.tlm.MaidSoulTlmBootstrapper;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.network.NetworkEvent;
@@ -33,7 +35,8 @@ public record MaidSoulOwnerChatPacket(int maidEntityId, String message) {
             return;
         }
         Entity entity = player.level().getEntity(maidEntityId);
-        if (!(entity instanceof EntityMaid maid) || !maid.isAlive() || !maid.isOwnedBy(player)) {
+        if (!(entity instanceof EntityMaid maid) || !SoulBindingService.isRegisteredFor(player, maid)) {
+            player.sendSystemMessage(Component.literal("这只女仆还没有注册灵魂核心，不能进入 MaidSoulCore 对话。"));
             return;
         }
         String clean = message == null ? "" : message.strip();
@@ -41,6 +44,7 @@ public record MaidSoulOwnerChatPacket(int maidEntityId, String message) {
             return;
         }
         MaidSoulTlmBootstrapper.ensureMaidSoulRuntime(maid);
+        MaidBrainRuntimeRegistry.beginThinking(maid);
         maid.getAiChatManager().addUserHistory(clean);
         MaidBrainRuntimeRegistry.receiveOwnerChat(maid, clean);
     }

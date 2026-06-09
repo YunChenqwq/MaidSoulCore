@@ -19,23 +19,31 @@ public final class MaidSpeechDispatcher {
     }
 
     public static void queueSpeechOnServer(EntityMaid maid, String text) {
+        queueSpeechOnServer(maid, text, -1L);
+    }
+
+    public static void queueSpeechOnServer(EntityMaid maid, String text, long firstWaitingChatBubbleId) {
         if (maid.getServer() == null) {
-            queueSpeech(maid, text);
+            queueSpeech(maid, text, firstWaitingChatBubbleId);
             flush(maid);
             return;
         }
         maid.getServer().execute(() -> {
-            queueSpeech(maid, text);
+            queueSpeech(maid, text, firstWaitingChatBubbleId);
             flush(maid);
         });
     }
 
     public static void queueSpeech(EntityMaid maid, String text) {
+        queueSpeech(maid, text, -1L);
+    }
+
+    public static void queueSpeech(EntityMaid maid, String text, long firstWaitingChatBubbleId) {
         List<String> segments = SPLITTER.split(text);
         if (segments.isEmpty()) {
             return;
         }
-        PENDING.put(maid.getUUID(), new PendingSpeech(segments, 0, maid.tickCount, System.currentTimeMillis()));
+        PENDING.put(maid.getUUID(), new PendingSpeech(segments, 0, maid.tickCount, System.currentTimeMillis(), firstWaitingChatBubbleId));
     }
 
     public static void interrupt(EntityMaid maid) {
@@ -61,7 +69,8 @@ public final class MaidSpeechDispatcher {
             return;
         }
         String segment = speech.segments.get(speech.index);
-        maid.getChatBubbleManager().addLLMChatText(segment, -1L);
+        long waitingId = speech.index == 0 ? speech.firstWaitingChatBubbleId : -1L;
+        maid.getChatBubbleManager().addLLMChatText(segment, waitingId);
         int next = speech.index + 1;
         if (next >= speech.segments.size()) {
             PENDING.remove(maid.getUUID());
@@ -81,12 +90,14 @@ public final class MaidSpeechDispatcher {
         private int index;
         private int nextEmitTick;
         private final long createdAtMillis;
+        private final long firstWaitingChatBubbleId;
 
-        private PendingSpeech(List<String> segments, int index, int nextEmitTick, long createdAtMillis) {
+        private PendingSpeech(List<String> segments, int index, int nextEmitTick, long createdAtMillis, long firstWaitingChatBubbleId) {
             this.segments = List.copyOf(segments);
             this.index = index;
             this.nextEmitTick = nextEmitTick;
             this.createdAtMillis = createdAtMillis;
+            this.firstWaitingChatBubbleId = firstWaitingChatBubbleId;
         }
     }
 }

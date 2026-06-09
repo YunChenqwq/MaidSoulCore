@@ -22,8 +22,8 @@ import org.lwjgl.glfw.GLFW;
  * MaidSoulCore 自己的女仆聊天快捷键。
  *
  * <p>它不再抢原版聊天键，也不再依赖 TLM 对 T 键的判断链路。
- * 玩家准星指向自己拥有的女仆并按下本快捷键时，客户端只发送一个很薄的打开请求；
- * 服务端会先确保该女仆已经接入 MaidSoulCore runtime，再复用 TLM 原本的 AIChatScreen。</p>
+ * 玩家按下快捷键时，客户端只发送一个很薄的打开请求。准星指向自己拥有的女仆时优先指定这只；
+ * 没有指向女仆时，服务端会选择玩家当前世界中第一只已经用灵魂核心注册过的女仆。</p>
  */
 @Mod.EventBusSubscriber(modid = MaidSoulCoreForgeMod.MOD_ID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class MaidSoulChatKeyHandler {
@@ -53,12 +53,9 @@ public final class MaidSoulChatKeyHandler {
             if (!isOpenChatPress(event) || !isInGame()) {
                 return;
             }
-            EntityMaid maid = pointedOwnedMaid();
-            if (maid == null) {
-                return;
-            }
             OPEN_CHAT_KEY.consumeClick();
-            ModNetwork.CHANNEL.sendToServer(new OpenMaidSoulChatPacket(maid.getId()));
+            EntityMaid maid = pointedOwnedMaid();
+            ModNetwork.CHANNEL.sendToServer(new OpenMaidSoulChatPacket(maid == null ? -1 : maid.getId()));
         }
 
         private static boolean isOpenChatPress(InputEvent.Key event) {

@@ -3,7 +3,12 @@ package com.maidsoul.brain.forge.soul;
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.maidsoul.brain.forge.runtime.MaidBrainRuntimeRegistry;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+
+import java.util.Comparator;
+import java.util.Optional;
 
 /**
  * 女仆灵魂绑定的唯一写入口。
@@ -21,6 +26,38 @@ public final class SoulBindingService {
 
     public static boolean canOperate(ServerPlayer player, EntityMaid maid) {
         return maid.getOwner() == null || maid.getOwner().getUUID().equals(player.getUUID());
+    }
+
+    public static boolean isRegistered(EntityMaid maid) {
+        return maid != null && SoulBindingData.fromTag(maid.getPersistentData()).isBound();
+    }
+
+    public static boolean isRegisteredFor(ServerPlayer player, EntityMaid maid) {
+        if (player == null || maid == null || !maid.isAlive() || !maid.isOwnedBy(player) || !isRegistered(maid)) {
+            return false;
+        }
+        SoulBindingData binding = SoulBindingData.fromTag(maid.getPersistentData());
+        return binding.ownerUuid().isBlank() || binding.ownerUuid().equals(player.getUUID().toString());
+    }
+
+    public static Optional<EntityMaid> firstRegisteredMaid(ServerPlayer player) {
+        if (player == null) {
+            return Optional.empty();
+        }
+        return firstRegisteredMaidByIteration(player, player.serverLevel());
+    }
+
+    private static Optional<EntityMaid> firstRegisteredMaidByIteration(ServerPlayer player, ServerLevel level) {
+        java.util.ArrayList<EntityMaid> maids = new java.util.ArrayList<>();
+        for (Entity entity : level.getAllEntities()) {
+            if (entity instanceof EntityMaid maid && isRegisteredFor(player, maid)) {
+                maids.add(maid);
+            }
+        }
+        return maids.stream()
+                .min(Comparator
+                        .comparingLong((EntityMaid maid) -> SoulBindingData.fromTag(maid.getPersistentData()).boundAt())
+                        .thenComparing(maid -> maid.getUUID().toString()));
     }
 
     public static void sendNotOwnerMessage(ServerPlayer player) {
@@ -46,6 +83,15 @@ public final class SoulBindingService {
         SoulBindResult result = SoulStore.global().bind(soulId, safeDisplayName, previous, next);
         MaidBrainRuntimeRegistry.invalidate(maid);
         MaidBrainRuntimeRegistry.receiveWorldEvent(maid, result.eventType(), result.eventDetail());
+        if ("soul.first_bound".equals(result.eventType())) {
+            MaidBrainRuntimeRegistry.receiveWorldEvent(maid, "soul.first_meeting",
+                    "主人第一次使用灵魂核心正式注册并唤醒了这只女仆。"
+                            + "maidUuid=" + maid.getUUID()
+                            + ", soulId=" + soulId
+                            + ", displayName=" + safeDisplayName
+                            + ", owner=" + player.getName().getString()
+                            + "。这是你和主人第一次正式相遇，可以自然地回应主人。");
+        }
         return result;
     }
 

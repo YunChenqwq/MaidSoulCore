@@ -1,13 +1,16 @@
 package com.maidsoul.brain.forge.network;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
+import com.maidsoul.brain.forge.soul.SoulBindingService;
 import com.maidsoul.brain.forge.tlm.MaidSoulTlmBootstrapper;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkEvent;
 
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -33,15 +36,31 @@ public record OpenMaidSoulChatPacket(int maidEntityId) {
         if (player == null) {
             return;
         }
-        Entity entity = player.level().getEntity(maidEntityId);
-        if (!(entity instanceof EntityMaid maid) || !maid.isAlive() || !maid.isOwnedBy(player)) {
+        Optional<EntityMaid> selected = selectMaid(player);
+        if (selected.isEmpty()) {
+            player.sendSystemMessage(Component.literal("还没有可对话的灵魂女仆。请先用灵魂核心右键你的车万女仆完成第一次注册。"));
             return;
         }
+        EntityMaid maid = selected.get();
         MaidSoulTlmBootstrapper.ensureMaidSoulRuntime(maid);
         ModNetwork.CHANNEL.sendTo(
                 new MaidSoulChatScreenPacket(maid, player),
                 player.connection.connection,
                 NetworkDirection.PLAY_TO_CLIENT
         );
+    }
+
+    private Optional<EntityMaid> selectMaid(ServerPlayer player) {
+        if (maidEntityId >= 0) {
+            Entity entity = player.level().getEntity(maidEntityId);
+            if (entity instanceof EntityMaid maid) {
+                if (SoulBindingService.isRegisteredFor(player, maid)) {
+                    return Optional.of(maid);
+                }
+                player.sendSystemMessage(Component.literal("这只女仆还没有注册灵魂核心，不能直接对话。先用灵魂核心右键她完成注册。"));
+            }
+            return Optional.empty();
+        }
+        return SoulBindingService.firstRegisteredMaid(player);
     }
 }

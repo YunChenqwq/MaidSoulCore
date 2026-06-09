@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentMap;
 public final class MaidBrainRuntimeRegistry {
     private static final ConcurrentMap<UUID, ConversationRuntime> RUNTIMES = new ConcurrentHashMap<>();
     private static final ConcurrentMap<UUID, CopyOnWriteArrayList<LLMCallback>> TLM_CALLBACKS = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<UUID, Long> THINKING_BUBBLES = new ConcurrentHashMap<>();
     private static final Set<UUID> ERROR_NOTIFIED = ConcurrentHashMap.newKeySet();
 
     private MaidBrainRuntimeRegistry() {
@@ -51,6 +52,17 @@ public final class MaidBrainRuntimeRegistry {
             TLM_CALLBACKS.computeIfAbsent(maid.getUUID(), ignored -> new CopyOnWriteArrayList<>()).add(callback);
         }
         receiveOwnerChat(maid, content);
+    }
+
+    public static void beginThinking(EntityMaid maid) {
+        if (maid == null || maid.level().isClientSide()) {
+            return;
+        }
+        if (maid.getServer() == null || maid.getServer().isSameThread()) {
+            addThinkingBubble(maid);
+        } else {
+            maid.getServer().execute(() -> addThinkingBubble(maid));
+        }
     }
 
     public static void receiveWorldEvent(EntityMaid maid, String eventType, String detail) {
@@ -113,7 +125,20 @@ public final class MaidBrainRuntimeRegistry {
         if (debug.echoReplyToOwnerChat()) {
             OwnerChatDebugEcho.echoImportant(maid, debug, "reply", text);
         }
-        MaidSpeechDispatcher.queueSpeechOnServer(maid, text);
+        Long waitingBubble = THINKING_BUBBLES.remove(maid.getUUID());
+        long waitingBubbleId = waitingBubble == null ? -1L : waitingBubble;
+        MaidSpeechDispatcher.queueSpeechOnServer(maid, text, waitingBubbleId);
+    }
+
+    private static void addThinkingBubble(EntityMaid maid) {
+        Long previous = THINKING_BUBBLES.remove(maid.getUUID());
+        if (previous != null && previous >= 0) {
+            maid.getChatBubbleManager().removeChatBubble(previous);
+        }
+        long waitingId = maid.getChatBubbleManager().addThinkingText("ai.touhou_little_maid.chat.chat_bubble_waiting");
+        if (waitingId >= 0) {
+            THINKING_BUBBLES.put(maid.getUUID(), waitingId);
+        }
     }
 
     private static ViewObservationTool plannerViewTool(EntityMaid maid) {
@@ -155,6 +180,7 @@ public final class MaidBrainRuntimeRegistry {
         }
         ERROR_NOTIFIED.remove(maid.getUUID());
         TLM_CALLBACKS.remove(maid.getUUID());
+        THINKING_BUBBLES.remove(maid.getUUID());
         ConversationRuntime runtime = RUNTIMES.remove(runtimeKey(maid));
         if (runtime != null) {
             runtime.close();
