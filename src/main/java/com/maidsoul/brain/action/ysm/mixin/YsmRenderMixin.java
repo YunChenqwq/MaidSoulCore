@@ -1,8 +1,10 @@
 package com.maidsoul.brain.action.ysm.mixin;
 
 import com.maidsoul.brain.action.ysm.YsmBoneUtil;
+import com.mojang.logging.LogUtils;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
+import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,6 +18,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Pseudo
 @Mixin(targets = "com.elfmcys.yesstevemodel.oOOooOooO000oo0oooo0oo0o", remap = false)
 public abstract class YsmRenderMixin {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static boolean firedOnce;
 
     @Inject(
             method = "O0OOOoOooOO0OO0o00OoO0O0"
@@ -46,6 +51,10 @@ public abstract class YsmRenderMixin {
                                        MultiBufferSource bufferSource,
                                        int packedLight,
                                        CallbackInfo ci) {
+        if (!firedOnce) {
+            firedOnce = true;
+            LOGGER.info("[Mixin] YsmRenderMixin FIRED! wrapper={}", wrapper != null ? wrapper.getClass().getName() : "null");
+        }
         YsmBoneUtil.applyIfNeeded(wrapper);
     }
 }

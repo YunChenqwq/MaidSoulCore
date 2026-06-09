@@ -39,9 +39,10 @@ public final class MaidSoulCoreForgeMod {
         ModNetwork.register();
         ForgeBrainConfigInstaller.installIfMissing();
         MaidSoulTlmBootstrapper.ensureRuntimeSite();
+        com.maidsoul.brain.action.ysm.PoseConfig.init();
         MinecraftForge.EVENT_BUS.register(MaidSoulForgeEvents.class);
         MinecraftForge.EVENT_BUS.register(MaidSoulCommands.class);
-        LOGGER.info("MaidSoulCore Forge bridge loaded: Touhou Little Maid runtime adapter is available.");
+        LOGGER.info("MaidSoulCore Forge bridge loaded: action system initialized, {} poses.", com.maidsoul.brain.action.ysm.PoseConfig.getPoseNames().size());
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {

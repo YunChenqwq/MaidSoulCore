@@ -29,3 +29,6 @@ mandatory=true
 versionRange="[1.5.0,)"
 ordering="AFTER"
 side="BOTH"
+
+[[mixins]]
+config = "maidsoulcore.mixins.json"

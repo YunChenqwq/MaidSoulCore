@@ -17,7 +17,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.mojang.logging.LogUtils;
 import net.minecraftforge.fml.loading.FMLPaths;
+import org.slf4j.Logger;
 
 /**
  * YSM 骨骼运行时操作工具 — 通过 Java 反射绕过 YSM 闭源 API。
@@ -42,6 +44,8 @@ public final class YsmBoneUtil {
     private static final String BONE_ROT_X = "O0OOOoOooOO0OO0o00OoO0O0";
     private static final String BONE_ROT_Y = "ooOooO0OOo00O0oooo000oOO";
     private static final String BONE_ROT_Z = "Oooo0O0OO0O0000Oooo0Oo0o";
+
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     public static volatile String activePoseName = null;
     private static int heartbeatTick = 0;
@@ -75,6 +79,9 @@ public final class YsmBoneUtil {
 
     public static void applyIfNeeded(Object ysmWrapper) {
         AnimationState.tick++;
+        if (heartbeatTick++ % 200 == 0) {
+            LOGGER.info("[Mixin] alive #{} wrapper={}", heartbeatTick, ysmWrapper != null ? ysmWrapper.getClass().getSimpleName() : "null");
+        }
         if (ysmWrapper == null) return;
 
         // 动画优先

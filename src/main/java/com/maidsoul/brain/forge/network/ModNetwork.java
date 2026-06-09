@@ -64,5 +64,15 @@ public final class ModNetwork {
                 .decoder(VisionProxyImagePacket::decode)
                 .consumerMainThread(VisionProxyImagePacket::handle)
                 .add();
+        CHANNEL.messageBuilder(PlayActionPacket.class, id++)
+                .encoder(PlayActionPacket::encode)
+                .decoder(PlayActionPacket::decode)
+                .consumerMainThread(PlayActionPacket::handle)
+                .add();
+        CHANNEL.messageBuilder(ActionResultPacket.class, id++)
+                .encoder(ActionResultPacket::encode)
+                .decoder(ActionResultPacket::decode)
+                .consumerMainThread(ActionResultPacket::handle)
+                .add();
     }
 }

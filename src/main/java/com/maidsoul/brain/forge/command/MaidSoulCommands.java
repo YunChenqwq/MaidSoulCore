@@ -12,7 +12,10 @@ import com.maidsoul.brain.forge.soul.SoulStore;
 import com.maidsoul.brain.forge.soul.SoulSummary;
 import com.maidsoul.brain.forge.tlm.MaidSoulTlmBootstrapper;
 import com.maidsoul.brain.forge.tlm.llm.MaidSoulRuntimeSite;
+import com.maidsoul.brain.forge.network.ModNetwork;
+import com.maidsoul.brain.forge.network.PlayActionPacket;
 import com.maidsoul.brain.forge.vision.MaidVisionService;
+import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.CommandSourceStack;
@@ -62,7 +65,29 @@ public final class MaidSoulCommands {
                                         .executes(context -> migrateLegacy(
                                                 context.getSource(),
                                                 EntityArgument.getEntity(context, "maid"),
-                                                StringArgumentType.getString(context, "soulId")))))));
+                                                StringArgumentType.getString(context, "soulId"))))))
+                .then(Commands.literal("testai")
+                        .then(Commands.literal("pose")
+                                .then(Commands.argument("动作名", StringArgumentType.word())
+                                        .suggests((ctx, b) -> {
+                                            b.suggest("hug"); b.suggest("拥抱");
+                                            b.suggest("surprise1"); b.suggest("blowkiss");
+                                            return b.buildFuture();
+                                        })
+                                        .executes(ctx -> testAiPose(ctx.getSource(),
+                                                StringArgumentType.getString(ctx, "动作名"), 2.0f))
+                                        .then(Commands.argument("duration", FloatArgumentType.floatArg(0.5f, 30f))
+                                                .executes(ctx -> testAiPose(ctx.getSource(),
+                                                        StringArgumentType.getString(ctx, "动作名"),
+                                                        FloatArgumentType.getFloat(ctx, "duration"))))))
+                        .then(Commands.literal("anim")
+                                .then(Commands.argument("动画名", StringArgumentType.word())
+                                        .suggests((ctx, b) -> {
+                                            for (String n : com.maidsoul.brain.action.ysm.YsmAnimationPlayer.list()) b.suggest(n);
+                                            return b.buildFuture();
+                                        })
+                                        .executes(ctx -> testAiAnim(ctx.getSource(),
+                                                StringArgumentType.getString(ctx, "动画名")))))));
     }
 
     private static int giveCore(CommandSourceStack source) {
@@ -167,5 +192,29 @@ public final class MaidSoulCommands {
 
     private static String empty(String value) {
         return value == null || value.isBlank() ? "-" : value;
+    }
+
+    private static int testAiPose(CommandSourceStack source, String name, float duration) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            source.sendFailure(Component.literal("仅玩家可用。"));
+            return 0;
+        }
+        ModNetwork.CHANNEL.sendTo(new PlayActionPacket("pose", name, duration),
+                player.connection.connection, net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT);
+        source.sendSuccess(() -> Component.literal("已发送 pose: " + name + " (" + duration + "s)"), false);
+        return 1;
+    }
+
+    private static int testAiAnim(CommandSourceStack source, String name) {
+        ServerPlayer player = source.getPlayer();
+        if (player == null) {
+            source.sendFailure(Component.literal("仅玩家可用。"));
+            return 0;
+        }
+        ModNetwork.CHANNEL.sendTo(new PlayActionPacket("animation", name, 0),
+                player.connection.connection, net.minecraftforge.network.NetworkDirection.PLAY_TO_CLIENT);
+        source.sendSuccess(() -> Component.literal("已发送 anim: " + name), false);
+        return 1;
     }
 }

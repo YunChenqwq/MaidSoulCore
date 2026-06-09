@@ -39,21 +39,25 @@ public final class ActionBridge {
 
     // ═══ 静态姿态 ═══
 
-    /** 播放静态定格动作。支持中英文别名。 */
-    public static String playPose(String name) {
+    /**
+     * 播放姿态动作。支持中英文别名。
+     * @param duration 秒。≤0 = 静态定格，>0 = smoothStep 缓入缓出动画
+     */
+    public static String playPose(String name, float duration) {
         String resolved = PoseConfig.resolve(name);
         if (resolved == null) return "未知动作: " + name;
-        YsmBoneUtil.activePoseName = resolved;
-        YsmBoneUtil.tempOverrides.clear();
+        if (duration <= 0) {
+            YsmBoneUtil.activePoseName = resolved;
+            YsmBoneUtil.tempOverrides.clear();
+        } else {
+            AnimationState.play(resolved, Math.max(1, (int)(duration * 20)));
+        }
         return null;
     }
 
-    /** 播放带缓入缓出的姿态动画 */
-    public static String playPoseAnimated(String name, int seconds) {
-        String resolved = PoseConfig.resolve(name);
-        if (resolved == null) return "未知动作: " + name;
-        AnimationState.play(resolved, seconds * 20);
-        return null;
+    /** 静态定格（无动画）。兼容旧调用。 */
+    public static String playPose(String name) {
+        return playPose(name, 0);
     }
 
     // ═══ 关键帧动画 ═══
