@@ -5,6 +5,9 @@ import com.maidsoul.brain.tool.ToolCall;
 import com.maidsoul.brain.tool.ToolSpec;
 import com.maidsoul.brain.util.JsonText;
 
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
+
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -22,6 +25,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public final class OpenAiCompatibleClient implements LlmClient {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private final ModelConfig config;
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
@@ -95,8 +99,14 @@ public final class OpenAiCompatibleClient implements LlmClient {
                     throw new LlmRequestException(requestKind, "http_" + response.statusCode(), attempt, elapsed,
                             "HTTP " + response.statusCode() + ": " + clip(response.body(), 600), null);
                 }
-                String content = JsonText.extractFirstMessageContent(response.body());
-                List<ToolCall> toolCalls = JsonText.extractToolCalls(response.body());
+                String rawBody = response.body();
+                // 🔍 诊断日志：打印 API 原始回复（截前 500 字符）
+                if (!tools.isEmpty()) {
+                    LOGGER.info("[LLM-Tools] raw (500): {}",
+                            rawBody.length() > 500 ? rawBody.substring(0, 500) : rawBody);
+                }
+                String content = JsonText.extractFirstMessageContent(rawBody);
+                List<ToolCall> toolCalls = JsonText.extractToolCalls(rawBody);
                 return new LlmResponse(
                         content,
                         model,

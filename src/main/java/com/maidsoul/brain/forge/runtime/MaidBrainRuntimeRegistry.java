@@ -117,11 +117,21 @@ public final class MaidBrainRuntimeRegistry {
                         try { duration = Float.parseFloat(durPart.substring(9)); } catch (Exception ignored) {}
                     }
                 }
-                ModNetwork.CHANNEL.sendTo(new PlayActionPacket("pose", poseName, duration),
-                        player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+                if (poseName.isBlank()) {
+                    MaidSoulCoreForgeMod.LOGGER.warn("[ActionDispatch] AI→pose skipped: empty poseName, ref='{}'", ref);
+                } else {
+                    MaidSoulCoreForgeMod.LOGGER.info("[ActionDispatch] AI→pose name={} dur={} player={}", poseName, duration, player.getName().getString());
+                    ModNetwork.CHANNEL.sendTo(new PlayActionPacket("pose", poseName, duration),
+                            player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+                }
             } else if ("play_animation".equals(decision.action())) {
-                ModNetwork.CHANNEL.sendTo(new PlayActionPacket("animation", ref, 0),
-                        player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+                if (ref.isBlank()) {
+                    MaidSoulCoreForgeMod.LOGGER.warn("[ActionDispatch] AI→anim skipped: empty animName");
+                } else {
+                    MaidSoulCoreForgeMod.LOGGER.info("[ActionDispatch] AI→anim name={} player={}", ref, player.getName().getString());
+                    ModNetwork.CHANNEL.sendTo(new PlayActionPacket("animation", ref, 0),
+                            player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+                }
             }
         };
 

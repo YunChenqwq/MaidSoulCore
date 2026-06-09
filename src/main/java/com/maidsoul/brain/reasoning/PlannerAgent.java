@@ -79,7 +79,8 @@ final class PlannerAgent {
         if (!response.toolCalls().isEmpty()) {
             decision = fromToolCall(response.toolCalls().get(0), response.content());
         } else {
-            decision = fallbackFromText(response.content());
+            PlanDecision textAction = parseTextAction(response.content());
+            decision = textAction != null ? textAction : fallbackFromText(response.content());
         }
         decision = hookRunner.afterResponse(
                 "planner",
@@ -186,6 +187,28 @@ final class PlannerAgent {
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    /**
+     * 后备文本解析：LLM 不支持原生 function calling 时，从文本中提取动作调用。
+     * 支持模式：play_pose("拥抱")、play_pose(拥抱)、play_animation("surprise1")
+     */
+    static PlanDecision parseTextAction(String content) {
+        if (content == null) return null;
+        String text = content.toLowerCase();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                "(play_pose|play_animation)\\s*\\(\\s*\"?([^\")\\s,]+)\"?[^)]*\\)"
+        ).matcher(content);
+        if (m.find()) {
+            String action = m.group(1);
+            String name = m.group(2).trim();
+            if (!name.isEmpty()) {
+                return new PlanDecision(action, "", 0,
+                        "从文本中提取的工具调用: " + action + "(" + name + ")",
+                        name);
+            }
+        }
+        return null;
     }
 
     private PlanDecision fallbackFromText(String content) {
