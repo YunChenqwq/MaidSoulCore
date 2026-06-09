@@ -56,6 +56,7 @@ public final class MaidSoulRuntime implements AutoCloseable {
     private final MessageBuffer buffer = new MessageBuffer();
     private final ContextBuilder contextBuilder = new ContextBuilder();
     private final SentenceSplitter splitter = new SentenceSplitter();
+    private final StreamingSegmentEmitter streamEmitter = new StreamingSegmentEmitter();
     private final Consumer<String> output;
     private final RuntimeTraceSink trace;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -462,14 +463,93 @@ public final class MaidSoulRuntime implements AutoCloseable {
         if (target == null) {
             target = buffer.latestUserMessage();
         }
-        String raw = replyer.generate(context, target, identity(), plan.reference_info);
+        streamEmitter.reset();
+        String raw = replyer.generate(
+                context,
+                target,
+                identity(),
+                plan.reference_info,
+                delta -> {
+                    if (cycleVersion == version) {
+                        streamEmitter.acceptDelta(delta);
+                    }
+                }
+        );
+        streamEmitter.flush();
         if (cycleVersion != version) {
             trace.trace("reply.discard", "回复生成期间收到更新消息，丢弃旧回复。");
             return;
         }
-        for (String segment : splitter.split(raw)) {
-            buffer.append(RuntimeMessage.assistant(config.botName, segment));
-            output.accept(segment);
+        if (streamEmitter.emittedSegments().isEmpty()) {
+            for (String segment : splitter.split(raw)) {
+                emitReplySegment(segment);
+            }
+        }
+    }
+
+    private void emitReplySegment(String segment) {
+        String clean = segment == null ? "" : segment.trim();
+        if (!clean.isBlank()) {
+            buffer.append(RuntimeMessage.assistant(config.botName, clean));
+            output.accept(clean);
+        }
+    }
+
+    private final class StreamingSegmentEmitter {
+        private final StringBuilder pending = new StringBuilder();
+        private final java.util.ArrayList<String> emittedSegments = new java.util.ArrayList<>();
+
+        synchronized void reset() {
+            pending.setLength(0);
+            emittedSegments.clear();
+        }
+
+        synchronized void acceptDelta(String delta) {
+            if (delta == null || delta.isBlank()) {
+                return;
+            }
+            for (int i = 0; i < delta.length(); i++) {
+                char ch = delta.charAt(i);
+                pending.append(ch);
+                if (shouldEmit(ch, pending.length())) {
+                    emitBuffered(false);
+                }
+            }
+        }
+
+        synchronized void flush() {
+            emitBuffered(true);
+        }
+
+        synchronized List<String> emittedSegments() {
+            return List.copyOf(emittedSegments);
+        }
+
+        private boolean shouldEmit(char ch, int length) {
+            if (length >= 90) {
+                return true;
+            }
+            return ch == '。'
+                    || ch == '！'
+                    || ch == '？'
+                    || ch == '!'
+                    || ch == '?'
+                    || ch == '~'
+                    || ch == '\n';
+        }
+
+        private void emitBuffered(boolean force) {
+            String raw = pending.toString().trim();
+            if (raw.isBlank()) {
+                pending.setLength(0);
+                return;
+            }
+            if (!force && raw.length() < 2) {
+                return;
+            }
+            pending.setLength(0);
+            emittedSegments.add(raw);
+            emitReplySegment(raw);
         }
     }
 
