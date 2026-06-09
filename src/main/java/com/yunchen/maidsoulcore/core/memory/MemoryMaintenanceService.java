@@ -91,6 +91,10 @@ public final class MemoryMaintenanceService {
                 unique.put(key, episode);
                 continue;
             }
+            if (!structurallyCompatible(previous, episode)) {
+                unique.put(key + "|variant|" + unique.size(), episode);
+                continue;
+            }
             duplicates++;
             merged++;
             mergeInto(previous, episode);
@@ -109,6 +113,16 @@ public final class MemoryMaintenanceService {
                 || "promise".equals(category)
                 || "memory_anchor".equals(category)
                 || "repair_record".equals(category);
+    }
+
+    private static boolean structurallyCompatible(
+            LifeMemoryStore.MemoryEpisode previous,
+            LifeMemoryStore.MemoryEpisode episode
+    ) {
+        double summary = ngramJaccard(previous.summary, episode.summary, 2);
+        double evidence = ngramJaccard(previous.evidence, episode.evidence, 2);
+        double vector = ngramJaccard(previous.vectorText, episode.vectorText, 2);
+        return Math.max(summary, Math.max(evidence, vector)) >= 0.56D;
     }
 
     private static void mergeInto(LifeMemoryStore.MemoryEpisode previous, LifeMemoryStore.MemoryEpisode episode) {
@@ -328,6 +342,46 @@ public final class MemoryMaintenanceService {
 
     private static String normalize(String text) {
         return text == null ? "" : text.toLowerCase(Locale.ROOT).replaceAll("\\s+", "").trim();
+    }
+
+    private static double ngramJaccard(String left, String right, int n) {
+        String a = normalize(left);
+        String b = normalize(right);
+        if (a.isBlank() || b.isBlank()) {
+            return 0.0D;
+        }
+        if (a.equals(b)) {
+            return 1.0D;
+        }
+        java.util.Set<String> leftGrams = ngrams(a, n);
+        java.util.Set<String> rightGrams = ngrams(b, n);
+        if (leftGrams.isEmpty() || rightGrams.isEmpty()) {
+            return 0.0D;
+        }
+        int intersection = 0;
+        for (String gram : leftGrams) {
+            if (rightGrams.contains(gram)) {
+                intersection++;
+            }
+        }
+        int union = leftGrams.size() + rightGrams.size() - intersection;
+        return union <= 0 ? 0.0D : intersection / (double) union;
+    }
+
+    private static java.util.Set<String> ngrams(String text, int n) {
+        java.util.Set<String> out = new java.util.LinkedHashSet<>();
+        int[] cps = text.codePoints().toArray();
+        if (cps.length == 0) {
+            return out;
+        }
+        if (cps.length <= n) {
+            out.add(text);
+            return out;
+        }
+        for (int i = 0; i <= cps.length - n; i++) {
+            out.add(new String(cps, i, n));
+        }
+        return out;
     }
 
     private static double confidenceOrDefault(LifeMemoryStore.MemoryEpisode episode) {

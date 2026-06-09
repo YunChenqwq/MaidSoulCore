@@ -60,6 +60,17 @@ public final class MemoryMaintenanceSmokeMain {
                 0
         ));
         store.appendRecord(record(
+                MemoryCategory.PROMISE.id(),
+                StructuredEventType.PROMISE.id(),
+                "主人",
+                "灵汐",
+                "主人承诺去新的世界时也会带上灵汐。",
+                "planner:event=promise object=新世界同行",
+                0.94D,
+                0.92D,
+                0
+        ));
+        store.appendRecord(record(
                 MemoryCategory.MEMORY_ANCHOR.id(),
                 StructuredEventType.MEMORY_ANCHOR.id(),
                 "灵汐",
@@ -124,6 +135,18 @@ public final class MemoryMaintenanceSmokeMain {
                         .thenComparing(e -> e.object == null ? "" : e.object)
                         .thenComparing(e -> e.summary == null ? "" : e.summary))
                 .toList();
+        long promiseCount = episodes.stream()
+                .filter(e -> MemoryCategory.PROMISE.id().equals(e.category))
+                .count();
+        long mergedProfileCount = episodes.stream()
+                .filter(e -> MemoryCategory.OWNER_PROFILE.id().equals(e.category) && e.mergeCount > 1)
+                .count();
+        if (promiseCount != 2L) {
+            throw new IllegalStateException("Unrelated promises should stay separate, actual=" + promiseCount);
+        }
+        if (mergedProfileCount != 1L) {
+            throw new IllegalStateException("Similar owner_profile records should merge, actual=" + mergedProfileCount);
+        }
 
         StringBuilder report = new StringBuilder();
         append(report, "# Memory Maintenance Smoke Report");
@@ -139,6 +162,8 @@ public final class MemoryMaintenanceSmokeMain {
         append(report, "- 固化条目: " + maintenance.pinned());
         append(report, "- 错误标记: " + maintenance.errorMarked());
         append(report, "- 错误影响旧记忆: " + maintenance.errorAffected());
+        append(report, "- 承诺保留条数: " + promiseCount);
+        append(report, "- 画像合并条数: " + mergedProfileCount);
         append(report, "");
         append(report, "## 维护后的记忆");
         append(report, "");
