@@ -188,6 +188,14 @@ public final class ReasoningEngine {
                     plan = PlanDecision.replyLatest("已获取当前视角摘要，结合观察结果回复。", viewText);
                 }
             }
+            if ("play_pose".equals(plan.action()) || "play_animation".equals(plan.action())) {
+                session.appendInternal("AI动作工具调用: " + plan.action() + " reason=" + plan.reason());
+                trace.trace("tool." + plan.action(), plan.reason());
+                if (com.maidsoul.brain.action.ysm.ActionDispatchHandler.handler != null) {
+                    com.maidsoul.brain.action.ysm.ActionDispatchHandler.handler.accept(plan);
+                }
+                return Result.noAction();
+            }
             if (!"reply".equals(plan.action())) {
                 session.appendInternal("未知动作已忽略: " + plan.action());
                 return Result.noAction();

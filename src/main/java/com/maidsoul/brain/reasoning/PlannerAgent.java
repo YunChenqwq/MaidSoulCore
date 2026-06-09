@@ -129,6 +129,10 @@ final class PlannerAgent {
             case "finish" -> new PlanDecision("no_action", "", 0, compactReason, "");
             case "query_memory" -> new PlanDecision("query_memory", stringArg(args, "query", ""), 0, compactReason, "");
             case "observe_view" -> new PlanDecision("observe_view", "", 0, compactReason, "");
+            case "play_pose" -> new PlanDecision("play_pose", "", 0, compactReason,
+                    stringArg(args, "poseName", "") + "|duration=" + floatArg(args, "duration", 2.0f));
+            case "play_animation" -> new PlanDecision("play_animation", "", 0, compactReason,
+                    stringArg(args, "animName", ""));
             default -> PlanDecision.replyLatest("规划器调用了未知工具，按最新消息回复。");
         };
     }
@@ -278,6 +282,12 @@ final class PlannerAgent {
         Object value = args.get(key);
         String text = value == null ? "" : String.valueOf(value).trim();
         return text.isBlank() ? fallback : text;
+    }
+
+    private static float floatArg(Map<String, Object> args, String key, float fallback) {
+        Object value = args.get(key);
+        if (value instanceof Number number) { return number.floatValue(); }
+        try { return Float.parseFloat(String.valueOf(value)); } catch (Exception ignored) { return fallback; }
     }
 
     private static int intArg(Map<String, Object> args, String key, int fallback) {

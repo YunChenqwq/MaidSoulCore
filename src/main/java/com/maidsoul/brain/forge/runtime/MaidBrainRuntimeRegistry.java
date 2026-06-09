@@ -2,22 +2,28 @@ package com.maidsoul.brain.forge.runtime;
 
 import com.github.tartaricacid.touhoulittlemaid.entity.passive.EntityMaid;
 import com.github.tartaricacid.touhoulittlemaid.ai.manager.entity.LLMCallback;
+import com.maidsoul.brain.action.ysm.ActionDispatchHandler;
 import com.maidsoul.brain.config.BrainConfig;
 import com.maidsoul.brain.forge.MaidSoulCoreForgeMod;
 import com.maidsoul.brain.forge.config.ForgeBrainConfigInstaller;
 import com.maidsoul.brain.forge.config.ForgeDebugOptions;
 import com.maidsoul.brain.forge.debug.OwnerChatDebugEcho;
+import com.maidsoul.brain.forge.network.ModNetwork;
+import com.maidsoul.brain.forge.network.PlayActionPacket;
 import com.maidsoul.brain.forge.speech.MaidSpeechDispatcher;
 import com.maidsoul.brain.forge.soul.SoulBindingData;
 import com.maidsoul.brain.llm.OpenAiCompatibleClient;
 import com.maidsoul.brain.prompt.PromptCatalog;
+import com.maidsoul.brain.reasoning.PlanDecision;
 import com.maidsoul.brain.reasoning.ViewObservationTool;
 import com.maidsoul.brain.runtime.ConversationRuntime;
 import com.maidsoul.brain.runtime.RuntimeTraceSink;
 import com.maidsoul.brain.forge.vision.MaidVisionService;
 import com.maidsoul.brain.vision.VisionConfig;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraftforge.network.NetworkDirection;
 
 import java.nio.file.Path;
 import java.util.Set;
@@ -93,6 +99,32 @@ public final class MaidBrainRuntimeRegistry {
                 plannerViewTool(maid)
         );
         holder[0] = runtime;
+
+        // 注册动作调度器：AI 调用 play_pose/play_animation 时触发
+        ActionDispatchHandler.handler = decision -> {
+            String ref = decision.referenceInfo();
+            if (ref == null || ref.isBlank()) return;
+            LivingEntity owner = maid.getOwner();
+            if (!(owner instanceof ServerPlayer player)) return;
+            if ("play_pose".equals(decision.action())) {
+                String poseName = ref;
+                float duration = 2.0f;
+                int pipe = ref.indexOf('|');
+                if (pipe > 0) {
+                    poseName = ref.substring(0, pipe);
+                    String durPart = ref.substring(pipe + 1);
+                    if (durPart.startsWith("duration=")) {
+                        try { duration = Float.parseFloat(durPart.substring(9)); } catch (Exception ignored) {}
+                    }
+                }
+                ModNetwork.CHANNEL.sendTo(new PlayActionPacket("pose", poseName, duration),
+                        player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+            } else if ("play_animation".equals(decision.action())) {
+                ModNetwork.CHANNEL.sendTo(new PlayActionPacket("animation", ref, 0),
+                        player.connection.connection, NetworkDirection.PLAY_TO_CLIENT);
+            }
+        };
+
         runtime.start();
         return runtime;
     }

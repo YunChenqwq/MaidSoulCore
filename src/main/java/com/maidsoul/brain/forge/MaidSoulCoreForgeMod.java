@@ -40,6 +40,8 @@ public final class MaidSoulCoreForgeMod {
         ForgeBrainConfigInstaller.installIfMissing();
         MaidSoulTlmBootstrapper.ensureRuntimeSite();
         com.maidsoul.brain.action.ysm.PoseConfig.init();
+        com.maidsoul.brain.planner.hook.PlannerHookRegistry.global()
+                .registerBeforeRequest(new com.maidsoul.brain.action.ysm.ActionToolHook());
         MinecraftForge.EVENT_BUS.register(MaidSoulForgeEvents.class);
         MinecraftForge.EVENT_BUS.register(MaidSoulCommands.class);
         LOGGER.info("MaidSoulCore Forge bridge loaded: action system initialized, {} poses.", com.maidsoul.brain.action.ysm.PoseConfig.getPoseNames().size());
