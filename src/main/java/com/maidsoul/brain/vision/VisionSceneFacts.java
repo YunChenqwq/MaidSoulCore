@@ -73,8 +73,8 @@ public record VisionSceneFacts(
         return "source=" + clean(source)
                 + ", owner=" + clean(owner)
                 + ", request_maid_uuid=" + clean(maidUuid)
-                + ", scene_hint=" + clip(sceneHint, 300)
-                + ", " + toPlannerText();
+                + ", " + toPlannerText()
+                + ", scene_hint=" + clip(sceneHint, 220);
     }
 
     private static String companionshipCues(boolean lookingAtSelf, Map<String, String> state) {

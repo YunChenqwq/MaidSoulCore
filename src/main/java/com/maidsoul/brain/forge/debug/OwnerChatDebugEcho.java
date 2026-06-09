@@ -95,7 +95,8 @@ public final class OwnerChatDebugEcho {
                 payload = detail;
             }
             String title = classifyWorldEvent(type);
-            return new TraceLine(title, "type=" + (type.isBlank() ? "unknown" : type) + "；" + compactWorldPayload(payload));
+            String compact = "视角摘要".equals(title) ? compactVisionPayload(payload) : compactWorldPayload(payload);
+            return new TraceLine(title, "type=" + (type.isBlank() ? "unknown" : type) + "；" + compact);
         }
 
         private static String classifyWorldEvent(String type) {
@@ -136,7 +137,25 @@ public final class OwnerChatDebugEcho {
             if (cleaned.startsWith("[工具结果]")) {
                 cleaned = cleaned.substring("[工具结果]".length()).trim();
             }
+            if (cleaned.contains("[视觉事实]") || cleaned.contains("raw_summary=")) {
+                return compactVisionPayload(cleaned);
+            }
             return compactWorldPayload(cleaned);
+        }
+
+        private static String compactVisionPayload(String payload) {
+            String rawSummary = extractAfter(payload, "raw_summary=", "");
+            if (!rawSummary.isBlank()) {
+                int sceneHint = rawSummary.indexOf(", scene_hint=");
+                if (sceneHint >= 0) {
+                    rawSummary = rawSummary.substring(0, sceneHint).trim();
+                }
+                return "视觉正文=" + rawSummary
+                        + appendField(payload, "owner_focus=", "；焦点=")
+                        + appendField(payload, "danger_level=", "；危险=")
+                        + appendField(payload, "topic_candidates=", "；话题=");
+            }
+            return compactWorldPayload(payload);
         }
 
         private static String compactWorldPayload(String payload) {
@@ -174,6 +193,11 @@ public final class OwnerChatDebugEcho {
             }
             int end = text.indexOf(until, start);
             return (end < 0 ? text.substring(start) : text.substring(start, end)).trim();
+        }
+
+        private static String appendField(String text, String key, String label) {
+            String value = extractAfter(text, key, ",");
+            return value.isBlank() ? "" : label + value;
         }
     }
 }
