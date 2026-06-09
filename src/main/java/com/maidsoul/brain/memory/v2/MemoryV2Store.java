@@ -185,6 +185,7 @@ public final class MemoryV2Store {
         int decayed = 0;
         int solidified = 0;
         int correctionMarked = 0;
+        int errorAffected = 0;
         int forgotten = 0;
 
         Map<String, MemoryParagraph> canonical = new LinkedHashMap<>();
@@ -208,6 +209,7 @@ public final class MemoryV2Store {
             canonical.put(key, winner);
             deduplicated++;
         }
+        deduplicated += mergeStructurallySimilar(paragraphs, now);
 
         for (MemoryParagraph paragraph : paragraphs) {
             if (paragraph.deleted) {
@@ -235,6 +237,11 @@ public final class MemoryV2Store {
                 paragraph.updatedAt = now;
                 correctionMarked++;
             }
+            if (tagList.contains("error_mark")) {
+                paragraph.salience = Math.max(paragraph.salience, 8);
+                paragraph.protectedUntil = Math.max(paragraph.protectedUntil, now + 14 * 24 * 3600.0);
+                paragraph.updatedAt = now;
+            }
 
             double ageDays = Math.max(0, (now - paragraph.updatedAt) / 86400.0);
             if (!protectedNow && ageDays >= 7 && paragraph.salience > 1 && paragraph.accessCount == 0) {
@@ -248,6 +255,7 @@ public final class MemoryV2Store {
                 forgotten++;
             }
         }
+        errorAffected = applyErrorMarks(paragraphs, now);
 
         writeAll(paragraphPath(), paragraphs.stream().map(MemoryParagraph::toJsonLine).toList());
         MemoryMaintenanceReport report = new MemoryMaintenanceReport(
@@ -257,7 +265,8 @@ public final class MemoryV2Store {
                 solidified,
                 correctionMarked,
                 forgotten,
-                "维护策略=dedupe+solidify+explicit_correction_mark+age_decay"
+                "维护策略=exact_dedupe+structural_merge+solidify+explicit_correction_mark+error_mark_propagation+age_decay"
+                        + "; errorAffected=" + errorAffected
         );
         appendLine(maintenanceLogPath(), report.toJsonLine());
         return report;
@@ -875,6 +884,171 @@ public final class MemoryV2Store {
         return first.createdAt <= second.createdAt ? first : second;
     }
 
+    private static int mergeStructurallySimilar(List<MemoryParagraph> paragraphs, double now) {
+        int merged = 0;
+        for (int i = 0; i < paragraphs.size(); i++) {
+            MemoryParagraph left = paragraphs.get(i);
+            if (left.deleted || !canStructuralMerge(left)) {
+                continue;
+            }
+            for (int j = i + 1; j < paragraphs.size(); j++) {
+                MemoryParagraph right = paragraphs.get(j);
+                if (right.deleted || !canStructuralMerge(right)) {
+                    continue;
+                }
+                if (!sameStructuralBucket(left, right)) {
+                    continue;
+                }
+                double similarity = Math.max(
+                        ngramJaccard(left.content, right.content, 2),
+                        ngramJaccard(left.metadata, right.metadata, 2)
+                );
+                if (similarity < 0.56D) {
+                    continue;
+                }
+                MemoryParagraph winner = betterKeeper(left, right);
+                MemoryParagraph loser = winner == left ? right : left;
+                winner.salience = Math.max(winner.salience, loser.salience);
+                winner.accessCount += Math.max(0, loser.accessCount);
+                winner.tags = mergeCsv(winner.tags, loser.tags);
+                winner.metadata = mergeMetadata(winner.metadata, loser.metadata);
+                winner.updatedAt = now;
+                loser.deleted = true;
+                loser.updatedAt = now;
+                merged++;
+                if (loser == left) {
+                    break;
+                }
+            }
+        }
+        return merged;
+    }
+
+    private static int applyErrorMarks(List<MemoryParagraph> paragraphs, double now) {
+        List<MemoryParagraph> marks = paragraphs.stream()
+                .filter(paragraph -> !paragraph.deleted)
+                .filter(MemoryV2Store::isErrorMark)
+                .toList();
+        if (marks.isEmpty()) {
+            return 0;
+        }
+        int affected = 0;
+        for (MemoryParagraph paragraph : paragraphs) {
+            if (paragraph.deleted || isErrorMark(paragraph) || split(paragraph.tags).contains("error_affected")) {
+                continue;
+            }
+            for (MemoryParagraph mark : marks) {
+                if (!sameErrorTarget(paragraph, mark)) {
+                    continue;
+                }
+                paragraph.tags = mergeCsv(paragraph.tags, "error_affected");
+                paragraph.metadata = mergeMetadata(paragraph.metadata, "errorMark=" + mark.hash);
+                paragraph.salience = Math.min(paragraph.salience, 2);
+                paragraph.updatedAt = now;
+                affected++;
+                break;
+            }
+        }
+        return affected;
+    }
+
+    private static boolean canStructuralMerge(MemoryParagraph paragraph) {
+        List<String> tags = split(paragraph.tags);
+        if (tags.contains("error_mark") || tags.contains("correction") || tags.contains("error_affected")) {
+            return false;
+        }
+        return tags.contains("user_profile")
+                || tags.contains("relationship_event")
+                || tags.contains("world_fact")
+                || tags.contains("promise")
+                || tags.contains("memory_anchor")
+                || tags.contains("repair_debt")
+                || tags.contains("self_memory")
+                || tags.contains("summary");
+    }
+
+    private static boolean sameStructuralBucket(MemoryParagraph left, MemoryParagraph right) {
+        if (!normalize(left.sourceType).equals(normalize(right.sourceType))) {
+            return false;
+        }
+        Set<String> leftTags = new HashSet<>(split(left.tags));
+        Set<String> rightTags = new HashSet<>(split(right.tags));
+        leftTags.retainAll(rightTags);
+        return leftTags.stream().anyMatch(MemoryV2Store::isStructuralTag);
+    }
+
+    private static boolean isStructuralTag(String tag) {
+        return switch (tag) {
+            case "user_profile", "relationship_event", "world_fact", "promise", "memory_anchor",
+                    "repair_debt", "self_memory", "summary" -> true;
+            default -> false;
+        };
+    }
+
+    private static boolean isErrorMark(MemoryParagraph paragraph) {
+        List<String> tags = split(paragraph.tags);
+        return tags.contains("error_mark") || tags.contains("correction");
+    }
+
+    private static boolean sameErrorTarget(MemoryParagraph paragraph, MemoryParagraph mark) {
+        if (!sameStructuralBucketLoosely(paragraph, mark)) {
+            return false;
+        }
+        double contentSimilarity = ngramJaccard(paragraph.content, mark.content, 2);
+        double metadataSimilarity = ngramJaccard(paragraph.metadata, mark.metadata, 2);
+        return Math.max(contentSimilarity, metadataSimilarity) >= 0.42D;
+    }
+
+    private static boolean sameStructuralBucketLoosely(MemoryParagraph left, MemoryParagraph right) {
+        Set<String> leftTags = new HashSet<>(split(left.tags));
+        Set<String> rightTags = new HashSet<>(split(right.tags));
+        leftTags.retainAll(rightTags);
+        if (leftTags.stream().anyMatch(MemoryV2Store::isStructuralTag)) {
+            return true;
+        }
+        return !left.sourceType.isBlank() && normalize(left.sourceType).equals(normalize(right.sourceType));
+    }
+
+    private static double ngramJaccard(String left, String right, int n) {
+        String a = normalize(left).replaceAll("\\s+", "");
+        String b = normalize(right).replaceAll("\\s+", "");
+        if (a.isBlank() || b.isBlank()) {
+            return 0.0D;
+        }
+        if (a.equals(b)) {
+            return 1.0D;
+        }
+        Set<String> leftGrams = ngrams(a, n);
+        Set<String> rightGrams = ngrams(b, n);
+        if (leftGrams.isEmpty() || rightGrams.isEmpty()) {
+            return 0.0D;
+        }
+        int intersection = 0;
+        for (String gram : leftGrams) {
+            if (rightGrams.contains(gram)) {
+                intersection++;
+            }
+        }
+        int union = leftGrams.size() + rightGrams.size() - intersection;
+        return union <= 0 ? 0.0D : intersection / (double) union;
+    }
+
+    private static Set<String> ngrams(String text, int n) {
+        Set<String> out = new HashSet<>();
+        int[] cps = text.codePoints().toArray();
+        if (cps.length == 0) {
+            return out;
+        }
+        if (cps.length <= n) {
+            out.add(text);
+            return out;
+        }
+        for (int i = 0; i <= cps.length - n; i++) {
+            out.add(new String(cps, i, n));
+        }
+        return out;
+    }
+
     private static String canonicalKey(String content) {
         String clean = normalize(content)
                 .replaceAll("[\\p{Punct}，。！？、；：“”‘’（）【】《》…\\s]+", "");
@@ -889,6 +1063,18 @@ public final class MemoryV2Store {
         values.addAll(split(first));
         values.addAll(split(second));
         return String.join(",", values.stream().filter(v -> v != null && !v.isBlank()).sorted().toList());
+    }
+
+    private static String mergeMetadata(String first, String second) {
+        String a = first == null ? "" : first.trim();
+        String b = second == null ? "" : second.trim();
+        if (a.isBlank()) {
+            return b;
+        }
+        if (b.isBlank() || a.contains(b)) {
+            return a;
+        }
+        return a + ";" + b;
     }
 
     private Path paragraphPath() {
