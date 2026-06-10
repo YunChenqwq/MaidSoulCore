@@ -49,6 +49,7 @@ public final class ConversationRuntime implements AutoCloseable {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final BlockingQueue<TurnKind> internalTurnQueue = new LinkedBlockingQueue<>();
     private final AtomicLong version = new AtomicLong();
+    private final ArrayDeque<String> recentAssistantReplyFingerprints = new ArrayDeque<>();
 
     private volatile RuntimeState state = RuntimeState.STOP;
     private volatile boolean running;
@@ -337,26 +338,36 @@ public final class ConversationRuntime implements AutoCloseable {
                         result.referenceInfo()
                 );
             }
+            boolean duplicateProactiveSuppressed = false;
             if (result.kind() == ReasoningEngine.ResultKind.STREAMED && result.replyText() != null) {
                 List<String> segments = streamEmitter.emittedSegments();
-                if (segments.isEmpty()) {
+                if (proactiveCycle && segments.isEmpty() && streamEmitter.suppressedDuplicateCount() > 0) {
+                    duplicateProactiveSuppressed = true;
+                    trace.trace("proactive.dedupe", "主动回复与最近主动发言过于相似，已压制输出。");
+                } else if (segments.isEmpty()) {
                     segments = splitter.split(result.replyText());
                 }
-                replyEffectTracker.recordReply(
-                        result.targetMessage(),
-                        result.replyText(),
-                        segments,
-                        result.plannerReasoning(),
-                        result.referenceInfo()
-                );
+                if (!duplicateProactiveSuppressed) {
+                    replyEffectTracker.recordReply(
+                            result.targetMessage(),
+                            result.replyText(),
+                            segments,
+                            result.plannerReasoning(),
+                            result.referenceInfo()
+                    );
+                }
             }
-            if (result.kind() == ReasoningEngine.ResultKind.REPLY || result.kind() == ReasoningEngine.ResultKind.STREAMED) {
+            if ((result.kind() == ReasoningEngine.ResultKind.REPLY || result.kind() == ReasoningEngine.ResultKind.STREAMED)
+                    && !duplicateProactiveSuppressed) {
                 recordReplyLatency();
                 if (proactiveCycle) {
                     markProactiveAssistantFinished();
                 } else {
                     markAssistantFinished();
                 }
+            } else if (duplicateProactiveSuppressed) {
+                clearReplyLatencyMeasurement();
+                markProactiveDuplicateSuppressed();
             }
         } catch (Exception e) {
             if (running) {
@@ -428,9 +439,14 @@ public final class ConversationRuntime implements AutoCloseable {
     private List<String> emitReply(String rawText) {
         List<String> segments = splitter.split(rawText);
         for (String segment : segments) {
+            if (shouldSuppressDuplicateProactiveSegment(segment)) {
+                trace.trace("proactive.dedupe", "跳过重复主动分句：" + clipTrace(segment));
+                continue;
+            }
             session.appendAssistant(ChatMessage.assistant(config.identity().botName(), segment));
             memoryRuntime.observeAssistantMessage(segment);
             output.accept(segment);
+            rememberAssistantSegment(segment);
             sleepQuietly(config.splitter().bubbleDelayMillis());
         }
         return segments;
@@ -447,10 +463,12 @@ public final class ConversationRuntime implements AutoCloseable {
         private final StringBuilder buffer = new StringBuilder();
         private final ReplySanitizer sanitizer = new ReplySanitizer();
         private final java.util.ArrayList<String> emittedSegments = new java.util.ArrayList<>();
+        private int suppressedDuplicateCount;
 
         synchronized void reset() {
             buffer.setLength(0);
             emittedSegments.clear();
+            suppressedDuplicateCount = 0;
         }
 
         synchronized void acceptDelta(String delta) {
@@ -474,6 +492,10 @@ public final class ConversationRuntime implements AutoCloseable {
             return List.copyOf(emittedSegments);
         }
 
+        synchronized int suppressedDuplicateCount() {
+            return suppressedDuplicateCount;
+        }
+
         private boolean shouldEmit(char ch, int length) {
             if (length >= Math.max(10, config.splitter().maxLength())) {
                 return true;
@@ -495,10 +517,16 @@ public final class ConversationRuntime implements AutoCloseable {
             if (cleaned.isBlank()) {
                 return;
             }
+            if (shouldSuppressDuplicateProactiveSegment(cleaned)) {
+                suppressedDuplicateCount++;
+                trace.trace("proactive.dedupe", "跳过重复主动分句：" + clipTrace(cleaned));
+                return;
+            }
             emittedSegments.add(cleaned);
             session.appendAssistant(ChatMessage.assistant(config.identity().botName(), cleaned));
             memoryRuntime.observeAssistantMessage(cleaned);
             output.accept(cleaned);
+            rememberAssistantSegment(cleaned);
             sleepQuietly(config.splitter().bubbleDelayMillis());
         }
     }
@@ -529,6 +557,25 @@ public final class ConversationRuntime implements AutoCloseable {
                 ? ProactiveScheduler.STAGE_FINAL_NOTICE
                 : Math.max(proactiveStageIndex, ProactiveScheduler.STAGE_TOPIC_PUSH);
         scheduleNextProactiveCheckLocked(proactiveGeneration);
+    }
+
+    private synchronized void markProactiveDuplicateSuppressed() {
+        lastAssistantFinishedAtMillis = System.currentTimeMillis();
+        proactiveAwaitingCycle = false;
+        proactiveAwaitingStage = -1;
+        proactiveSilentDecisionsSinceLastUser++;
+        int activeCuriosity = memoryRuntime.activeCuriosity();
+        if (proactiveScheduler.shouldScheduleAfterSilentDecision(
+                activeCuriosity,
+                proactiveSilentDecisionsSinceLastUser,
+                proactiveFiredCandidatesSinceLastUser)) {
+            scheduleNextProactiveCheckLocked(proactiveGeneration);
+        } else if (scheduleLongSilenceCheckLocked(proactiveGeneration)) {
+            trace.trace("proactive.long_silence.schedule",
+                    "重复主动回复被压制后，改为长沉默复检。主动好奇=" + activeCuriosity);
+        } else {
+            trace.trace("proactive.stop", "重复主动回复被压制，停止主动候选，等待玩家下一条消息。");
+        }
     }
 
     private synchronized void markConversationAnchorAfterUserNoAction() {
@@ -704,6 +751,93 @@ public final class ConversationRuntime implements AutoCloseable {
             future.cancel(false);
             proactiveFuture = null;
         }
+    }
+
+    private synchronized boolean shouldSuppressDuplicateProactiveSegment(String text) {
+        if (!proactiveAwaitingCycle) {
+            return false;
+        }
+        String fingerprint = proactiveFingerprint(text);
+        if (fingerprint.length() < 6) {
+            return false;
+        }
+        for (String previous : recentAssistantReplyFingerprints) {
+            if (proactiveSimilarity(fingerprint, previous) >= 0.86) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private synchronized void rememberAssistantSegment(String text) {
+        String fingerprint = proactiveFingerprint(text);
+        if (fingerprint.length() < 6) {
+            return;
+        }
+        recentAssistantReplyFingerprints.addLast(fingerprint);
+        while (recentAssistantReplyFingerprints.size() > 8) {
+            recentAssistantReplyFingerprints.removeFirst();
+        }
+    }
+
+    private static double proactiveSimilarity(String left, String right) {
+        if (left == null || right == null || left.isBlank() || right.isBlank()) {
+            return 0.0;
+        }
+        if (left.equals(right)) {
+            return 1.0;
+        }
+        if (left.contains(right) || right.contains(left)) {
+            int min = Math.min(left.length(), right.length());
+            int max = Math.max(left.length(), right.length());
+            return max == 0 ? 0.0 : (double) min / (double) max;
+        }
+        java.util.Set<String> leftBigrams = bigrams(left);
+        java.util.Set<String> rightBigrams = bigrams(right);
+        if (leftBigrams.isEmpty() || rightBigrams.isEmpty()) {
+            return 0.0;
+        }
+        int intersection = 0;
+        for (String item : leftBigrams) {
+            if (rightBigrams.contains(item)) {
+                intersection++;
+            }
+        }
+        int union = leftBigrams.size() + rightBigrams.size() - intersection;
+        return union <= 0 ? 0.0 : (double) intersection / (double) union;
+    }
+
+    private static java.util.Set<String> bigrams(String text) {
+        java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+        if (text.length() < 2) {
+            if (!text.isBlank()) {
+                out.add(text);
+            }
+            return out;
+        }
+        for (int i = 0; i < text.length() - 1; i++) {
+            out.add(text.substring(i, i + 2));
+        }
+        return out;
+    }
+
+    private static String proactiveFingerprint(String text) {
+        if (text == null) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char ch = Character.toLowerCase(text.charAt(i));
+            if (Character.isLetterOrDigit(ch) || Character.UnicodeScript.of(ch) == Character.UnicodeScript.HAN) {
+                builder.append(ch);
+            }
+        }
+        return builder.toString();
+    }
+
+    private static String clipTrace(String text) {
+        String clean = text == null ? "" : text.replace('\r', ' ').replace('\n', ' ').trim();
+        return clean.length() <= 60 ? clean : clean.substring(0, 60) + "...";
     }
 
     private static void sleepQuietly(long millis) {
