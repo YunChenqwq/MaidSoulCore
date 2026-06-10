@@ -91,6 +91,19 @@ public final class ChatSession {
         return Optional.empty();
     }
 
+    public synchronized List<ChatMessage> recentAssistantMessages(int maxCount) {
+        int limit = Math.max(1, maxCount);
+        List<ChatMessage> out = new ArrayList<>();
+        for (int i = history.size() - 1; i >= 0 && out.size() < limit; i--) {
+            ChatMessage message = history.get(i);
+            if (message.role() == MessageRole.ASSISTANT) {
+                out.add(message);
+            }
+        }
+        java.util.Collections.reverse(out);
+        return out;
+    }
+
     public synchronized List<ChatMessage> contextWindow(int maxCount) {
         List<ChatMessage> counted = history.stream()
                 .filter(ChatMessage::countInContext)

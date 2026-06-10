@@ -666,6 +666,10 @@ public final class ConversationRuntime implements AutoCloseable {
                     proactiveLongSilenceChecksSinceLastUser,
                     memoryRuntime.proactiveAffectHint()
             );
+            String recentAssistant = renderRecentAssistantForProactive();
+            if (!recentAssistant.isBlank()) {
+                event = event + recentAssistant;
+            }
             long newVersion = version.incrementAndGet();
             session.appendIncoming(ChatMessage.reference(event));
             trace.trace("proactive.event", "version=" + newVersion
@@ -704,6 +708,28 @@ public final class ConversationRuntime implements AutoCloseable {
             future.cancel(false);
             proactiveFuture = null;
         }
+    }
+
+    private String renderRecentAssistantForProactive() {
+        List<ChatMessage> recent = session.recentAssistantMessages(2);
+        if (recent.isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder("最近女仆可见发言：");
+        for (int i = 0; i < recent.size(); i++) {
+            ChatMessage message = recent.get(i);
+            if (i > 0) {
+                builder.append(" / ");
+            }
+            builder.append(clipTrace(message.content()));
+        }
+        builder.append("。主动回复不能复读这些句子，也不要只换几个字重复同一种关心；没有新角度时应 wait 或 no_action。");
+        return builder.toString();
+    }
+
+    private static String clipTrace(String text) {
+        String clean = text == null ? "" : text.replace('\r', ' ').replace('\n', ' ').trim();
+        return clean.length() <= 80 ? clean : clean.substring(0, 80) + "...";
     }
 
     private static void sleepQuietly(long millis) {

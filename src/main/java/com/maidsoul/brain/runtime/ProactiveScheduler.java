@@ -125,6 +125,7 @@ public final class ProactiveScheduler {
                 + "可选类型包括 care_check、companionship、affection_ping、world_comment、memory_recall、repair_followup。"
                 + "没有可靠候选时不要硬聊。"
                 + "当前情绪主动参考：" + (affectHint == null || affectHint.isBlank() ? "none" : affectHint)
+                + "如果事件里带有最近女仆可见发言，必须先避开重复表达；除非有新信息或新角度，否则优先 wait/no_action。"
                 + "这只是提交给 planner 的候选信号，不是可见话题；planner 可以 reply、wait 或 no_action，运行时不会覆盖。";
     }
 }
